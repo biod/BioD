@@ -98,7 +98,7 @@ private {
                 str ~= `putinteger(stream, `~Field[0].name~`);`.dup;
             }
             str ~= `}`.dup;
-            return str.idup ~ serializeFields!(Field[1..$]);
+            return str.idup ~ serializeFields!(Field[1..$])();
         } else {
             return "";
         }
@@ -296,7 +296,7 @@ struct ValueRange(T) {
     void popBack() { _ids = _ids[0 .. $ - 1]; }
     ref T opIndex(size_t i) { return _dict[_ids[i]]; }
     size_t length() @property { return _ids.length; }
-    ValueRange save() { return ValueRange(_dict, _ids[]); }
+    ValueRange save() @property { return ValueRange(_dict, _ids[]); }
 }
 
 /// Common class for storing header lines

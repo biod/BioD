@@ -20,7 +20,7 @@ final class File: std.stream.File {
 
     override ulong seek(long offset, SeekPos rel) {
         assertSeekable();
-        auto hFile = handle;
+        auto hFile = handle();
         version (Windows) {
           int hi = cast(int)(offset>>32);
           uint low = SetFilePointer(hFile, cast(int)offset, &hi, rel);

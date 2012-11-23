@@ -42,7 +42,7 @@ struct SamFile {
     this(string filename) {
         _file = File(filename);
         _filename = filename;
-        _seekable = lseek(_file.fileno, 0, 0) != ~0;
+        _seekable = lseek(_file.fileno(), 0, 0) != ~0;
         _initializeStream();
     }
 

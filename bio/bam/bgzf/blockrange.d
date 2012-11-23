@@ -129,7 +129,7 @@ struct BgzfRange {
      */
     @property ulong start_offset() { return _start_offset; }
 
-    bool empty() {
+    bool empty() @property {
         return _empty;
     }
 
@@ -137,7 +137,7 @@ struct BgzfRange {
         loadNextBlock();
     }
 
-    BgzfBlock front() {
+    BgzfBlock front() @property {
         return _current_block;
     }
 

@@ -334,7 +334,7 @@ struct BamRead {
             return res;
         }
 
-        SequenceResult save() const {
+        @property SequenceResult save() const {
             return SequenceResult(_data[_getActualPosition(_index) .. $], 
                                   _len - _index, 
                                   _useFirst4Bits(_index));
