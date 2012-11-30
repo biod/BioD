@@ -9,6 +9,20 @@ struct KMer(uint K)
 {
     private ulong _id;
 
+    static Base5 code2base(int code) {
+        return Base5("ACGT"[code]);
+    }
+
+    static int char2code(char base) {
+        switch (base) {
+            case 'A': return 0;
+            case 'C': return 1;
+            case 'G': return 2;
+            case 'T': return 3;
+            default: return -1;
+        }
+    }
+
     /// Unique ID
     ulong id() @property const {
         return _id;
@@ -68,10 +82,6 @@ struct KMer(uint K)
         bool empty() @property const { return _len == 0; }
         void popFront() { --_len; }
         void popBack() { --_len; _n >>= 2; }
-
-        private static Base5 code2base(int code) {
-            return Base5("ACGT"[code]);
-        }
 
         Base5 opIndex(size_t i) const {
             return code2base((_n >> (2 * (_len - i - 1))) & 3);
