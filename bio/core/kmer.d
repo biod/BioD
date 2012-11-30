@@ -1,20 +1,40 @@
 module bio.core.kmer;
 
 import bio.core.base;
+import std.range;
 
-///
-struct KMer(uint K) {
+/// Represents k-mer of ACGT bases of length no more than 32.
+struct KMer(uint K) 
+    if (K <= 32)
+{
     private ulong _id;
+
+    /// Unique ID
     ulong id() @property const {
         return _id;
     }
 
-    this(S)(S sequence) {
+    /// Construct by ID
+    this(S)(S id) 
+        if (is(S == ulong))
+    {
+        _id = id;
+    }
+       
+    /// Construct from sequence. Takes bases from the provided sequence
+    /// until K symbols 'A/C/G/T' are found. That is, 'N' and other ambiguous
+    /// bases are skipped.
+    ///
+    /// If sequence does not contain at least K bases 'A/C/G/T', the result of
+    /// operation is undefined.
+    this(S)(S sequence) 
+        if (isInputRange!S) 
+    {
         size_t i = 0;
         foreach (nuc; sequence) {
             _id <<= 2;
             ++i;
-            switch (nuc) {
+            switch (cast(char)nuc) {
                 case 'A':
                     break;
                 case 'C':
@@ -68,6 +88,7 @@ struct KMer(uint K) {
         }
     }
 
+    /// Sequence corresponding to the k-mer
     KMerSequence sequence() @property const {
         return KMerSequence(_id);
     }
@@ -77,4 +98,6 @@ unittest {
     import std.algorithm;
     auto kmer = KMer!10("AACGTACGTG");
     assert(equal(kmer.sequence, "AACGTACGTG"));
+
+    assert(KMer!5(KMer!5(0b1011001001UL).sequence).id == 0b1011001001UL);
 }
