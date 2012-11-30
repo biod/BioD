@@ -20,4 +20,7 @@ struct SffRead {
     ushort clip_qual_right;
     ushort clip_adapter_left;
     ushort clip_adapter_right;
+
+    /// Record start offset in the file
+    size_t file_offset;
 }

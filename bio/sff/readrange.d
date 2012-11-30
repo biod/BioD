@@ -63,12 +63,13 @@ struct SffReadRange {
         SffRead _read;
 
         void _fetchNextRead() {
+            if (_stream.position == _index_loc.offset)
+                _stream.seekCur(_index_loc.length);
+
             if (_stream.eof) {
                 _empty = true;
             } else {
-                if (_stream.position == _index_loc.offset)
-                    _stream.seekCur(_index_loc.length);
-
+                _read.file_offset = _stream.position;
                 // determine how many bytes to read
                 ushort read_header_length = void;
                 ushort name_length = void;

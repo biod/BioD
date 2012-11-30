@@ -7,15 +7,42 @@ version(Posix){
     private import core.sys.posix.unistd;
 }
 
+FileMode toFileMode(string mode) {
+    FileMode result = FileMode.In;
+    switch (mode) {
+        case "r", "rb":
+            result = FileMode.In; // 1000
+            break;
+        case "r+", "r+b", "rb+":
+            result = FileMode.In | FileMode.Out; // 1100
+        case "w", "wb":
+            result = FileMode.OutNew; // 0110
+            break;
+        case "w+", "w+b", "wb+":
+            result = FileMode.In | FileMode.OutNew; // 1110
+            break;
+        case "a", "ab":
+            result = FileMode.Append; // 0001
+            break;
+        case "a+", "a+b", "ab+":
+            result = FileMode.In | FileMode.Append; // 1001
+            break;
+        default:
+            break;
+    }
+
+    return result;
+}
+
 final class File: std.stream.File {
-    this(string filename) {
+    this(string filename, string mode="rb") {
         // Issue 8528 workaround
-        auto file = fopen(toStringz(filename), "rb");
+        auto file = fopen(toStringz(filename), toStringz(mode));
         if (file == null) {
             throw new OpenException(cast(string) ("Cannot open or create file '"
                                             ~ filename ~ "'"));
         }
-        super(core.stdc.stdio.fileno(file), FileMode.In);
+        super(core.stdc.stdio.fileno(file), toFileMode(mode));
     }
 
     override ulong seek(long offset, SeekPos rel) {
