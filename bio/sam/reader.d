@@ -17,16 +17,16 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
-module bio.bam.samfile;
+module bio.sam.reader;
 
+import bio.sam.header;
 import bio.bam.read;
-import bio.bam.samheader;
 import bio.bam.reference;
 
 version(DigitalMars) {
-    import bio.bam.utils.samrecordparser;
+    import bio.sam.utils.recordparser;
 } else {
-    import bio.bam.utils.fastsamrecordparser;
+    import bio.sam.utils.fastrecordparser;
 }
 
 import std.stdio;
@@ -37,7 +37,7 @@ private {
     extern(C) size_t lseek(int, size_t, int);
 }
 
-struct SamFile {
+class SamReader {
 
     this(string filename) {
         _file = File(filename);

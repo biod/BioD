@@ -17,18 +17,19 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
+
+import bio.sam.reader;
+import bio.sam.header;
 import bio.bam.bgzf.blockrange;
-import bio.bam.bamfile;
-import bio.bam.samfile;
+import bio.bam.reader;
 import bio.bam.output;
-import bio.bam.samheader;
 import bio.bam.md.reconstruct;
 import bio.bam.pileuprange;
 import bio.bam.baseinfo;
 import bio.bam.validation.samheader;
 import bio.bam.validation.alignment;
 import bio.bam.utils.samheadermerger;
-import bio.bam.utils.samrecordparser;
+import bio.sam.utils.recordparser;
 import bio.bam.serialization.sam;
 
 import bio.core.utils.tmpfile;
@@ -48,7 +49,7 @@ unittest {
 
     writeln("Testing extracting SAM header...");
     auto fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
-    auto bf = BamFile(fn);
+    auto bf = new BamReader(fn);
     assert(bf.header.format_version == "1.3");
     assert(bf.header.sorting_order == SortingOrder.coordinate);
     assert(bf.header.sequences.length == 2);
@@ -56,7 +57,7 @@ unittest {
     assert(bf.header.sequences["chr2"].length == 1584);
 
     fn = buildPath(dirName(__FILE__), "data", "bins.bam");
-    bf = BamFile(fn);
+    bf = new BamReader(fn);
     assert(bf.header.sorting_order == SortingOrder.unknown);
     assert(bf.header.sequences.length == 3);
     assert(bf.header.read_groups.length == 0);
@@ -66,7 +67,7 @@ unittest {
     {
     writeln("Testing alignment parsing...");
     fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
-    bf = BamFile(fn);
+    bf = new BamReader(fn);
     auto reads = bf.reads;
     auto read = reads.front;
     assert(equal(read.sequence, "CTCAAGGTTGTTGCAAGGGGGTCTATGTGAACAAA"));
@@ -88,7 +89,7 @@ unittest {
 
     writeln("Testing tag parsing...");
     fn = buildPath(dirName(__FILE__), "data", "tags.bam");
-    bf = BamFile(fn);
+    bf = new BamReader(fn);
     foreach (alignment; bf.reads) {
         auto read_name = alignment.read_name;
         assert(read_name[0..4] == "tag_");
@@ -110,19 +111,19 @@ unittest {
 
     writeln("Testing exception handling...");
     fn = buildPath(dirName(__FILE__), "data", "duplicated_block_size.bam");
-    assertThrown!BgzfException(BamFile(fn));
+    assertThrown!BgzfException(new BamReader(fn));
     fn = buildPath(dirName(__FILE__), "data", "no_block_size.bam");
-    assertThrown!BgzfException(BamFile(fn));
+    assertThrown!BgzfException(new BamReader(fn));
     fn = buildPath(dirName(__FILE__), "data", "wrong_extra_gzip_length.bam");
-    assertThrown!BgzfException(BamFile(fn));
+    assertThrown!BgzfException(new BamReader(fn));
     fn = buildPath(dirName(__FILE__), "data", "wrong_bc_subfield_length.bam");
-    assertThrown!BgzfException(reduce!"a+b.sequence_length"(0,BamFile(fn).reads!withoutOffsets));
+    assertThrown!BgzfException(reduce!"a+b.sequence_length"(0, (new BamReader(fn)).reads!withoutOffsets));
     fn = buildPath(dirName(__FILE__), "data", "corrupted_zlib_archive.bam");
-    assertThrown!ZlibException(walkLength(BamFile(fn).reads));
+    assertThrown!ZlibException(walkLength((new BamReader(fn)).reads));
 
     writeln("Testing random access...");
     fn = buildPath(dirName(__FILE__), "data", "bins.bam");
-    bf = BamFile(fn);
+    bf = new BamReader(fn);
 
     void compareWithNaiveApproach(int beg, int end) {
 
@@ -230,7 +231,7 @@ unittest {
 
     writeln("Test parseAlignmentLine/toSam functions...");
     fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
-    bf = BamFile(fn);
+    bf = new BamReader(fn);
     foreach (read; bf.reads) {
         auto line = toSam(read, bf.reference_sequences);
         auto read2 = parseAlignmentLine(line, bf.header);
@@ -241,7 +242,7 @@ unittest {
     }
 
     fn = buildPath(dirName(__FILE__), "data", "tags.bam");
-    bf = BamFile(fn);
+    bf = new BamReader(fn);
     foreach (read; bf.reads) {
         auto line = toSam(read, bf.reference_sequences);
         auto read2 = parseAlignmentLine(line, bf.header);
@@ -253,19 +254,19 @@ unittest {
 
     writeln("Test BAM writing...");
     fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
-    bf = BamFile(fn);
+    bf = new BamReader(fn);
     {
     string tmp = tmpFile("12035913820619231129310.bam");
     auto stream = new BufferedFile(tmp, FileMode.Out, 8192);
     writeBAM(stream, bf.header.text, bf.reference_sequences, bf.reads!withoutOffsets, 9);
     stream.seekSet(0);
-    assert(walkLength(BamFile(tmp).reads!withoutOffsets) == 3270);
+    assert(walkLength((new BamReader(tmp)).reads!withoutOffsets) == 3270);
     stream.close();
     }
 
     writeln("Test SAM reading...");
     {
-    auto sf = SamFile(buildPath(dirName(__FILE__), "data", "ex1_header.sam"));
+    auto sf = new SamReader(buildPath(dirName(__FILE__), "data", "ex1_header.sam"));
     assert(sf.reads.front.ref_id == 0);
     assert(equal(sf.reads, bf.reads!withoutOffsets));
     }
@@ -276,7 +277,7 @@ unittest {
 
         // When reads in a range are aligned to different references,
         // pileup objects should process only the first one.
-        bf = BamFile(fn); // chr1, chr2
+        bf = new BamReader(fn); // chr1, chr2
         {
             auto pileup = makePileup(bf.reads);
             foreach (column; pileup) {
@@ -329,7 +330,7 @@ unittest {
     writeln("Testing basesWith functionality...");
     {
         fn = buildPath(dirName(__FILE__), "data", "mg1655_chunk.bam");
-        bf = BamFile(fn);
+        bf = new BamReader(fn);
         auto flow_order = bf.header.read_groups.values.front.flow_order;
         auto reads = array(bf.reads);
 

@@ -233,9 +233,9 @@
     write data; 
 }%%
 
+import bio.sam.header;
 import bio.bam.read;
 import bio.bam.tagvalue;
-import bio.bam.samheader;
 import bio.bam.utils.tagstoragebuilder;
 
 import std.array;

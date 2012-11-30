@@ -19,7 +19,7 @@
 */
 module bio.bam.output;
 
-import bio.bam.samheader;
+import bio.sam.header;
 import bio.bam.reference;
 import bio.bam.read;
 import bio.bam.readrange;

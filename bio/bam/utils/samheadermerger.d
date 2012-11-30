@@ -19,7 +19,7 @@
 */
 module bio.bam.utils.samheadermerger;
 
-import bio.bam.samheader;
+import bio.sam.header;
 import bio.bam.validation.samheader;
 
 import std.array;

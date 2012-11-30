@@ -1,4 +1,4 @@
-module bio.bam.utils.fastsamrecordparser;
+module bio.sam.utils.fastrecordparser;
 
 #line 1 "sam_alignment.rl"
 /*
@@ -32,9 +32,9 @@ static const int sam_alignment_en_alignment = 0;
 #line 234 "sam_alignment.rl"
 
 
+import bio.sam.header;
 import bio.bam.read;
 import bio.bam.tagvalue;
-import bio.bam.samheader;
 import bio.bam.utils.tagstoragebuilder;
 
 import std.array;

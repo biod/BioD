@@ -17,9 +17,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
-module bio.bam.bamfile;
+module bio.bam.reader;
 
-public import bio.bam.samheader;
+public import bio.sam.header;
 public import bio.bam.reference;
 public import bio.bam.read;
 public import bio.bam.virtualoffset;
@@ -46,7 +46,7 @@ import std.string;
 /**
   Represents BAM file
  */
-struct BamFile {
+class BamReader {
 
     this(Stream stream, TaskPool task_pool = taskPool) {
         _source_stream = new EndianStream(stream, Endian.littleEndian);
@@ -208,7 +208,7 @@ struct BamFile {
       First offset must point to the start of an alignment record,
       and be strictly less than the second one.
 
-      For decompression, uses task pool specified at BamFile construction.
+      For decompression, uses task pool specified at BamReader construction.
      */ 
     auto getReadsBetween(VirtualOffset from, VirtualOffset to) {
         enforce(from < to, "First offset must be strictly less than second");

@@ -26,7 +26,7 @@
 */
 module bio.bam.validation.samheader;
 
-public import bio.bam.samheader;
+public import bio.sam.header;
 import bio.core.utils.algo;
 
 import std.algorithm;
