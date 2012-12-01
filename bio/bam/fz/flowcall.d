@@ -126,6 +126,8 @@ struct ReadFlowCallRange(S)
         size_t _current_flow_index;
         ushort _current_offset;
 
+        ushort _overlap;
+
         bool _empty;
 
         // consumes next homopolymer from the sequence,
@@ -155,11 +157,12 @@ struct ReadFlowCallRange(S)
         }
     }
 
-    this(S seq, ushort[] intensities, string flow_order, int zf) {
+    this(S seq, ushort[] intensities, string flow_order, ushort first_base_overlap, int zf) {
         _sequence = seq;
         _intensities = intensities;
         _flow_order = flow_order;
         _zf = zf;
+        _overlap = first_base_overlap;
 
         if (_sequence.empty) {
             _empty = true;
@@ -173,14 +176,16 @@ struct ReadFlowCallRange(S)
     }
 
     ReadFlowCall front() @property const {
-        return ReadFlowCall(_intensities[_current_flow_index], _current_offset,
-                            _current_length, _current_base, _current_flow_index + _zf);
+        auto intensity = cast(ushort)(_intensities[_current_flow_index] - _overlap);
+        return ReadFlowCall(intensity, _current_offset, _current_length, 
+                            _current_base, _current_flow_index + _zf);
     }
 
     void popFront() {
         _current_offset += _current_length;
 
         ++_current_flow_index;
+        _overlap = 0; // after first base it is always zero
 
         _doSetup();
     }
@@ -193,9 +198,10 @@ struct ReadFlowCallRange(S)
     }
 }
 
-ReadFlowCallRange!S readFlowCallRange(S)(S seq, ushort[] intensities, string flow_order, int zf)
+private ReadFlowCallRange!S readFlowCallRange(S)(S seq, ushort[] intensities, 
+                                                 string flow_order, ushort overlap, int zf)
 {
-    return ReadFlowCallRange!S(seq, intensities, flow_order, zf);
+    return ReadFlowCallRange!S(seq, intensities, flow_order, overlap, zf);
 }
 
 
@@ -204,16 +210,7 @@ ReadFlowCallRange!S readFlowCallRange(S)(S seq, ushort[] intensities, string flo
 /// Tag name is an optional argument because it is not standard and will likely
 /// be changed in the future (there was a proposal on samtools mailing list
 /// to introduce standard FB tag).
-ForwardRange!ReadFlowCall readFlowCalls(R)(R read, string flow_order, string tag="ZF") {
-
-    static auto readFlowCall(T)(T tup) {
-        auto base = tup[0][0][0];
-        auto called_length = tup[0][1];
-        auto flow_intensity = tup[1];
-        auto offset = tup[2];
-
-        return ReadFlowCall(flow_intensity, cast(ushort)offset, cast(ushort)called_length, base);
-    }
+ForwardRange!ReadFlowCall readFlowCalls(R)(R read, string flow_order, string key_sequence, string tag="ZF") {
 
     auto zf = cast(int)read[tag];
     Value fz_value = read["FZ"];
@@ -221,11 +218,22 @@ ForwardRange!ReadFlowCall readFlowCalls(R)(R read, string flow_order, string tag
 
     flow_order = flow_order[zf .. $];
     auto intensities = fz[zf .. $];
+
+    // key sequence is required because its last base can overlap with first called base
+    ushort overlap = 0;
+
+    Base5 base = read.is_reverse_strand ? read.sequence.back.complement : read.sequence.front;
+    foreach_reverse (c; key_sequence) {
+        if (c != base)
+            break;
+        overlap += 100;
+    }
+
     if (!read.is_reverse_strand) {
         auto seq = read.sequence;
-        return inputRangeObject(readFlowCallRange(seq, intensities, flow_order, zf));
+        return inputRangeObject(readFlowCallRange(seq, intensities, flow_order, overlap, zf));
     } else {
         auto seq = retro(map!"a.complement"(read.sequence));
-        return inputRangeObject(readFlowCallRange(seq, intensities, flow_order, zf));
+        return inputRangeObject(readFlowCallRange(seq, intensities, flow_order, overlap, zf));
     }
 }

@@ -138,7 +138,7 @@ struct PerBaseInfo(R, Tags...) {
 
     Result front() @property {
         Result r = void;
-        r.base = _rev ? _seq.back : _seq.front;
+        r.base = _rev ? _seq.back.complement : _seq.front;
         foreach (t; Extensions)
             populate!t(r);
         return r;
@@ -219,20 +219,26 @@ template FZbaseInfo(R) {
         void setup(Args...)(const ref R read, Args args) 
         {
             string flow_order;
+            string key_sequence;
 
             debug {
                 _read_name = read.read_name.idup;
             }
 
-            enum argExists = staticIndexOf!(MixinArg!(string, "FZ"), Args);
-            static assert(argExists != -1, `Flow order must be provided via arg!"FZ"`);
+            enum flowOrderExists = staticIndexOf!(MixinArg!(string, "flowOrder"), Args);
+            enum keySequenceExists = staticIndexOf!(MixinArg!(string, "keySequence"), Args);
+            static assert(flowOrderExists != -1, `Flow order must be provided via arg!"flowOrder"`);
+            static assert(keySequenceExists != -1, `Flow order must be provided via arg!"keySequence"`);
 
             foreach (arg; args) {
-                static if(is(typeof(arg) == MixinArg!(string, "FZ")))
+                static if(is(typeof(arg) == MixinArg!(string, "flowOrder")))
                     flow_order = arg;
+
+                static if(is(typeof(arg) == MixinArg!(string, "keySequence")))
+                    key_sequence = arg;
             }
 
-            _flow_calls = readFlowCalls(read, flow_order);
+            _flow_calls = readFlowCalls(read, flow_order, key_sequence);
             _at = 0;
         }
 

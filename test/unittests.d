@@ -331,12 +331,15 @@ unittest {
     {
         fn = buildPath(dirName(__FILE__), "data", "mg1655_chunk.bam");
         bf = new BamReader(fn);
-        auto flow_order = bf.header.read_groups.values.front.flow_order;
+        auto rg = bf.header.read_groups.values.front;
+        auto flow_order = rg.flow_order;
+        auto key_sequence = rg.key_sequence;
         auto reads = array(bf.reads);
 
         auto read = reads[1];
         assert(!read.is_reverse_strand);
-        auto basesFZ = basesWith!"FZ"(read, arg!"FZ"(flow_order));
+        auto basesFZ = basesWith!"FZ"(read, arg!"flowOrder"(flow_order),
+                                            arg!"keySequence"(key_sequence));
         assert(equal(basesFZ.save, read.sequence));
         assert(equal(take(map!"a.flow_call.intensity_value"(basesFZ.save), 92),
                      [219, 219, 194, 194, 92, 107, 83, 198, 198, 78, 
@@ -362,10 +365,11 @@ unittest {
             if (r.is_unmapped) continue;
             if (r.cigar.length == 0) continue;
             if (r.is_reverse_strand) {
-                basesFZ = basesWith!"FZ"(r, arg!"FZ"(flow_order));
-                assert(equal(basesFZ.save, retro(r.sequence)));
+                basesFZ = basesWith!"FZ"(r, arg!"flowOrder"(flow_order), arg!"keySequence"(key_sequence));
+                // if reverse strand, bases are also reverse complemented
+                assert(equal(basesFZ.save, map!"a.complement"(retro(r.sequence))));
             } else {
-                basesFZ = basesWith!"FZ"(r, arg!"FZ"(flow_order));
+                basesFZ = basesWith!"FZ"(r, arg!"flowOrder"(flow_order), arg!"keySequence"(key_sequence));
                 assert(equal(basesFZ.save, r.sequence));
             }
         }
