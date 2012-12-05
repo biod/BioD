@@ -183,7 +183,7 @@ struct PerBaseInfo(R, Tags...) {
 ///
 ///  Example:
 ///
-/// basesWith!"FZ"(arg!"FZ"(flow_order));
+/// basesWith!"FZ"(arg!"flowOrder"(flow_order), arg!"keySequence"(key_sequence));
 ///
 template basesWith(Tags...) {
     auto basesWith(R, Args...)(R read, Args args) {
@@ -196,7 +196,7 @@ template FZbaseInfo(R) {
 
     mixin template resultProperties() {
         /// Current flow call
-        ReadFlowCall flow_call() @property {
+        ReadFlowCall flow_call() @property const {
             return _flow_call;
         }
 
@@ -281,14 +281,14 @@ template CIGARbaseInfo(R) {
 
     mixin template resultProperties() {
         /// Current CIGAR operation
-        CigarOperation cigar_operation() @property {
+        CigarOperation cigar_operation() @property const {
             return _cigar_operation;
         }
 
         /// Position of the corresponding base on the reference.
         /// If current CIGAR operation is not one of 'M', '=', 'X',
         /// returns the position of the previous valid base.
-        ulong position() @property {
+        ulong position() @property const {
             return _reference_position;
         }
 

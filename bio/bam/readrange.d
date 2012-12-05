@@ -32,11 +32,11 @@ import std.system;
 struct BamReadBlock {
     VirtualOffset start_virtual_offset;
     VirtualOffset end_virtual_offset;
-    BamRead bamRead;
-    alias bamRead this;
+    BamRead read;
+    alias read this;
 
     BamReadBlock dup() @property const {
-        return BamReadBlock(start_virtual_offset, end_virtual_offset, bamRead.dup);
+        return BamReadBlock(start_virtual_offset, end_virtual_offset, read.dup);
     }
 }
 

@@ -154,9 +154,9 @@ private {
         char* wstr=str;
 
         static if (isSigned!T) { 
-            uint uvalue = (value < 0) ? -value : value;
+            ulong uvalue = (value < 0) ? -value : value;
         } else {
-            uint uvalue = value;
+            ulong uvalue = value;
         }
 
         do {

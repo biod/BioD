@@ -19,7 +19,8 @@
 */
 module bio.bam.serialization.json;
 
-import bio.bam.file;
+import bio.bam.read;
+import bio.bam.reference;
 import bio.bam.tagvalue;
 import bio.core.utils.format;
 
@@ -279,7 +280,7 @@ void jsonSerialize(S)(BamRead alignment, ReferenceSequenceInfo[] info, ref S str
     putstring(stream, `],"tags":{`);
    
     bool not_first = false;
-    foreach (k, v; alignment.tags) {
+    foreach (k, v; alignment) {
         assert(k.length == 2);
 
         if (not_first) {

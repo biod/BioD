@@ -51,10 +51,21 @@ struct TinyMap(K, V, alias TinyMapPolicy=useBitArray) {
     }
 
     /// Indexed access
-    V opIndex(K key) const {
+    auto ref V opIndex(Key)(auto ref Key key)
+        if(is(Key == K))
+    {
         assert(key in this);
         return _dict[key.internal_code];
     }
+
+    /// ditto
+    auto ref const(V) opIndex(Key)(auto ref Key key) const
+        if(is(Key == K))
+    {
+        assert(key in this);
+        return _dict[key.internal_code];
+    }
+
 
     /// ditto
     V opIndexAssign(V value, K key) {
@@ -197,9 +208,16 @@ mixin template useDefaultValue(K, V) {
 
 /// Allows to set up a dictionary which is always full.
 mixin template fillNoRemove(K, V) {
-    private void init(V value=V.init) {
-        _dict[] = value;
+
+    private void init() {
         _size = K.ValueSetSize;
+    }
+
+    private void init(V value) {
+        _size = K.ValueSetSize;
+
+        for (size_t i = 0; i < _size; ++i)
+            _dict[i] = value;
     }
 
     private bool _hasKey(K key) const {
@@ -254,6 +272,11 @@ unittest {
     test(dict1);
     test(dict2);
     test(dict3);
+
+    auto dict4 = TinyMap!(Base, ulong[4])();
+    dict4[Base('A')] = [0, 1, 2, 3];
+    dict4[Base('A')][3] += 1;
+    assert(dict4[Base('A')] == [0, 1, 2, 4]);
 }
 
 /// Convenient mixin template for getting your struct working with TinyMap.

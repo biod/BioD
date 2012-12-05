@@ -1,13 +1,13 @@
 /*
-    This file is part of Sambamba.
+    This file is part of BioD.
     Copyright (C) 2012    Artem Tarasov <lomereiter@gmail.com>
 
-    Sambamba is free software; you can redistribute it and/or modify
+    BioD is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 2 of the License, or
     (at your option) any later version.
 
-    Sambamba is distributed in the hope that it will be useful,
+    BioD is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -17,13 +17,13 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
-module bai.indexing;
+module bio.bam.bai.indexing;
 
-import bamfile;
-import constants;
+import bio.bam.reader;
+import bio.bam.constants;
 
-import bai.bin;
-import bai.chunk;
+import bio.bam.bai.bin;
+import bio.bam.bai.chunk;
 
 import std.stream;
 import std.array;
@@ -51,7 +51,7 @@ void defaultProgressBarFunc(lazy float dummy) {}
 /// Writes BAM index to the $(D stream)
 ///
 /// Accepts optional $(D progressBarFunc)
-void createIndex(ref BamFile bam, ref Stream stream, void delegate(lazy float p) progressBarFunc=null) {
+void createIndex(BamReader bam, ref Stream stream, void delegate(lazy float p) progressBarFunc=null) {
 
     auto endian_stream = new EndianStream(stream, Endian.littleEndian);
 
@@ -67,8 +67,8 @@ void createIndex(ref BamFile bam, ref Stream stream, void delegate(lazy float p)
     }
 
     // BAM file contains no alignments at all or all reads are unmapped
-    if (bam.alignments!withOffsets.empty ||
-        bam.alignments!withOffsets.front.alignment.ref_id < 0) {
+    if (bam.reads!withOffsets.empty ||
+        bam.reads!withOffsets.front.read.ref_id < 0) {
         foreach (i; 0 .. nrefs) {
             writeEmptyReference();
         }
@@ -77,13 +77,13 @@ void createIndex(ref BamFile bam, ref Stream stream, void delegate(lazy float p)
 
     // OK, now let's deal with non-degenerate case
 
-    auto alignment_blocks = bam.alignmentsWithProgress!withOffsets(progressBarFunc);
+    auto alignment_blocks = bam.readsWithProgress!withOffsets(progressBarFunc);
 
     auto prev_block = alignment_blocks.front;
     alignment_blocks.popFront();
 
     // this is the main character hereafter
-    auto prev_read = prev_block.alignment;
+    auto prev_read = prev_block.read;
 
     // array of linear offsets for the current reference entry
     ulong[BAI_MAX_BIN_ID - BAI_MAX_NONLEAF_BIN_ID + 1] linear_index;
@@ -93,7 +93,7 @@ void createIndex(ref BamFile bam, ref Stream stream, void delegate(lazy float p)
     // map: bin ID -> array of chunks
     Chunk[][uint] chunks;
 
-    auto first_ref_id = prev_block.alignment.ref_id;
+    auto first_ref_id = prev_block.read.ref_id;
     auto current_chunk_beg = prev_block.start_virtual_offset;
     assert(first_ref_id >= 0);
 
@@ -212,7 +212,7 @@ void createIndex(ref BamFile bam, ref Stream stream, void delegate(lazy float p)
 
     foreach (block; alignment_blocks) {
 
-        auto read = block.alignment;
+        auto read = block.read;
 
         // new reference, so write data for previous one(s)
         if (read.ref_id != prev_read.ref_id) {

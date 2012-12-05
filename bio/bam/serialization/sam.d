@@ -44,7 +44,9 @@ import std.array;
     assert(toSam(v) == "B:i,1,2,3");
     ----------
 */
-string toSam(Value v) {
+string toSam(V)(auto ref V v) 
+    if(is(V == Value))
+{
     char[] buf;
     buf.reserve(16);
     serialize(v, buf);
@@ -113,7 +115,7 @@ void serialize(S)(const ref Value v, ref S stream) {
 /// -------------
 /// toSam(alignment, bam.reference_sequences);
 /// -------------
-string toSam(BamRead alignment, ReferenceSequenceInfo[] info) {
+string toSam(R)(auto ref R alignment, ReferenceSequenceInfo[] info) {
     char[] buf;
     buf.reserve(512);
     serialize(alignment, info, buf);
@@ -122,7 +124,7 @@ string toSam(BamRead alignment, ReferenceSequenceInfo[] info) {
 
 /// Serialize $(D alignment) to FILE* or append it to char[]/char* 
 /// (in char* case it's your responsibility to allocate enough memory)
-void serialize(S)(BamRead alignment, ReferenceSequenceInfo[] info, ref S stream) 
+void serialize(S, R)(auto ref R alignment, ReferenceSequenceInfo[] info, auto ref S stream) 
     if (is(Unqual!S == FILE*) || is(Unqual!S == char*) || is(Unqual!S == char[]))
 {
 
