@@ -92,6 +92,11 @@ class BamReader {
         return _random_access_manager.found_index_file;
     }
 
+    /// Filename, if available
+    string filename() @property const {
+        return _filename;
+    }
+
     /// If file ends with EOF block, returns virtual offset of the start of EOF block.
     /// Otherwise, returns virtual offset of the physical end of file.
     VirtualOffset eofVirtualOffset() {
