@@ -308,6 +308,13 @@ struct BamRead {
             return opIndex(_len - 1);
         }
 
+        /* 
+        I have no fucking idea why this tiny piece of code
+        does NOT get inlined by stupid DMD compiler.
+
+        Therefore I use string mixin instead. 
+        (hell yeah! Back to the 90s! C macros rulez!)
+
         private size_t _getActualPosition(size_t index) const
         {
             if (_use_first_4_bits) {
@@ -323,6 +330,11 @@ struct BamRead {
                 //   0     1     2     3      
                 return (index >> 1) + (index & 1);
             }
+        }*/ 
+
+        private static string _getActualPosition(string index) {
+            return "((" ~ index ~") >> 1) + " ~ 
+                   "(_use_first_4_bits ? 0 : ((" ~ index ~ ") & 1))";
         }
 
         private bool _useFirst4Bits(size_t index) const
@@ -335,20 +347,20 @@ struct BamRead {
         }
 
         @property SequenceResult save() const {
-            return SequenceResult(_data[_getActualPosition(_index) .. $], 
+            return SequenceResult(_data[mixin(_getActualPosition("_index")) .. $], 
                                   _len - _index, 
                                   _useFirst4Bits(_index));
         }
 
         SequenceResult opSlice(size_t i, size_t j) const {
-            return SequenceResult(_data[_getActualPosition(_index + i) .. $], 
+            return SequenceResult(_data[mixin(_getActualPosition("_index + i")) .. $], 
                                   j - i, 
                                   _useFirst4Bits(_index + i));
         }
 
         @property Base opIndex(size_t i) const {
             auto pos = _index + i;
-            ubyte raw = _data[_getActualPosition(pos)];
+            ubyte raw = _data[mixin(_getActualPosition("pos"))];
             if (_use_first_4_bits) {
                 if (pos & 1) {
                     raw &= 0xF;
