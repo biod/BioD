@@ -171,9 +171,9 @@ struct PerBaseInfo(R, Tags...) {
     }
 
     private {
-        R _read;
-        typeof(_read.sequence) _seq;
-        bool _rev;
+        R _read = void;
+        typeof(_read.sequence) _seq = void;
+        bool _rev = void;
     }
 }
 
@@ -208,8 +208,9 @@ template FZbaseInfo(R) {
     mixin template rangeMethods() {
 
         private {
-            ReadFlowCallRange!(BamRead.SequenceResult) _flow_calls;
-            ushort _at;
+            ReadFlowCallRange!(BamRead.SequenceResult) _flow_calls = void;
+            ReadFlowCall _current_flow_call = void;
+            ushort _at = void;
 
             debug {
                 string _read_name;
@@ -218,8 +219,8 @@ template FZbaseInfo(R) {
 
         void setup(Args...)(const ref R read, Args args) 
         {
-            string flow_order;
-            string key_sequence;
+            string flow_order = void;
+            string key_sequence = void;
 
             debug {
                 _read_name = read.read_name.idup;
@@ -238,12 +239,16 @@ template FZbaseInfo(R) {
                     key_sequence = arg;
             }
 
-            _flow_calls = readFlowCalls(read, flow_order, key_sequence);
             _at = 0;
+
+            _flow_calls = readFlowCalls(read, flow_order, key_sequence);
+            if (!_flow_calls.empty) {
+                _current_flow_call = _flow_calls.front;
+            }
         }
 
         void populate(Result)(ref Result result) {
-            result._flow_call = _flow_calls.front;
+            result._flow_call = _current_flow_call;
 
             debug {
                 if ((_rev && result.base != result._flow_call.base.complement)
@@ -257,15 +262,19 @@ template FZbaseInfo(R) {
         void update(const ref R read) 
         {
             ++_at;
-            if (_at == _flow_calls.front.length) {
+            if (_at == _current_flow_call.length) {
                 _flow_calls.popFront();
-                _at = 0;
+                if (!_flow_calls.empty) {
+                    _current_flow_call = _flow_calls.front;
+                    _at = 0;
+                }
             }
         }
 
         void copy(Range)(ref Range source, ref Range target) {
             target.FZ._flow_calls = source._flow_calls.save();
             target.FZ._at = source.FZ._at;
+            target.FZ._current_flow_call = source._current_flow_call;
 
             debug {
                 target._read_name = _read_name;
@@ -301,63 +310,67 @@ template CIGARbaseInfo(R) {
     mixin template rangeMethods() {
 
         private {
-            const(CigarOperation)[] _cigar;
-            long _index;
-            ulong _at;
-            ulong _ref_pos;
+            const(CigarOperation)[] _cigar = void;
+            long _index = void;
+            CigarOperation _current_cigar_op = void;
+            ulong _at = void;
+            ulong _ref_pos = void;
         }
 
         void setup(Args...)(const ref R read, Args) 
         {
             _cigar = read.cigar;
 
-            _index = read.is_reverse_strand ? _cigar.length : -1;
-            _ref_pos = read.is_reverse_strand ? (read.position + read.basesCovered() - 1)
-                                              : read.position;
+            _index = _rev ? _cigar.length : -1;
+            _ref_pos = _rev ? (read.position + read.basesCovered() - 1)
+                            : read.position;
 
-            _moveToNextCigarOperator(read.is_reverse_strand);
+            _moveToNextCigarOperator();
         }
 
         void populate(Result)(ref Result result) {
-            result._cigar_operation = _cigar[_index];
+            result._cigar_operation = _current_cigar_op;
             result._reference_position = _ref_pos;
         }
 
         void update(const ref R read) 
         {
            ++_at;
-           if (_cigar[_index].is_reference_consuming) {
-               _ref_pos += read.is_reverse_strand ? -1 : 1;
+           if (_current_cigar_op.is_reference_consuming) {
+               _ref_pos += _rev ? -1 : 1;
            }
 
-           if (_at == _cigar[_index].length) {
-               _moveToNextCigarOperator(read.is_reverse_strand);
+           if (_at == _current_cigar_op.length) {
+               _moveToNextCigarOperator();
            }
         }
 
         void copy(Range)(const ref Range source, ref Range target) {
             target.CIGAR._cigar = source.CIGAR._cigar;
             target.CIGAR._index = source.CIGAR._index;
+            target.CIGAR._current_cigar_op = source.CIGAR._current_cigar_op;
             target.CIGAR._at = source.CIGAR._at;
             target.CIGAR._ref_pos = source.CIGAR._ref_pos;
         }
 
-        private void _moveToNextCigarOperator(bool reverse) {
+        private void _moveToNextCigarOperator() {
             _at = 0;
-            if (!reverse) {
+            if (!_rev) {
                 for (++_index; _index < _cigar.length; ++_index)
                 {
-                    if (_cigar[_index].is_query_consuming)
+                    _current_cigar_op = _cigar[_index];
+                    if (_current_cigar_op.is_query_consuming)
                         break;
-                    if (_cigar[_index].is_reference_consuming)
-                        _ref_pos += _cigar[_index].length;
+                    if (_current_cigar_op.is_reference_consuming)
+                        _ref_pos += _current_cigar_op.length;
                 }
             } else {
                 for (--_index; _index >= 0; --_index) {
-                    if (_cigar[_index].is_query_consuming)
+                    _current_cigar_op = _cigar[_index];
+                    if (_current_cigar_op.is_query_consuming)
                         break;
-                    if (_cigar[_index].is_reference_consuming)
-                        _ref_pos -= _cigar[_index].length;
+                    if (_current_cigar_op.is_reference_consuming)
+                        _ref_pos += _current_cigar_op.length;
                 }
             }
         }
