@@ -208,7 +208,7 @@ template FZbaseInfo(R) {
     mixin template rangeMethods() {
 
         private {
-            ForwardRange!ReadFlowCall _flow_calls;
+            ReadFlowCallRange!(BamRead.SequenceResult) _flow_calls;
             ushort _at;
 
             debug {

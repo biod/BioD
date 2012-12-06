@@ -308,7 +308,7 @@ struct BamRead {
             return opIndex(_len - 1);
         }
 
-        private auto _getActualPosition(size_t index) const
+        private size_t _getActualPosition(size_t index) const
         {
             if (_use_first_4_bits) {
                 // [0 1] [2 3] [4 5] [6 7] ...
@@ -325,7 +325,7 @@ struct BamRead {
             }
         }
 
-        private auto _useFirst4Bits(size_t index) const
+        private bool _useFirst4Bits(size_t index) const
         {
             auto res = index % 2 == 0;
             if (!_use_first_4_bits) {
@@ -555,7 +555,7 @@ struct BamRead {
 
     /// Size of alignment when output to stream in BAM format.
     /// Includes block_size as well (see SAM/BAM specification)
-    @property auto size_in_bytes() const {
+    @property size_t size_in_bytes() const {
         return int.sizeof + _chunk.length;
     }
    
