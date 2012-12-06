@@ -156,7 +156,7 @@ struct ReferenceSequence {
         }
 
         while (index >= 0) {
-            auto offset = ioffsets[index];
+            auto offset = ioffsets[cast(size_t)index];
 
             auto stream = _manager.createStreamStartingFrom(offset);
             auto reads = bamReadRange(stream);
