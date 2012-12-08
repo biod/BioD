@@ -202,16 +202,16 @@ class RandomAccessManager {
             foreach (chunk; b.chunks) {
                 if (chunk.end > min_offset) {
                     bai_chunks ~= chunk;
+
+                    // optimization
+                    if (bai_chunks[$-1].beg < min_offset) {
+                        bai_chunks[$-1].beg = min_offset;
+                    }
                 }
             }
         }
 
         sort(bai_chunks);
-
-        // optimization
-        if (bai_chunks.length > 0) {
-            bai_chunks[0].beg = max(bai_chunks[0].beg, min_offset);
-        }
 
         return bai_chunks;
     }
