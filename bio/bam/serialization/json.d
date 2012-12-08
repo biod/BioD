@@ -231,7 +231,7 @@ void jsonSerialize(S)(BamRead alignment, ReferenceSequenceInfo[] info, ref S str
     } else {
         foreach (cigar_op; alignment.cigar) {
             putinteger(stream, cigar_op.length);
-            putcharacter(stream, cigar_op.operation);
+            putcharacter(stream, cigar_op.type);
         }
         putstring(stream, `","rnext":`);
     }

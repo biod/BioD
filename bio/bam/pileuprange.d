@@ -87,7 +87,7 @@ struct PileupRead(Read=EagerBamRead) {
     /// If current CIGAR operation is one of 'M', '=', or 'X', returns
     /// index of current base in the read sequence. 
     /// Otherwise, returns -1.
-    int read_sequence_offset() @property const {
+    int query_offset() @property const {
         assert(_query_offset <= _read.sequence_length);
         if (_cur_op.is_query_consuming && _cur_op.is_reference_consuming) {
             return _query_offset;
@@ -119,7 +119,7 @@ struct PileupRead(Read=EagerBamRead) {
 
                 _cur_op = cigar[_cur_op_index];
                 if (_cur_op.is_reference_consuming) {
-                    if (_cur_op.operation != 'N') {     
+                    if (_cur_op.type != 'N') {     
                         break;
                     }
                 } else if (_cur_op.is_query_consuming) {
@@ -658,15 +658,15 @@ unittest {
                 break;
             case 810:
                 // last read is not yet fetched by pileup engine
-                assert(column.reads[$ - 2].cigar_after.front.operation == 'D');
+                assert(column.reads[$ - 2].cigar_after.front.type == 'D');
                 pileup.popFront();
                 break;
             case 817:
-                assert(column.reads[$ - 2].cigar_before.back.operation == 'I');
+                assert(column.reads[$ - 2].cigar_before.back.type == 'I');
                 pileup.popFront();
                 break;
             case 821:
-                assert(column.reads[$ - 3].cigar_operation == 'D');
+                assert(column.reads[$ - 3].cigar_operation.type == 'D');
                 assert(equal(column.bases, "AAGG-AA"));
                 pileup.popFront();
                 break;

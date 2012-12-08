@@ -79,9 +79,9 @@ struct CigarOperation {
         }
     }
 
-    this(uint length, char operation) {
+    this(uint length, char operation_type) {
         enforce(length < (1<<28), "Too big length of CIGAR operation");
-        raw = (length << 4) | char2op(operation);
+        raw = (length << 4) | char2op(operation_type);
     }
 
     /// operation length
@@ -91,12 +91,9 @@ struct CigarOperation {
   
     /// CIGAR operation as one of MIDNSHP=X.
     /// Absent or invalid operation is represented by '?'
-    char operation() @property const nothrow {
+    char type() @property const nothrow {
         return "MIDNSHP=X????????"[raw & 0xF];
     }
-
-    ///
-    alias operation this;
 
     // Each pair of bits has first bit set iff the operation is query consuming,
     // and second bit set iff it is reference consuming.
@@ -112,6 +109,10 @@ struct CigarOperation {
     bool is_reference_consuming() @property const {
         return ((CIGAR_TYPE >> ((raw & 0xF) * 2)) & 2) != 0;
     }
+
+    string toString() const {
+        return to!string(length) ~ type;
+    }
 }
 
 /** 
@@ -120,8 +121,6 @@ struct CigarOperation {
 struct BamRead {
 
     mixin TagStorage;
-
-    // TODO: better names for properties
 
     @property    int ref_id()           const nothrow { return _refID; }
 
@@ -262,7 +261,7 @@ struct BamRead {
     }
 
     /// Human-readable representation of CIGAR string
-    string cigarString() {
+    string cigarString() const {
         char[] str;
 
         // guess size of resulting string
@@ -270,7 +269,7 @@ struct BamRead {
 
         foreach (cigar_op; cigar) {
             str ~= to!string(cigar_op.length);
-            str ~= cigar_op.operation;
+            str ~= cigar_op.type;
         }
         return cast(string)str;
     }
@@ -604,7 +603,7 @@ struct BamRead {
         packer.pack(position + 1);
         packer.pack(mapping_quality);
         packer.pack(array(map!"a.length"(cigar)));
-        packer.pack(array(map!"a.operation"(cigar)));
+        packer.pack(array(map!"a.type"(cigar)));
         packer.pack(next_ref_id);
         packer.pack(next_pos);
         packer.pack(template_length);

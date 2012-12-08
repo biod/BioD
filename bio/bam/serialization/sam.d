@@ -178,7 +178,7 @@ void serialize(S, R)(auto ref R alignment, ReferenceSequenceInfo[] info, auto re
     } else {
         foreach (cigar_op; alignment.cigar) {
             putinteger(stream, cigar_op.length);
-            putcharacter(stream, cigar_op.operation);
+            putcharacter(stream, cigar_op.type);
         }
         putcharacter(stream, '\t');
     }

@@ -209,7 +209,7 @@ private:
 
     static bool internalHardClipping(ref BamRead al) {
         return (al.cigar.length > 2 && 
-                any!"a.operation == 'H'"(al.cigar[1..$-1]));
+                any!"a.type == 'H'"(al.cigar[1..$-1]));
     }
 
     static bool internalSoftClipping(ref BamRead al) {
@@ -218,16 +218,16 @@ private:
         auto cigar = al.cigar;
 
         /// strip H operations from ends
-        if (cigar[0].operation == 'H') {
+        if (cigar[0].type == 'H') {
             cigar = cigar[1..$];
         }
-        if (cigar[$-1].operation == 'H') {
+        if (cigar[$-1].type == 'H') {
             cigar = cigar[0..$-1];
         }
 
         /// check that S operations are at the ends only
         return (cigar.length > 2 &&
-                any!"a.operation == 'S'"(cigar[1..$-1]));
+                any!"a.type == 'S'"(cigar[1..$-1]));
     } 
 
     //  Sum of M/I/S/=/X operations must be equal to the sequence length
@@ -236,7 +236,7 @@ private:
         return (al.sequence_length > 0 &&
                 al.sequence_length != reduce!`a + b`(0, 
                                         map!`a.length`(
-                                          filter!`canFind("MIS=X", a.operation)`(
+                                          filter!`canFind("MIS=X", a.type)`(
                                             al.cigar))));
     }
  
