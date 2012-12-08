@@ -4085,7 +4085,7 @@ unittest {
 
     auto header = new SamHeader("@SQ\tSN:20\tLN:1234567");
     auto alignment = parseAlignmentLine(line, header);
-    assert(alignment.read_name == "ERR016155.15021091");
+    assert(alignment.name == "ERR016155.15021091");
     assert(equal(alignment.sequence(), "AGAAAAAACTGGAAGTTAATAGAGTGGTGACTCAGATCCAGTGGTGGAAGGGTAAGGGATCTTGGAACCCTATAGAGTTGCTGTGTGCCAGGGCCAGATCC"));
     assert(alignment.cigarString() == "66S35M");
     assert(alignment.flag == 185);

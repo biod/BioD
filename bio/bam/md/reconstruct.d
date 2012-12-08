@@ -37,7 +37,7 @@ auto dna(T)(T read)
     debug {
         /*
         import std.stdio;
-        stderr.writeln("[dna] processing read ", read.read_name);
+        stderr.writeln("[dna] processing read ", read.name);
         stderr.flush();
         */
     }
@@ -197,7 +197,7 @@ auto dna(T)(T read)
         import std.stdio;
         if (result.empty) {
             stderr.writeln("[dna] empty DNA!");
-            stderr.writeln("      read name: ", read.read_name);
+            stderr.writeln("      read name: ", read.name);
             stderr.writeln("      read sequence: ", read.sequence);
             stderr.writeln("      read CIGAR: ", read.cigarString());
             stderr.writeln("      read MD tag: ", read["MD"]);

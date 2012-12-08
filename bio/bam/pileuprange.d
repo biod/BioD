@@ -161,7 +161,7 @@ struct PileupRead(Read=EagerBamRead) {
         }
 
         void assertCigarIndexIsValid() {
-            assert(_cur_op_index < _read.cigar.length, "Invalid read " ~ _read.read_name 
+            assert(_cur_op_index < _read.cigar.length, "Invalid read " ~ _read.name 
                                                        ~ " - CIGAR " ~ _read.cigarString()
                                                        ~ ", sequence " ~ to!string(_read.sequence));
         }

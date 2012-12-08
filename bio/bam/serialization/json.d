@@ -207,7 +207,7 @@ void jsonSerialize(S)(BamRead alignment, ReferenceSequenceInfo[] info, ref S str
     }
    
     putstring(stream, `{"qname":`);
-    jsonSerializeCharacterRange(stream, alignment.read_name);
+    jsonSerializeCharacterRange(stream, alignment.name);
     putstring(stream, `,"flag":`);
     putinteger(stream, alignment.flag);
     putstring(stream, `,"rname":`);

@@ -223,7 +223,7 @@ template FZbaseInfo(R) {
             string key_sequence = void;
 
             debug {
-                _read_name = read.read_name.idup;
+                _read_name = read.name.idup;
             }
 
             enum flowOrderExists = staticIndexOf!(MixinArg!(string, "flowOrder"), Args);

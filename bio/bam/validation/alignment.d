@@ -166,12 +166,12 @@ private:
     bool invalidReadName(ref BamRead al) {
         // Read name (a.k.a. QNAME) must =~ /^[!-?A-~]{1,255}$/ 
         // according to specification.
-        if (al.read_name.length == 0) {
+        if (al.name.length == 0) {
             if (!onError(al, AlignmentError.EmptyReadName)) return true;
-        } else if (al.read_name.length > 255) {
+        } else if (al.name.length > 255) {
             if (!onError(al, AlignmentError.TooLongReadName)) return true;
         } else {
-            foreach (char c; al.read_name) 
+            foreach (char c; al.name) 
             {
                 if ((c < '!') || (c > '~') || (c == '@')) {
                     if (!onError(al, AlignmentError.ReadNameContainsInvalidCharacters)) {

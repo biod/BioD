@@ -217,19 +217,20 @@ struct BamRead {
     }
 
     /// Read name
-    @property string read_name() const nothrow {
+    @property string name() const nothrow {
         // notice -1: the string is zero-terminated, so we should strip that '\0'
         return cast(string)(_chunk[_read_name_offset .. _read_name_offset + _l_read_name - 1]);
     }
 
     /// ditto
-    @property void read_name(string name) {
-        enforce(name.length >= 1 && name.length <= 255, "name length must be in 1-255 range");
+    @property void name(string new_name) {
+        enforce(new_name.length >= 1 && new_name.length <= 255, 
+                "name length must be in 1-255 range");
         _dup();
         bio.bam.utils.array.replaceSlice(_chunk, 
                  _chunk[_read_name_offset .. _read_name_offset + _l_read_name - 1],
-                 cast(ubyte[])name);
-        _l_read_name = cast(ubyte)(name.length + 1);
+                 cast(ubyte[])new_name);
+        _l_read_name = cast(ubyte)(new_name.length + 1);
     }
 
     /// List of CIGAR operations
@@ -454,7 +455,7 @@ struct BamRead {
             // 6) next_pos             int                         
             // 7) tlen                 int                         
             // ----------------------------------------------------
-            // (after them read_name follows which is string)      
+            // (after them name follows which is string)      
             //                                                     
             switchEndianness(_chunk.ptr, 8 * uint.sizeof);
 
@@ -579,7 +580,7 @@ struct BamRead {
     ///
     /// Packs message in the following format:
     /// MsgPack array with elements
-    ///     0) read name - string
+    ///     0) name - string
     ///     1) flag - ushort
     ///     2) reference sequence id - int
     ///     3) leftmost mapping position (1-based) - int
@@ -597,7 +598,7 @@ struct BamRead {
     ////////////////////////////////////////////////////////////////////////////
     void toMsgpack(Packer)(ref Packer packer) const {
         packer.beginArray(13);
-        packer.pack(cast(ubyte[])read_name);
+        packer.pack(cast(ubyte[])name);
         packer.pack(flag);
         packer.pack(ref_id);
         packer.pack(position + 1);
@@ -1033,16 +1034,16 @@ unittest {
     import std.math;
 
     auto read = BamRead("readname", 
-                          "AGCTGACTACGTAATAGCCCTA", 
-                          [CigarOperation(22, 'M')]);
+                        "AGCTGACTACGTAATAGCCCTA", 
+                        [CigarOperation(22, 'M')]);
     assert(read.sequence_length == 22);
     assert(read.cigar.length == 1);
     assert(read.cigarString() == "22M");
-    assert(read.read_name == "readname");
+    assert(read.name == "readname");
     assert(equal(read.sequence(), "AGCTGACTACGTAATAGCCCTA"));
 
-    read.read_name = "anothername";
-    assert(read.read_name == "anothername");
+    read.name = "anothername";
+    assert(read.name == "anothername");
     assert(read.cigarString() == "22M");
 
     read.phred_base_quality = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 
@@ -1084,9 +1085,9 @@ unittest {
     builder.put("X2", Value([1,2,3]));
 
     read = BamRead("readname", 
-                     "AGCTGACTACGTAATAGCCCTA", 
-                     [CigarOperation(22, 'M')],
-                     builder.data);
+                   "AGCTGACTACGTAATAGCCCTA", 
+                   [CigarOperation(22, 'M')],
+                   builder.data);
     assert(read["X0"] == 24);
     assert(read["X1"] == "abcd");
     assert(read["X2"] == [1,2,3]);

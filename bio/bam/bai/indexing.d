@@ -242,9 +242,9 @@ void createIndex(BamReader bam, ref Stream stream, void delegate(lazy float p) p
             (read.ref_id < prev_read.ref_id)) 
         {
             throw new Exception("BAM file is not properly sorted: " ~
-                                "read '" ~ read.read_name ~ "'" ~
+                                "read '" ~ read.name ~ "'" ~
                                 " must be before read '" ~ 
-                                prev_read.read_name ~ 
+                                prev_read.name ~ 
                                 "' (at virtual offset " ~ 
                                 to!string(prev_block.start_virtual_offset)~
                                 ")");

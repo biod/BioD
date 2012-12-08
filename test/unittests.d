@@ -74,7 +74,7 @@ unittest {
     assert(equal(map!"cast(char)(a + 33)"(read.phred_base_quality),
                 "<<<7<<<;<<<<<<<<8;;<7;4<;<;;;;;94<;"));
     assert(bf.reference(read.ref_id).name == "chr1");
-    assert(read.read_name == "EAS56_57:6:190:289:82");
+    assert(read.name == "EAS56_57:6:190:289:82");
     assert(read.flag == 69);
     assert(read.position == 99);
     assert(read.mapping_quality == 0);
@@ -85,28 +85,28 @@ unittest {
     assert(bf.header.getSequenceIndex("chr1") == read.ref_id);
     }
 
-    assert(bf.reads.front.read_name == "EAS56_57:6:190:289:82");
+    assert(bf.reads.front.name == "EAS56_57:6:190:289:82");
 
     writeln("Testing tag parsing...");
     fn = buildPath(dirName(__FILE__), "data", "tags.bam");
     bf = new BamReader(fn);
     foreach (alignment; bf.reads) {
-        auto read_name = alignment.read_name;
-        assert(read_name[0..4] == "tag_");
+        auto name = alignment.name;
+        assert(name[0..4] == "tag_");
         char[] tag;
-        read_name = read_name[4..$];
-        while (read_name[0] != ':') {
-            tag ~= read_name[0];
-            read_name = read_name[1..$];
+        name = name[4..$];
+        while (name[0] != ':') {
+            tag ~= name[0];
+            name = name[1..$];
         }
-        read_name = read_name[1..$];
+        name = name[1..$];
         string value = toSam(alignment[tag.idup]);
-        if (read_name != value) {
-            writeln("tag: ", tag, "\tread_name: ", read_name, "\tvalue: ", value);
+        if (name != value) {
+            writeln("tag: ", tag, "\tname: ", name, "\tvalue: ", value);
             writeln("value bam_typeid: ", alignment[tag.idup].bam_typeid);
         }
 
-        assert(read_name == value);
+        assert(name == value);
     }
 
     writeln("Testing exception handling...");
@@ -138,8 +138,8 @@ unittest {
         if (!equal(naive, refseq)) {
             writeln(beg);
             writeln(end);
-            writeln(array(map!"a.read_name"(refseq)));
-            writeln(array(map!"a.read_name"(naive)));
+            writeln(array(map!"a.name"(refseq)));
+            writeln(array(map!"a.name"(naive)));
         }
         assert(equal(refseq, naive));
     }
@@ -173,9 +173,9 @@ unittest {
         auto fst_read_small = bf.getReadAt(fst_offset_small);
         auto fst_read_large = bf.getReadAt(fst_offset_large);
 
-        assert(fst_read_tiny.read_name == "tiny:r1:0..1:len1:bin4681:hexbin0x1249");
-        assert(fst_read_small.read_name == "small:r1:0..1:len1:bin4681:hexbin0x1249");
-        assert(fst_read_large.read_name == "large:r1:0..1:len1:bin4681:hexbin0x1249");
+        assert(fst_read_tiny.name == "tiny:r1:0..1:len1:bin4681:hexbin0x1249");
+        assert(fst_read_small.name == "small:r1:0..1:len1:bin4681:hexbin0x1249");
+        assert(fst_read_large.name == "large:r1:0..1:len1:bin4681:hexbin0x1249");
     }
 
     writeln("Testing Value code...");
@@ -236,7 +236,7 @@ unittest {
         auto line = toSam(read, bf.reference_sequences);
         auto read2 = parseAlignmentLine(line, bf.header);
         if (read != read2) {
-            writeln(read.read_name);
+            writeln(read.name);
         }
         assert(read == read2);
     }
@@ -247,7 +247,7 @@ unittest {
         auto line = toSam(read, bf.reference_sequences);
         auto read2 = parseAlignmentLine(line, bf.header);
         if (read != read2 && isValid(read)) {
-            writeln(read.read_name);
+            writeln(read.name);
         }
         assert(read == read2 || !isValid(read));
     }
@@ -303,11 +303,11 @@ unittest {
                     assert(ref_id > current_ref_id);
                     switch (ref_id) {
                         case 0:
-                            assert(column.reads.front.read_name == "EAS56_57:6:190:289:82");
+                            assert(column.reads.front.name == "EAS56_57:6:190:289:82");
                             assert(column.position == 99);
                             break;
                         case 1:
-                            assert(column.reads.front.read_name == "B7_591:8:4:841:340");
+                            assert(column.reads.front.name == "B7_591:8:4:841:340");
                             assert(column.position == 0);
                             break;
                         default:

@@ -154,7 +154,7 @@ void serialize(S, R)(auto ref R alignment, ReferenceSequenceInfo[] info, auto re
         }
     }
     
-    putstring(stream, alignment.read_name);
+    putstring(stream, alignment.name);
     putcharacter(stream, '\t');
 
     putinteger(stream, alignment.flag);
