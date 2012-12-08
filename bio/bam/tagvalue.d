@@ -343,9 +343,7 @@ struct Value {
         }
     }
 
-    /// Conversion to string occurs only when Value stores 
-    /// 'Z' or 'H' tag. Otherwise ConvException is thrown.
-    string toString() {
+    string toString() const {
         return opCast!string();
     }
 
