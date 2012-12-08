@@ -370,7 +370,7 @@ template CIGARbaseInfo(R) {
                     if (_current_cigar_op.is_query_consuming)
                         break;
                     if (_current_cigar_op.is_reference_consuming)
-                        _ref_pos += _current_cigar_op.length;
+                        _ref_pos -= _current_cigar_op.length;
                 }
             }
         }
