@@ -62,7 +62,7 @@ struct CigarOperation {
       directly, not doing any memory allocations. 
     */
 
-    private uint raw; /// raw data from BAM
+    private uint raw; // raw data from BAM
 
     private static ubyte char2op(char c) {
         switch(c) {
@@ -75,7 +75,7 @@ struct CigarOperation {
             case 'P': return 6;
             case '=': return 7;
             case 'X': return 8;
-            default:  return 8; // FIXME
+            default:  return 15; // 15 is used as invalid value
         }
     }
 
@@ -89,14 +89,10 @@ struct CigarOperation {
         return raw >> 4;
     }
   
-    /// CIGAR operation as one of MIDNSHP=X
+    /// CIGAR operation as one of MIDNSHP=X.
+    /// Absent or invalid operation is represented by '?'
     char operation() @property const nothrow {
-        if ((raw & 0xF) > 8) {
-            /* FIXME: what to do in this case? */
-            return '\0';
-        }
-
-        return "MIDNSHP=X"[raw & 0xF];
+        return "MIDNSHP=X????????"[raw & 0xF];
     }
 
     ///
@@ -285,10 +281,10 @@ struct BamRead {
 
     static struct SequenceResult {
 
-        private ubyte[] _data;
-        private size_t _len;
         private size_t _index;
-        private bool _use_first_4_bits;
+        private ubyte[] _data = void;
+        private size_t _len = void;
+        private bool _use_first_4_bits = void;
 
         this(const(ubyte[]) data, size_t len, bool use_first_4_bits=true) {
             _data = cast(ubyte[])data;

@@ -31,22 +31,42 @@ import std.array;
 import std.exception;
 
 /// Represents a read aligned to a column
-struct PileupRead(Read=BamRead) {
+struct PileupRead(Read=EagerBamRead) {
 
-    Read read;
+    private Read _read;
+    ///
+    ref const(Read) read() @property const {
+        return _read;
+    }
     alias read this;
   
-    /// Current CIGAR operation. Cannot be 'P' as padding operators are skipped.
+    /// Current CIGAR operation. One of 'M', '=', 'X', 'D', 'N.
+    /// Use $(D cigar_after)/$(D cigar_before) to determine insertions.
     CigarOperation cigar_operation() @property const {
         return _cur_op;
+    }
+
+    /// Number of bases consumed from the current CIGAR operation.
+    uint cigar_operation_offset() @property const {
+        return _cur_op_offset;
+    }
+
+    /// CIGAR operations after the current operation
+    const(CigarOperation)[] cigar_after() @property const {
+        return _read.cigar[_cur_op_index + 1 .. $];
+    }
+
+    /// CIGAR operations before the current operation
+    const(CigarOperation)[] cigar_before() @property const {
+        return _read.cigar[0 .. _cur_op_index];
     }
 
     /// If current CIGAR operation is one of 'M', '=', or 'X', returns read base
     /// at the current column. Otherwise, returns '-'.
     char current_base() @property const {
-        assert(_query_offset <= read.sequence_length);
+        assert(_query_offset <= _read.sequence_length);
         if (_cur_op.is_query_consuming && _cur_op.is_reference_consuming) {
-            return read.sequence[_query_offset];
+            return _read.sequence[_query_offset];
         } else {
             return '-';
         }
@@ -56,9 +76,9 @@ struct PileupRead(Read=BamRead) {
     /// Phred-scaled read base quality at the correct column.
     /// Otherwise, returns 255.
     ubyte current_base_quality() @property const {
-        assert(_query_offset <= read.sequence_length);
+        assert(_query_offset <= _read.sequence_length);
         if (_cur_op.is_query_consuming && _cur_op.is_reference_consuming) {
-            return read.phred_base_quality[_query_offset];
+            return _read.phred_base_quality[_query_offset];
         } else {
             return 255;
         }
@@ -68,7 +88,7 @@ struct PileupRead(Read=BamRead) {
     /// index of current base in the read sequence. 
     /// Otherwise, returns -1.
     int read_sequence_offset() @property const {
-        assert(_query_offset <= read.sequence_length);
+        assert(_query_offset <= _read.sequence_length);
         if (_cur_op.is_query_consuming && _cur_op.is_reference_consuming) {
             return _query_offset;
         } else {
@@ -90,10 +110,10 @@ struct PileupRead(Read=BamRead) {
         uint _query_offset;
 
         this(Read read) {
-            this.read = read;
+            _read = read;
 
             // find first M/=/X/D operation
-            auto cigar = read.cigar;
+            auto cigar = _read.cigar;
             for (_cur_op_index = 0; _cur_op_index < cigar.length; ++_cur_op_index) {
                 assertCigarIndexIsValid();
 
@@ -123,7 +143,7 @@ struct PileupRead(Read=BamRead) {
 
                 _cur_op_offset = 0; // reset CIGAR operation offset
 
-                auto cigar = read.cigar;
+                auto cigar = _read.cigar;
                 // get next reference-consuming CIGAR operation (M/=/X/D/N)
                 for (++_cur_op_index; _cur_op_index < cigar.length; ++_cur_op_index) {
                     _cur_op = cigar[_cur_op_index];
@@ -141,9 +161,9 @@ struct PileupRead(Read=BamRead) {
         }
 
         void assertCigarIndexIsValid() {
-            assert(_cur_op_index < read.cigar.length, "Invalid read " ~ read.read_name 
-                                                      ~ " - CIGAR " ~ read.cigarString()
-                                                      ~ ", sequence " ~ to!string(read.sequence));
+            assert(_cur_op_index < _read.cigar.length, "Invalid read " ~ _read.read_name 
+                                                       ~ " - CIGAR " ~ _read.cigarString()
+                                                       ~ ", sequence " ~ to!string(_read.sequence));
         }
     }
 }
@@ -557,6 +577,21 @@ unittest {
                       "TCATCATCATCGTCACCCTGTGTTGAGGACAGAAGTAATTTCCCTTTCTTGGCT",
                       "TCATCATCATCATCACCACCACCACCCTGTGTTGAGGACAGAAGTAATATCCCT",
                       "CACCACCACCCTGTGTTGAGGACAGAAGTAATTTCCCTTTCTTGGCTGGTCACC"];
+    
+// multiple sequence alignment:
+//                                                            ***   
+// ATTATGGACATTGTTTCCGTTATCATCATCATCATCATCATCATCATTATCATC                       
+//       GACATTGTTTCCGTTATCATCATCATCATCATCATCATCATCATCATCATCAT---C                      
+//          ATTGTTTCCGTTATCATCATCATCATCATCATCATCATCATCATCATCATCACC                   
+//            TGTTTCCGTTATCATCATCATCATCATCATCATCATCATCATCATCAT---CACCAC                    
+//                TCCGTTATCATCATCATCATCATCATCATCATCATCATCATCAT---CACCACCACC                   
+//                   GTTATCATCATCATCATCATCATCATCATCATCATCATCAT---CATCGTCACCCTG                    
+//                            ATCATCATCATAATCATCATCATCATCATCAT---CATCGTCACCCTGTGTTGAG                    
+//                                      TCATCATCATCGTCAC------------------CCTGTGTTGAGGACAGAAGTAATTTCCCTTTCTTGGCT
+//                                               TCATCATCATCATCACCACCACCACCCTGTGTTGAGGACAGAAGTAATATCCCT             
+//                                                            ---CACCACCACCCTGTGTTGAGGACAGAAGTAATTTCCCTTTCTTGGCTGGTCACC
+//   *         *         *         *         *         *            *         *        *         *
+//  760       770       780       790       800       810          820       830      840       850
 
     auto cigars = [[CigarOperation(54, 'M')],
                    [CigarOperation(54, 'M')],
@@ -621,7 +656,17 @@ unittest {
                 assert(equal(column.bases, "AAAAAAAGA"));
                 pileup.popFront();
                 break;
+            case 810:
+                // last read is not yet fetched by pileup engine
+                assert(column.reads[$ - 2].cigar_after.front.operation == 'D');
+                pileup.popFront();
+                break;
+            case 817:
+                assert(column.reads[$ - 2].cigar_before.back.operation == 'I');
+                pileup.popFront();
+                break;
             case 821:
+                assert(column.reads[$ - 3].cigar_operation == 'D');
                 assert(equal(column.bases, "AAGG-AA"));
                 pileup.popFront();
                 break;
