@@ -1135,3 +1135,20 @@ struct EagerBamRead {
         return EagerBamRead(read.dup);
     }
 }
+
+/// Comparison function for 'queryname' sorting order
+/// (return whether first read is 'less' than second)
+bool compareReadNames(R1, R2)(const auto ref R1 a1, const auto ref R2 a2) {
+    return a1.name < a2.name;
+}
+
+/// Comparison function for 'coordinate' sorting order
+/// (return whether first read is 'less' than second)
+bool compareCoordinates(R1, R2)(const auto ref R1 a1, const auto ref R2 a2) {
+    if (a1.ref_id == -1) return false; // unmapped reads should be last
+    if (a2.ref_id == -1) return true;
+    if (a1.ref_id < a2.ref_id) return true;
+    if (a1.ref_id > a2.ref_id) return false;
+    if (a1.position < a2.position) return true;
+    return false;
+}

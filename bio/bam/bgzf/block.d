@@ -92,7 +92,8 @@ struct DecompressedBgzfBlock {
 
 /// Function for BGZF block decompression.
 /// Reuses buffer allocated for storing compressed data,
-/// i.e. after execution 
+/// i.e. after execution buffer of the passed $(D block)
+/// is overwritten with uncompressed data.
 DecompressedBgzfBlock decompressBgzfBlock(BgzfBlock block) {
 
     if (block.input_size == 0) {

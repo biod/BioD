@@ -64,7 +64,7 @@ mixin template withoutOffsets() {
     /**
         Returns: current bamRead
      */
-    BamRead front() @property {
+    ref BamRead front() @property {
         return _current_record;
     }
 
