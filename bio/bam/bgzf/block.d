@@ -19,13 +19,17 @@
 */
 module bio.bam.bgzf.block;
 
+import bio.bam.constants;
+
 import std.array : uninitializedArray;
 import std.conv;
 import std.zlib : crc32, ZlibException;
 import etc.c.zlib;
+import std.exception;
 
 /**
   Structure representing BGZF block.
+  In general, users shouldn't use it, as it is EXTREMELY low-level.
  */
 struct BgzfBlock {
     // field types are as in the SAM/BAM specification
@@ -39,11 +43,28 @@ struct BgzfBlock {
     }
 
     public ushort bsize; /// total Block SIZE minus one
-    public ubyte[] compressed_data = void;
+
+    public ushort cdata_size; /// compressed data size
+
+    /// A buffer is used to reduce number of allocations.
+    ///
+    /// Its size is max(bsize + 1, input_size)
+    /// Initially, it contains compressed data, but is rewritten
+    /// during decompressBgzfBlock -- indeed, who cares about
+    /// compressed data after it has been uncompressed?
+    public ubyte[] _buffer = void;
+
+    /// If block has been already decompressed, result is undefined.
+    public ubyte[] compressed_data() @property {
+        return _buffer[0 .. cast(size_t)cdata_size];
+    }
+
     public uint crc32;
     public uint input_size; /// size of uncompressed data
 
     hash_t toHash() const pure @safe nothrow {
+        // since the block can be either compressed or decompressed,
+        // returning CRC sum is the easiest and safest thing to do
         return crc32;
     }
 
@@ -70,6 +91,8 @@ struct DecompressedBgzfBlock {
 }
 
 /// Function for BGZF block decompression.
+/// Reuses buffer allocated for storing compressed data,
+/// i.e. after execution 
 DecompressedBgzfBlock decompressBgzfBlock(BgzfBlock block) {
 
     if (block.input_size == 0) {
@@ -79,9 +102,18 @@ DecompressedBgzfBlock decompressBgzfBlock(BgzfBlock block) {
         // TODO: add check for correctness of EOF marker
     }
 
-    int err;
+    int err = void;
 
-    ubyte[] uncompressed = uninitializedArray!(ubyte[])(block.input_size);
+    // allocate buffer on the stack
+    ubyte[BGZF_MAX_BLOCK_SIZE] uncompressed_buf = void;
+
+    // check that block follows BAM specification
+    enforce(block.input_size <= BGZF_MAX_BLOCK_SIZE, 
+            "Uncompressed block size must be within " ~ 
+            to!string(BGZF_MAX_BLOCK_SIZE) ~ " bytes");
+
+    // for convenience, provide a slice
+    auto uncompressed = uncompressed_buf[0 .. block.input_size];
 
     // set input data
     etc.c.zlib.z_stream zs;
@@ -94,7 +126,8 @@ DecompressedBgzfBlock decompressBgzfBlock(BgzfBlock block) {
         throw new ZlibException(err);
     }
 
-    zs.next_out = cast(typeof(zs.next_out))uncompressed.ptr;
+    // uncompress it into a buffer on the stack
+    zs.next_out = cast(typeof(zs.next_out))uncompressed_buf.ptr;
     zs.avail_out = block.input_size;
 
     err = etc.c.zlib.inflate(&zs, Z_FINISH);
@@ -112,9 +145,14 @@ DecompressedBgzfBlock decompressBgzfBlock(BgzfBlock block) {
             throw new ZlibException(err);
     }
 
-    assert(block.crc32 == crc32(0, uncompressed));
+    assert(block.crc32 == crc32(0, uncompressed[]));
+
+    // Now copy back to block._buffer, overwriting existing data.
+    // It should have enough bytes already allocated.
+    assert(block._buffer.length >= block.input_size);
+    block._buffer[0 .. block.input_size] = uncompressed[];
 
     return DecompressedBgzfBlock(block.start_offset, 
                                  block.start_offset + block.bsize + 1,
-                                 cast(ubyte[])uncompressed);
+                                 block._buffer[0 .. block.input_size]);
 }

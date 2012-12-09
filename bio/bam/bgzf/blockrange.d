@@ -25,6 +25,7 @@ import bio.bam.constants;
 import std.stream;
 import std.array : uninitializedArray;
 import std.conv;
+import std.algorithm : max;
 
 /// Exception type, thrown in case of encountering corrupt BGZF blocks
 class BgzfException : Exception {
@@ -266,14 +267,31 @@ private:
            
             // read compressed data
             auto cdata_size = bsize - gzip_extra_length - 19;
+            if (cdata_size > BGZF_MAX_BLOCK_SIZE) {
+                throwBgzfException("compressed data size is more than " ~
+                                   to!string(BGZF_MAX_BLOCK_SIZE) ~
+                                   " bytes, which is not allowed by " ~
+                                   "current BAM specification");
+            }
 
             _current_block.bsize = bsize;
-            _current_block.compressed_data = uninitializedArray!(ubyte[])(cdata_size);
-            _stream.readExact(_current_block.compressed_data.ptr, cdata_size);
+            _current_block.cdata_size = cast(ushort)cdata_size;
+
+            ubyte[BGZF_MAX_BLOCK_SIZE] _buffer = void;
+            _stream.readExact(_buffer.ptr, cdata_size);
             
             _stream.read(_current_block.crc32);
             _stream.read(_current_block.input_size);
            
+            // now, this is a feature: allocate max(input_size, cdata_size).
+            // this way, only 1 allocation is done per block instead of 2.
+            // (see comments in bio.bam.bgzf.block about reusing this memory)
+            auto _buf_size = max(_current_block.input_size, cdata_size);
+            _current_block._buffer = uninitializedArray!(ubyte[])(_buf_size);
+
+            // copy compressed data at the start of the block
+            _current_block._buffer[0 .. cdata_size] = _buffer[0 .. cdata_size];
+
             _current_block.start_offset = start_offset;
 
             return;
