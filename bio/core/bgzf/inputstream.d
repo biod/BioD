@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
-module bio.core.bgzf.chunkinputstream;
+module bio.core.bgzf.inputstream;
 
 import bio.core.bgzf.block;
 import bio.core.bgzf.virtualoffset;
@@ -47,7 +47,7 @@ import std.algorithm;
 ///       caching, for random access - with caching; and maybe 
 ///       you'll want several types of caching.)
 ///
-abstract class IChunkInputStream : Stream {
+abstract class BgzfInputStream : Stream {
     /// Returns: current virtual offset
     ///
     /// (For details about what virtual offset is, 
@@ -86,7 +86,7 @@ AugmentedDecompressedBgzfBlock makeAugmentedBlock(DecompressedBgzfBlock block) {
   However, front() gets called only once for each element. That fits
   the philosophy of std.algorithm.map. 
  */
-final class ChunkInputStream(ChunkRange) : IChunkInputStream
+final class ChunkInputStream(ChunkRange) : BgzfInputStream
 {
 
     static assert(is(ElementType!ChunkRange == AugmentedDecompressedBgzfBlock));

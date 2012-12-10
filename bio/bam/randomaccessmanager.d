@@ -30,7 +30,7 @@ import bio.bam.bai.utils.algo;
 
 import bio.core.bgzf.blockrange;
 import bio.core.bgzf.virtualoffset;
-import bio.core.bgzf.chunkinputstream;
+import bio.core.bgzf.inputstream;
 import bio.core.utils.memoize;
 import bio.core.utils.range;
 import bio.core.utils.stream;
@@ -117,8 +117,8 @@ class RandomAccessManager {
         return true;
     }
 
-    /// Get new IChunkInputStream starting from specified virtual offset.
-    IChunkInputStream createStreamStartingFrom(VirtualOffset offset, TaskPool task_pool=null) {
+    /// Get new BgzfInputStream starting from specified virtual offset.
+    BgzfInputStream createStreamStartingFrom(VirtualOffset offset, TaskPool task_pool=null) {
 
         auto _stream = new bio.core.utils.stream.File(_filename);
         auto _compressed_stream = new EndianStream(_stream, Endian.littleEndian);
@@ -134,7 +134,7 @@ class RandomAccessManager {
             auto adjusted_range = chain(repeat(adjusted_front, 1), 
                                         map!makeAugmentedBlock(decompressed_range));
 
-            return cast(IChunkInputStream)makeChunkInputStream(adjusted_range);
+            return cast(BgzfInputStream)makeChunkInputStream(adjusted_range);
         }
 
         if (task_pool is null) {
@@ -163,7 +163,7 @@ class RandomAccessManager {
     ///
     /// If $(D task_pool) is not null, it is used for parallel decompression. Otherwise, decompression is serial.
     auto getReadsBetween(VirtualOffset from, VirtualOffset to, TaskPool task_pool=null) {
-        IChunkInputStream stream = createStreamStartingFrom(from, task_pool);
+        BgzfInputStream stream = createStreamStartingFrom(from, task_pool);
 
         static bool offsetTooBig(BamReadBlock record, VirtualOffset vo) {
             return record.end_virtual_offset > vo;
@@ -244,7 +244,7 @@ class RandomAccessManager {
         //                                     (modified unpacked blocks)
         //                                                 |
         //                                                 V                       (5)
-        //                                        IChunkInputStream
+        //                                          BgzfInputStream
         //                                                 |
         //                                                 V                       (6)
         //                                 filter out non-overlapping records
@@ -255,7 +255,7 @@ class RandomAccessManager {
         auto bgzf_range = getJoinedBgzfRange(chunks);                               // (2)
         auto decompressed_blocks = getUnpackedBlocks(bgzf_range);                   // (3)
         auto augmented_blocks = getAugmentedBlocks(decompressed_blocks, chunks);    // (4)
-        IChunkInputStream stream = makeChunkInputStream(augmented_blocks);          // (5)
+        BgzfInputStream stream = makeChunkInputStream(augmented_blocks);            // (5)
         auto reads = bamReadRange!IteratePolicy(stream);
         return filterBamReads(reads, ref_id, beg, end);                             // (6)
     }

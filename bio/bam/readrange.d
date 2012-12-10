@@ -20,7 +20,7 @@
 module bio.bam.readrange;
 
 import bio.bam.read;
-import bio.core.bgzf.chunkinputstream;
+import bio.core.bgzf.inputstream;
 import bio.core.bgzf.virtualoffset;
 import bio.core.utils.switchendianness;
 
@@ -74,8 +74,8 @@ mixin template withoutOffsets() {
 class BamReadRange(alias IteratePolicy) 
 { 
 
-    /// Create new range from IChunkInputStream.
-    this(ref IChunkInputStream stream) {
+    /// Create new range from BgzfInputStream.
+    this(ref BgzfInputStream stream) {
         _stream = stream;
         _endian_stream = new EndianStream(_stream, Endian.littleEndian);
         readNext();
@@ -92,7 +92,7 @@ class BamReadRange(alias IteratePolicy)
     }
 
 private:
-    IChunkInputStream _stream;
+    BgzfInputStream _stream;
     EndianStream _endian_stream;
 
     BamRead _current_record;
@@ -143,6 +143,6 @@ private:
 }
 
 /// Returns: lazy range of BamRead structs constructed from a given stream.
-auto bamReadRange(alias IteratePolicy=withoutOffsets)(ref IChunkInputStream stream) {
+auto bamReadRange(alias IteratePolicy=withoutOffsets)(ref BgzfInputStream stream) {
     return new BamReadRange!IteratePolicy(stream);
 }

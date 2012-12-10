@@ -29,7 +29,7 @@ import bio.bam.baifile;
 import bio.core.utils.range;
 import bio.core.utils.stream;
 import bio.core.bgzf.blockrange;
-import bio.core.bgzf.chunkinputstream;
+import bio.core.bgzf.inputstream;
 public import bio.core.bgzf.virtualoffset;
 
 import std.system;
@@ -269,7 +269,7 @@ private:
     
     string _filename;                       // filename (if available)
     Stream _source_stream;                  // compressed
-    IChunkInputStream _decompressed_stream; // decompressed
+    BgzfInputStream _decompressed_stream;   // decompressed
     Stream _bam;                            // decompressed + endian conversion
     bool _stream_is_seekable;
 
@@ -349,7 +349,7 @@ private:
     }
 
     // get decompressed stream out of compressed BAM file
-    IChunkInputStream getDecompressedStream() {
+    BgzfInputStream getDecompressedStream() {
 
         auto compressed_stream = getSeekableCompressedStream();
 
@@ -370,7 +370,7 @@ private:
 
 
     // get decompressed stream starting from the first alignment record
-    IChunkInputStream getDecompressedBamReadStream() {
+    BgzfInputStream getDecompressedBamReadStream() {
         auto compressed_stream = getSeekableCompressedStream();
 
         if (compressed_stream !is null) {
