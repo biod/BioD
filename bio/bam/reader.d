@@ -22,15 +22,15 @@ module bio.bam.reader;
 public import bio.sam.header;
 public import bio.bam.reference;
 public import bio.bam.read;
-public import bio.bam.virtualoffset;
 public import bio.bam.tagvalue;
 public import bio.bam.readrange;
-import bio.bam.bgzf.blockrange;
-import bio.bam.chunkinputstream;
 import bio.bam.randomaccessmanager;
 import bio.bam.baifile;
 import bio.core.utils.range;
 import bio.core.utils.stream;
+import bio.core.bgzf.blockrange;
+import bio.core.bgzf.chunkinputstream;
+public import bio.core.bgzf.virtualoffset;
 
 import std.system;
 import std.stdio;

@@ -20,7 +20,7 @@
 
 import bio.sam.reader;
 import bio.sam.header;
-import bio.bam.bgzf.blockrange;
+import bio.core.bgzf.blockrange;
 import bio.bam.reader;
 import bio.bam.output;
 import bio.bam.md.reconstruct;
@@ -33,7 +33,6 @@ import bio.sam.utils.recordparser;
 import bio.bam.serialization.sam;
 
 import bio.core.utils.tmpfile;
-
 
 import std.path;
 import std.range;

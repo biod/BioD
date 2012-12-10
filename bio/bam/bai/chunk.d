@@ -19,7 +19,7 @@
 */
 module bio.bam.bai.chunk;
 
-import bio.bam.virtualoffset;
+import bio.core.bgzf.virtualoffset;
 
 struct Chunk {
     VirtualOffset beg; /// virtual file offset of the start of the chunk

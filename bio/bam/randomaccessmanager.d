@@ -22,15 +22,15 @@
  */
 module bio.bam.randomaccessmanager;
 
-import bio.bam.bgzf.blockrange;
-import bio.bam.virtualoffset;
 import bio.bam.constants;
 import bio.bam.read;
 import bio.bam.readrange;
-import bio.bam.chunkinputstream;
 import bio.bam.baifile;
 import bio.bam.bai.utils.algo;
 
+import bio.core.bgzf.blockrange;
+import bio.core.bgzf.virtualoffset;
+import bio.core.bgzf.chunkinputstream;
 import bio.core.utils.memoize;
 import bio.core.utils.range;
 import bio.core.utils.stream;
@@ -140,7 +140,7 @@ class RandomAccessManager {
         if (task_pool is null) {
             return helper(map!decompressSerial(bgzf_range), offset);
         } else {
-            return helper(task_pool.map!(bio.bam.bgzf.blockrange.decompressBgzfBlock)(bgzf_range), offset);
+            return helper(task_pool.map!(bio.core.bgzf.blockrange.decompressBgzfBlock)(bgzf_range), offset);
         }
     }
 

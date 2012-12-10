@@ -21,7 +21,7 @@ module bio.bam.reference;
 
 import bio.bam.randomaccessmanager;
 import bio.bam.readrange;
-import bio.bam.virtualoffset;
+import bio.core.bgzf.virtualoffset;
 
 import std.stream;
 import std.exception;

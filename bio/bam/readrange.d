@@ -19,9 +19,9 @@
 */
 module bio.bam.readrange;
 
-import bio.bam.virtualoffset;
-import bio.bam.chunkinputstream;
 import bio.bam.read;
+import bio.core.bgzf.chunkinputstream;
+import bio.core.bgzf.virtualoffset;
 import bio.core.utils.switchendianness;
 
 import std.stream;

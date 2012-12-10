@@ -23,8 +23,8 @@ import bio.sam.header;
 import bio.bam.reference;
 import bio.bam.read;
 import bio.bam.readrange;
-import bio.bam.bgzf.compress;
 import bio.bam.constants;
+import bio.core.bgzf.compress;
 
 import std.stream;
 import std.system;
