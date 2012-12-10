@@ -38,7 +38,7 @@ import core.bitop;
 ///                  decompressed data
 ///
 /// For uncompressed BAM output, use level = 0.
-ubyte[] bgzfCompress(ubyte[] chunk, int level, ubyte[] buffer=null) 
+ubyte[] bgzfCompress(ubyte[] chunk, int level=-1, ubyte[] buffer=null) 
 in 
 {
     assert(-1 <= level && level <= 9);

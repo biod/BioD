@@ -31,7 +31,9 @@ import bio.bam.validation.alignment;
 import bio.bam.utils.samheadermerger;
 import bio.sam.utils.recordparser;
 import bio.bam.serialization.sam;
-
+import bio.core.bgzf.outputstream;
+import bio.core.utils.roundbuf;
+import bio.core.utils.range;
 import bio.core.utils.tmpfile;
 
 import std.path;

@@ -19,6 +19,8 @@
 */
 module bio.core.utils.range;
 
+import bio.core.utils.roundbuf;
+
 import std.range;
 import std.exception;
 import std.algorithm;
@@ -43,45 +45,41 @@ auto prefetch(Range)(Range r, size_t amount) {
         alias ElementType!Range E;
 
         this(Range range, size_t amount) {
-            _elements = new E[amount];
+            _roundbuf = RoundBuf!E(amount);
             _range = range;
-            _amount = amount;
-            foreach (i; 0 .. _amount) {
+            foreach (i; 0 .. amount) {
                 if (_range.empty) {
                     break;
                 }
-                _elements[i] = _range.front;
-                ++ _read;
+                _roundbuf.put(_range.front);
                 _range.popFront();
             }
         }
         
         bool empty() @property {
-            return _range.empty() && _read == _consumed;
+            return _range.empty && _roundbuf.empty;
         }
         
-        E front() @property {
-            return _elements[_consumed % _amount];
+        auto ref E front() @property {
+            return _roundbuf.front;
         }
 
         void popFront() @property {
+            assert(!_roundbuf.empty);
+
             if (_range.empty) {
-                ++ _consumed;
+                _roundbuf.popFront();
                 return;
             }
 
-            _elements[_consumed % _amount] = _range.front;
-            ++ _consumed;
+            _roundbuf.popFront();
+            _roundbuf.put(_range.front);
 
             _range.popFront();
-            ++ _read;
         }
     private:
         Range _range;
-        size_t _read = 0;
-        size_t _consumed = 0;
-        size_t _amount;
-        E[] _elements = void;
+        RoundBuf!E _roundbuf;
     }
 
     return Result(r, amount);

@@ -20,6 +20,7 @@
 module bio.core.bgzf.inputstream;
 
 import bio.core.bgzf.block;
+import bio.core.bgzf.blockrange;
 import bio.core.bgzf.virtualoffset;
 
 import std.stream;
@@ -27,6 +28,7 @@ import std.range;
 import std.array;
 import std.traits;
 import std.algorithm;
+import std.parallelism;
 
 /// Interface on top of Stream, which glues decompressed blocks
 /// together and provides virtualTell() method for determining
@@ -47,7 +49,7 @@ import std.algorithm;
 ///       caching, for random access - with caching; and maybe 
 ///       you'll want several types of caching.)
 ///
-abstract class BgzfInputStream : Stream {
+abstract class IChunkInputStream : Stream {
     /// Returns: current virtual offset
     ///
     /// (For details about what virtual offset is, 
@@ -86,7 +88,7 @@ AugmentedDecompressedBgzfBlock makeAugmentedBlock(DecompressedBgzfBlock block) {
   However, front() gets called only once for each element. That fits
   the philosophy of std.algorithm.map. 
  */
-final class ChunkInputStream(ChunkRange) : BgzfInputStream
+final class ChunkInputStream(ChunkRange) : IChunkInputStream
 {
 
     static assert(is(ElementType!ChunkRange == AugmentedDecompressedBgzfBlock));
@@ -321,4 +323,60 @@ auto makeChunkInputStream(R)(R range, size_t compressed_file_size=0)
     if (is(Unqual!(ElementType!R) == DecompressedBgzfBlock))
 {
     return makeChunkInputStream(map!makeAugmentedBlock(range), compressed_file_size);
+}
+
+/// Convenient decorator for input streams.
+final class BgzfInputStream : IChunkInputStream {
+
+    private IChunkInputStream _stream;
+
+    override size_t readBlock(void* buffer, size_t size) {
+        return _stream.readBlock(buffer, size);
+    }
+
+    override ulong seek(long offset, SeekPos whence) {
+        throw new SeekException("Stream is not seekable");
+    }
+
+    override ulong writeBlock(const void* buf, size_t size) {
+        throw new WriteException("Stream is not writeable");
+    }
+
+    /// Methods implementing $(D IChunkInputStream)
+    override VirtualOffset virtualTell() {
+        return _stream.virtualTell();
+    }
+
+    /// ditto
+    override ubyte[] readSlice(size_t n) {
+        return _stream.readSlice(n);
+    }
+
+    /// ditto
+    override float average_compression_ratio() @property const {
+        return _stream.average_compression_ratio;
+    }
+
+    /// ditto
+    override size_t compressed_file_size() @property const {
+        return _stream.compressed_file_size;
+    }
+
+    bool readEOF() @property {
+        return _stream.readEOF;
+    }
+
+    /// Read BGZF blocks from supplied $(D stream) using $(D task_pool)
+    /// to do parallel decompression
+    this(Stream stream, TaskPool task_pool=taskPool) {
+        auto stream_size = stream.seekable ? stream.size : 0;
+        auto bgzf_range = BgzfRange(stream);
+
+        auto decompressed_blocks = task_pool.map!decompressBgzfBlock(bgzf_range, 24);
+        _stream = makeChunkInputStream(decompressed_blocks, stream_size);
+
+        readable = true;
+        writeable = false;
+        seekable = false;
+    }
 }

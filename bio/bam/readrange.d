@@ -74,8 +74,8 @@ mixin template withoutOffsets() {
 class BamReadRange(alias IteratePolicy) 
 { 
 
-    /// Create new range from BgzfInputStream.
-    this(ref BgzfInputStream stream) {
+    /// Create new range from IChunkInputStream.
+    this(ref IChunkInputStream stream) {
         _stream = stream;
         _endian_stream = new EndianStream(_stream, Endian.littleEndian);
         readNext();
@@ -92,7 +92,7 @@ class BamReadRange(alias IteratePolicy)
     }
 
 private:
-    BgzfInputStream _stream;
+    IChunkInputStream _stream;
     EndianStream _endian_stream;
 
     BamRead _current_record;
@@ -143,6 +143,6 @@ private:
 }
 
 /// Returns: lazy range of BamRead structs constructed from a given stream.
-auto bamReadRange(alias IteratePolicy=withoutOffsets)(ref BgzfInputStream stream) {
+auto bamReadRange(alias IteratePolicy=withoutOffsets)(ref IChunkInputStream stream) {
     return new BamReadRange!IteratePolicy(stream);
 }

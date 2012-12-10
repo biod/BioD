@@ -269,7 +269,7 @@ private:
     
     string _filename;                       // filename (if available)
     Stream _source_stream;                  // compressed
-    BgzfInputStream _decompressed_stream;   // decompressed
+    IChunkInputStream _decompressed_stream; // decompressed
     Stream _bam;                            // decompressed + endian conversion
     bool _stream_is_seekable;
 
@@ -349,7 +349,7 @@ private:
     }
 
     // get decompressed stream out of compressed BAM file
-    BgzfInputStream getDecompressedStream() {
+    IChunkInputStream getDecompressedStream() {
 
         auto compressed_stream = getSeekableCompressedStream();
 
@@ -370,7 +370,7 @@ private:
 
 
     // get decompressed stream starting from the first alignment record
-    BgzfInputStream getDecompressedBamReadStream() {
+    IChunkInputStream getDecompressedBamReadStream() {
         auto compressed_stream = getSeekableCompressedStream();
 
         if (compressed_stream !is null) {
