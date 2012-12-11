@@ -27,7 +27,7 @@ void main() {
     read["RG"] = "RG007";
     // ... set many more fields, flags, and tags
     read.position = 2345; // 0-based, in SAM output you will see 2346
-    read.strand = '-'; // same if read.is_reverse_strand = true
+    read.strand = '-'; // same as read.is_reverse_strand = true
     writer.writeRecord(read); // BGZF blocks are seamlessly compressed in parallel
     writer.flush(); // in practice, one would call close() method
     stream.seekSet(0); // but here we will read from the stream
