@@ -24,19 +24,35 @@ import std.exception;
 import std.array;
 
 /**
-  Stores reference sequence name and length
+  Stores basic information about reference sequence.
  */
 struct ReferenceSequenceInfo {
-    string name;
-    int length;
+    private {
+        string _name;
+        int _length;
+    }
 
-    /**
-      Constructs the structure from input stream
-     */
+    /// Reference sequence name
+    string name() @property const {
+        return _name;
+    }
+   
+    /// Reference sequence length
+    int length() @property const {
+        return _length;
+    }
+
+    ///
+    this(string name, int length) {
+        _name = name;
+        _length = length;
+    }
+
+    /// Constructs the structure from input stream
     this(ref Stream stream) {
         int l_name; // length of the reference name plus one
         stream.read(l_name);
-        name = stream.readString(l_name)[0..$-1].idup; // strip '\0' at the end
-        stream.read(length);
+        _name = stream.readString(l_name)[0..$-1].idup; // strip '\0' at the end
+        stream.read(_length);
     }
 }

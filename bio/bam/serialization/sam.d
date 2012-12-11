@@ -213,12 +213,12 @@ void serialize(S, R)(auto ref R alignment, ReferenceSequenceInfo[] info, auto re
         }
         putcharacter(stream, '\t');
     }
-    if (alignment.phred_base_quality.length == 0 || 
-        alignment.phred_base_quality[0] == '\xFF')
+    if (alignment.base_qualities.length == 0 || 
+        alignment.base_qualities[0] == '\xFF')
     {
         putcharacter(stream, '*');
     } else {
-        foreach(char c; alignment.phred_base_quality) {
+        foreach(char c; alignment.base_qualities) {
             putcharacter(stream, cast(char)(c + 33));
         }
     }

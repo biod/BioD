@@ -215,6 +215,12 @@ struct BamRead {
         return is_reverse_strand ? '-' : '+';
     }
 
+    /// ditto
+    @property void strand(char c) {
+        enforce(c == '-' || c == '+', "Strand must be '-' or '+'");
+        is_reverse_strand = c == '-';
+    }
+
     /// Read name
     @property string name() const nothrow {
         // notice -1: the string is zero-terminated, so we should strip that '\0'
@@ -412,12 +418,12 @@ struct BamRead {
     }
 
     /// Quality data
-    @property const(ubyte)[] phred_base_quality() const nothrow {
+    @property const(ubyte)[] base_qualities() const nothrow {
         return _chunk[_qual_offset .. _qual_offset + _l_seq * char.sizeof];
     }
 
     /// Set quality data - array length must be of the same length as the sequence.
-    @property void phred_base_quality(const(ubyte)[] quality) {
+    @property void base_qualities(const(ubyte)[] quality) {
         enforce(quality.length == _l_seq, "Quality data must be of the same length as sequence");
         _dup();
         _chunk[_qual_offset .. _qual_offset + _l_seq] = quality;
@@ -616,7 +622,7 @@ struct BamRead {
         packer.pack(next_pos);
         packer.pack(template_length);
         packer.pack(to!string(sequence));
-        packer.pack(phred_base_quality);
+        packer.pack(base_qualities);
 
         packer.beginMap(tagCount());
         foreach (key, value; this) {
@@ -1052,9 +1058,9 @@ unittest {
     assert(read.name == "anothername");
     assert(read.cigarString() == "22M");
 
-    read.phred_base_quality = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 
-                    13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
-    assert(reduce!"a+b"(0, read.phred_base_quality) == 253);
+    read.base_qualities = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 
+                           13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
+    assert(reduce!"a+b"(0, read.base_qualities) == 253);
 
     read.cigar = [CigarOperation(20, 'M'), CigarOperation(2, 'X')];
     assert(read.cigarString() == "20M2X");

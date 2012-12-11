@@ -73,7 +73,7 @@ unittest {
     auto reads = bf.reads;
     auto read = reads.front;
     assert(equal(read.sequence, "CTCAAGGTTGTTGCAAGGGGGTCTATGTGAACAAA"));
-    assert(equal(map!"cast(char)(a + 33)"(read.phred_base_quality),
+    assert(equal(map!"cast(char)(a + 33)"(read.base_qualities),
                 "<<<7<<<;<<<<<<<<8;;<7;4<;<;;;;;94<;"));
     assert(bf.reference(read.ref_id).name == "chr1");
     assert(read.name == "EAS56_57:6:190:289:82");
@@ -267,7 +267,7 @@ unittest {
     writer.writeReferenceSequenceInfo(bf.reference_sequences);
 
     foreach (read; bf.reads)
-        writer.writeRead(read);
+        writer.writeRecord(read);
     
     writer.flush();
 

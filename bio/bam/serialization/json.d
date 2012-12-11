@@ -269,7 +269,7 @@ void jsonSerialize(S)(BamRead alignment, ReferenceSequenceInfo[] info, ref S str
 
     putcharacter(stream, '[');
     bool first = true;
-    foreach(ubyte c; alignment.phred_base_quality) {
+    foreach(ubyte c; alignment.base_qualities) {
         if (!first) {
             putcharacter(stream, ',');
         } else {
