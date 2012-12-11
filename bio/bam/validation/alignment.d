@@ -197,8 +197,8 @@ private:
 
     bool invalidQualityData(ref BamRead al) {
         /// Check quality data
-        if (!all!"a == 0xFF"(al.phred_base_quality) &&
-            !all!"0 <= a && a <= 93"(al.phred_base_quality)) 
+        if (!all!"a == 0xFF"(al.base_qualities) &&
+            !all!"0 <= a && a <= 93"(al.base_qualities)) 
         {
             if (!onError(al, AlignmentError.QualityDataContainsInvalidElements)) {
                 return true;

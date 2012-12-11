@@ -78,7 +78,7 @@ struct PileupRead(Read=EagerBamRead) {
     ubyte current_base_quality() @property const {
         assert(_query_offset <= _read.sequence_length);
         if (_cur_op.is_query_consuming && _cur_op.is_reference_consuming) {
-            return _read.phred_base_quality[_query_offset];
+            return _read.base_qualities[_query_offset];
         } else {
             return 255;
         }

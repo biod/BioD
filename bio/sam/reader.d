@@ -148,9 +148,7 @@ private:
 
         _reference_sequences = new ReferenceSequenceInfo[_header.sequences.length];
         foreach (sq; _header.sequences) {
-            ReferenceSequenceInfo seq;
-            seq.name = sq.name;
-            seq.length = sq.length;
+            auto seq = ReferenceSequenceInfo(sq.name, sq.length);
             _reference_sequences[_header.getSequenceIndex(seq.name)] = seq;
         }
     }

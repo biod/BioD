@@ -325,7 +325,7 @@ BamRead parseAlignmentLine(string line, SamHeader header,
                         builder.data);
 
     if (qual_ptr !is null && qual_index == sequence.length) {
-        read.phred_base_quality = qual_ptr[0 .. sequence.length];
+        read.base_qualities = qual_ptr[0 .. sequence.length];
     }
 
     read.flag = flag;
@@ -367,9 +367,7 @@ unittest {
     import bio.bam.serialization.sam;
     import bio.bam.reference;
 
-    ReferenceSequenceInfo info;
-    info.name = "20";
-    info.length = 1234567;
+    auto info = ReferenceSequenceInfo("20", 1234567);
 
     auto invalid_cigar_string = "1\t100\t20\t50000\t30\tMZABC\t=\t50000\t0\tACGT\t####";
     alignment = parseAlignmentLine(invalid_cigar_string, header);
@@ -377,7 +375,7 @@ unittest {
 
     auto invalid_tag_and_qual = "2\t100\t20\t5\t40\t27M30X5D\t=\t3\t10\tACT\t !\n\tX1:i:7\tX3:i:zzz\tX4:i:5";
     alignment = parseAlignmentLine(invalid_tag_and_qual, header);
-    assert(alignment.phred_base_quality == [255, 255, 255]); // i.e. invalid
+    assert(alignment.base_qualities == [255, 255, 255]); // i.e. invalid
     assert(to!ubyte(alignment["X1"]) == 7);
     assert(alignment["X3"].is_nothing);
     assert(to!ubyte(alignment["X4"]) == 5);
