@@ -30,6 +30,22 @@ immutable ubyte[16] BLOCK_HEADER_START =
       66,  67,            // Subfield 'BC'
        2,   0];           // Subfield length (holds 1 ushort)
 
+// empty block
+immutable ubyte[28] BGZF_EOF = 
+    [31, 139, 8, 4, 
+        0, 0, 0, 0, 
+                 0, 
+               255, 
+              6, 0, 
+            66, 67, 
+              2, 0, 
+             27, 0, 
+              3, 0, 
+        0, 0, 0, 0, 
+        0, 0, 0, 0];
+
+
+
 // BGZF block header length in bytes.
 // Block header holds BLOCK_HEADER_START + block size (ushort)
 immutable BLOCK_HEADER_LENGTH = BLOCK_HEADER_START.length + ushort.sizeof;

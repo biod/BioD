@@ -21,7 +21,7 @@ module bio.core.bgzf.virtualoffset;
 
 import std.conv;
 
-/// Structure representing virtual offset in BAM file.
+/// Structure representing virtual offset in BGZF-compressed file.
 struct VirtualOffset {
     /// Params:
     ///     

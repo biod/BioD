@@ -17,17 +17,26 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
-module bio.bam.constants;
+module bio.bam.referenceinfo;
 
-public import bio.core.bgzf.constants;
+import std.stream;
+import std.exception;
+import std.array;
 
-immutable BAM_MAGIC = "BAM\1";
-immutable BAI_MAGIC = "BAI\1";
+/**
+  Stores reference sequence name and length
+ */
+struct ReferenceSequenceInfo {
+    string name;
+    int length;
 
-immutable ubyte BAM_SI1 = 66;
-immutable ubyte BAM_SI2 = 67;
-immutable ubyte[28] BAM_EOF = BGZF_EOF;
-
-immutable BAI_MAX_BIN_ID = 37449;
-immutable BAI_MAX_NONLEAF_BIN_ID = 4680;
-immutable BAI_LINEAR_INDEX_WINDOW_SIZE = 16384;
+    /**
+      Constructs the structure from input stream
+     */
+    this(ref Stream stream) {
+        int l_name; // length of the reference name plus one
+        stream.read(l_name);
+        name = stream.readString(l_name)[0..$-1].idup; // strip '\0' at the end
+        stream.read(length);
+    }
+}

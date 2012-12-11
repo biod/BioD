@@ -25,6 +25,7 @@ import bio.core.bgzf.compress;
 import bio.core.utils.roundbuf;
 
 import std.stream;
+import std.exception;
 import std.parallelism;
 import std.array;
 import std.algorithm : max;
@@ -52,6 +53,8 @@ class BgzfOutputStream : Stream {
          TaskPool task_pool=taskPool, 
          size_t max_block_size=BGZF_BLOCK_SIZE) 
     {
+        enforce(-1 <= compression_level && compression_level <= 9,
+                "Compression level must be a number in interval [-1, 9]");
         _stream = output_stream;
         _task_pool = task_pool;
         _compression_level = compression_level;
@@ -120,15 +123,34 @@ class BgzfOutputStream : Stream {
         _current_size = 0;
     }
 
-    /// Flush all remaining BGZF blocks and close source stream.
-    override void close() {
+    /// Flush all remaining BGZF blocks and underlying stream.
+    override void flush() {
         flushCurrentBlock();
         foreach (task; _compression_tasks) {
             auto block = task.yieldForce();
             _stream.writeExact(block.ptr, block.length);
         }
+
+        _stream.flush();
+        _current_size = 0;
+    }
+
+    /// Flush all remaining BGZF blocks and close source stream.
+    /// Automatically adds empty block at the end, serving as
+    /// indicator of end of stream.
+    override void close() {
+        flush();
+
+        addEofBlock();
+
         _stream.close();
-        super.close();
+
+        writeable = false;
+    }
+
+    /// Adds EOF block. This function is called in close() method.
+    void addEofBlock() {
+        _stream.writeExact(BGZF_EOF.ptr, BGZF_EOF.length);    
     }
 }
 

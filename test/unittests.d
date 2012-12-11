@@ -22,7 +22,7 @@ import bio.sam.reader;
 import bio.sam.header;
 import bio.core.bgzf.blockrange;
 import bio.bam.reader;
-import bio.bam.output;
+import bio.bam.writer;
 import bio.bam.md.reconstruct;
 import bio.bam.pileuprange;
 import bio.bam.baseinfo;
@@ -35,6 +35,7 @@ import bio.core.bgzf.outputstream;
 import bio.core.utils.roundbuf;
 import bio.core.utils.range;
 import bio.core.utils.tmpfile;
+import bio.core.utils.stream;
 
 import std.path;
 import std.range;
@@ -258,10 +259,20 @@ unittest {
     bf = new BamReader(fn);
     {
     string tmp = tmpFile("12035913820619231129310.bam");
-    auto stream = new BufferedFile(tmp, FileMode.Out, 8192);
-    writeBAM(stream, bf.header.text, bf.reference_sequences, bf.reads!withoutOffsets, 9);
+    auto stream = new bio.core.utils.stream.File(tmp, "wb+");
+
+    auto writer = new BamWriter(stream);
+
+    writer.writeSamHeader(bf.header);
+    writer.writeReferenceSequenceInfo(bf.reference_sequences);
+
+    foreach (read; bf.reads)
+        writer.writeRead(read);
+    
+    writer.flush();
+
     stream.seekSet(0);
-    assert(walkLength((new BamReader(tmp)).reads!withoutOffsets) == 3270);
+    assert(walkLength((new BamReader(stream)).reads) == 3270);
     stream.close();
     }
 

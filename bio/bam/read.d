@@ -21,6 +21,7 @@ module bio.bam.read;
 
 import bio.core.base;
 
+import bio.bam.writer;
 import bio.bam.tagvalue;
 import bio.bam.bai.bin;
 
@@ -39,7 +40,6 @@ import std.algorithm;
 import std.range;
 import std.conv;
 import std.exception;
-import std.stream;
 import std.system;
 import std.traits;
 import std.array;
@@ -443,33 +443,35 @@ struct BamRead {
 
         _chunk = chunk;
         if (std.system.endian != Endian.littleEndian) {
-            // First 8 fields are 32-bit integers:                 
-            //                                                     
-            // 0) refID                int                         
-            // 1) pos                  int                         
-            // 2) bin_mq_nl           uint                         
-            // 3) flag_nc             uint                         
-            // 4) l_seq                int                         
-            // 5) next_refID           int                         
-            // 6) next_pos             int                         
-            // 7) tlen                 int                         
-            // ----------------------------------------------------
-            // (after them name follows which is string)      
-            //                                                     
-            switchEndianness(_chunk.ptr, 8 * uint.sizeof);
-
-            // Then we need to switch endianness of CIGAR data:
-            switchEndianness(_chunk.ptr + _cigar_offset, 
-                             _n_cigar_op * uint.sizeof);
+            switchChunkEndianness();
 
             // Dealing with tags is the responsibility of TagStorage.
-        }
-
-        // create from chunk of little-endian memory
-        if (std.system.endian != Endian.littleEndian) {
             fixTagStorageByteOrder();
         }
     } 
+
+    // Doesn't touch tags, only fields. 
+    // @@@TODO: NEEDS TESTING@@@
+    private void switchChunkEndianness() {
+        // First 8 fields are 32-bit integers:                 
+        //                                                     
+        // 0) refID                int                         
+        // 1) pos                  int                         
+        // 2) bin_mq_nl           uint                         
+        // 3) flag_nc             uint                         
+        // 4) l_seq                int                         
+        // 5) next_refID           int                         
+        // 6) next_pos             int                         
+        // 7) tlen                 int                         
+        // ----------------------------------------------------
+        // (after them name follows which is string)      
+        //                                                     
+        switchEndianness(_chunk.ptr, 8 * uint.sizeof);
+
+        // Then we need to switch endianness of CIGAR data:
+        switchEndianness(_chunk.ptr + _cigar_offset, 
+                         _n_cigar_op * uint.sizeof);
+    }
  
     private size_t calculateChunkSize(string read_name, 
                                       string sequence, 
@@ -567,12 +569,18 @@ struct BamRead {
         return int.sizeof + _chunk.length;
     }
    
-    /// Write alignment to EndianStream, together with block_size
-    /// and auxiliary data.
-    void write(EndianStream stream) {
-        stream.write(cast(int)(_chunk.length));
-        stream.writeExact(_chunk.ptr, _tags_offset);
-        writeTags(stream);
+    package void write(ref BamWriter writer) {
+        writer.writeInteger(cast(int)(_chunk.length));
+
+        if (std.system.endian != Endian.littleEndian) {
+            switchChunkEndianness();
+            writer.writeByteArray(_chunk[0 .. _tags_offset]);
+            switchChunkEndianness();
+        } else {
+            writer.writeByteArray(_chunk[0 .. _tags_offset]);
+        }
+
+        writeTags(writer);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -616,8 +624,8 @@ struct BamRead {
             packer.pack(value);
         }
     }
-    
-    ubyte[] _chunk; /// holds all the data, 
+   
+    package ubyte[] _chunk; /// holds all the data, 
                     /// the access is organized via properties
                     /// (see below)
 
@@ -898,13 +906,12 @@ mixin template TagStorage() {
         return res;
     }
 
-    /// Writes auxiliary data to output stream
-    private void writeTags(Stream stream) {
+    private void writeTags(BamWriter writer) {
         if (std.system.endian == Endian.littleEndian) {
-            stream.writeExact(_tags_chunk.ptr, _tags_chunk.length);
+            writer.writeByteArray(_tags_chunk[]);
         } else {
-            fixTagStorageByteOrder();                                // FIXME: should modify on-the-fly
-            stream.writeExact(_tags_chunk.ptr, _tags_chunk.length);  // during writing to the stream
+            fixTagStorageByteOrder();                                
+            writer.writeByteArray(_tags_chunk[]);
             fixTagStorageByteOrder();                                
         }
     }

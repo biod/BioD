@@ -19,6 +19,8 @@
 */
 module bio.bam.reference;
 
+public import bio.bam.referenceinfo;
+
 import bio.bam.randomaccessmanager;
 import bio.bam.readrange;
 import bio.core.bgzf.virtualoffset;
@@ -26,24 +28,6 @@ import bio.core.bgzf.virtualoffset;
 import std.stream;
 import std.exception;
 import std.array;
-
-/**
-  Stores reference sequence name and length
- */
-struct ReferenceSequenceInfo {
-    string name;
-    int length;
-
-    /**
-      Constructs the structure from input stream
-     */
-    this(ref Stream stream) {
-        int l_name; // length of the reference name plus one
-        stream.read(l_name);
-        name = stream.readString(l_name)[0..$-1].idup; // strip '\0' at the end
-        stream.read(length);
-    }
-}
 
 /**
   Represents reference sequence.
