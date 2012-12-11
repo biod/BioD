@@ -29,7 +29,7 @@ void main() {
     read.position = 2345; // 0-based, in SAM output you will see 2346
     read.strand = '-'; // same as read.is_reverse_strand = true
     writer.writeRecord(read); // BGZF blocks are seamlessly compressed in parallel
-    writer.flush(); // in practice, one would call close() method
+    writer.flush(); // in practice, one would call finish() method
     stream.seekSet(0); // but here we will read from the stream
 
     auto reader = new BamReader(stream);
