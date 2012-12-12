@@ -238,7 +238,7 @@ class PileupRange(R, alias TColumn=PileupColumn) {
         // (not so much of it), but to allow to override it!
         // For that reason it is not marked as final. Overhead of virtual 
         // function is negligible compared to computations in EagerBamRead
-        // constructor together with inserting a new node to the list.
+        // constructor together with inserting new element into appender.
         void add(ref BamRead read) {
             _read_buf.put(PileupRead!EagerBamRead(EagerBamRead(read)));
         }
@@ -544,7 +544,7 @@ final static class PileupRangeUsingMdTag(R) :
 ///
 /// That is, the range of positions is half-open interval 
 /// [max(start_from, first mapped read start position), 
-///  min(end_at, last mapped read end position))
+///  min(end_at, last mapped end position among all reads))
 auto makePileup(R)(R reads, 
                    bool use_md_tag=false,
                    ulong start_from=0, 
