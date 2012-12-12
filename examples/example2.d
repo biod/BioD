@@ -17,15 +17,17 @@ void main() {
     auto read = find!(r => r.name == "9IKNG:00592:01791")(bam.reads).front;
                 
                  // fetch information about flow calls from FZ & ZF tags
-    auto bases = basesWith!"FZ"(read, arg!"flowOrder"(rg.flow_order),
-                                      arg!"keySequence"(rg.key_sequence));
+                 // and also reference base from MD tag
+    auto bases = basesWith!("FZ", "MD")(read, arg!"flowOrder"(rg.flow_order),
+                                              arg!"keySequence"(rg.key_sequence));
 
                        // end of read contains a few indel errors
     foreach (baseinfo; bases.drop(350).take(32)) {
-        writefln("%s\tflow: %3d\tintensity: %.2f\t\tref. pos.: %6d\tCIGAR op.: %s", 
+        writefln("%s\t%s\tflow: %3d\tintensity: %.2f\t\tref. pos.: %6d\tCIGAR op.: %s", 
+                        baseinfo.reference_base,        // from MD tag
                         baseinfo.base,
-                        baseinfo.flow_call.flow_index,
-                        baseinfo.flow_call.intensity,  
+                        baseinfo.flow_call.flow_index,  // from FZ tag
+                        baseinfo.flow_call.intensity,   // also from FZ tag
                         baseinfo.position, 
                         baseinfo.cigar_operation);
         // notice that because the read is on reverse strand, 
