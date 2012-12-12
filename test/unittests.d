@@ -36,6 +36,10 @@ import bio.core.utils.roundbuf;
 import bio.core.utils.range;
 import bio.core.utils.tmpfile;
 import bio.core.utils.stream;
+import bio.core.sequence;
+import bio.core.base;
+import bio.core.tinymap;
+import bio.core.utils.roundbuf;
 
 import std.path;
 import std.range;
@@ -350,10 +354,14 @@ unittest {
 
         auto read = reads[1];
         assert(!read.is_reverse_strand);
-        auto basesFZ = basesWith!"FZ"(read, arg!"flowOrder"(flow_order),
+        auto bases = basesWith!("FZ", "MD")(read, 
+                                            arg!"flowOrder"(flow_order),
                                             arg!"keySequence"(key_sequence));
-        assert(equal(basesFZ.save, read.sequence));
-        assert(equal(take(map!"a.flow_call.intensity_value"(basesFZ.save), 92),
+        
+        assert(equal(drop(map!"a.reference_base"(bases.save), 191),
+                     "-CCCGATTGGTCGTTGCTTTACGCTGATTGGCGAGTCCGGGGAACGTACCTTTGCTATCAGTCCAGGCCACATGAACCAGCTGCGGGCTGAAAGCATTCCGGAAGATGTGATTGCCGGACCTCGGCACTGGTTCTCACCTCATATCTGGTGCGTTGCAAGCCGGGTGAACCCATGCCGGAAGCACCATGAAAGCCATTGAGTACGCGAAGAAATATA"));
+        assert(equal(bases.save, read.sequence));
+        assert(equal(take(map!"a.flow_call.intensity_value"(bases.save), 92),
                      [219, 219, 194, 194, 92, 107, 83, 198, 198, 78, 
                      // A   A    C    C    T   G   A    T    T    A
                       292, 292, 292,  81, 79,  78, 95, 99, 315, 315, 315,
@@ -377,12 +385,14 @@ unittest {
             if (r.is_unmapped) continue;
             if (r.cigar.length == 0) continue;
             if (r.is_reverse_strand) {
-                basesFZ = basesWith!"FZ"(r, arg!"flowOrder"(flow_order), arg!"keySequence"(key_sequence));
+                bases = basesWith!("FZ", "MD")(r, arg!"flowOrder"(flow_order), 
+                                                  arg!"keySequence"(key_sequence));
                 // if reverse strand, bases are also reverse complemented
-                assert(equal(basesFZ.save, map!"a.complement"(retro(r.sequence))));
+                assert(equal(bases.save, map!"a.complement"(retro(r.sequence))));
             } else {
-                basesFZ = basesWith!"FZ"(r, arg!"flowOrder"(flow_order), arg!"keySequence"(key_sequence));
-                assert(equal(basesFZ.save, r.sequence));
+                bases = basesWith!("FZ", "MD")(r, arg!"flowOrder"(flow_order), 
+                                                  arg!"keySequence"(key_sequence));
+                assert(equal(bases.save, r.sequence));
             }
         }
     }

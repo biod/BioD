@@ -20,9 +20,12 @@
 module bio.bam.baseinfo;
 
 import bio.core.base;
+import bio.core.sequence;
 
 import bio.bam.read;
+import bio.bam.tagvalue;
 import bio.bam.fz.flowcall;
+import bio.bam.md.core;
 
 import std.range;
 import std.conv;
@@ -67,6 +70,7 @@ struct PerBaseInfo(R, Tags...) {
     //      - void populate(Result)(ref Result r);
     //          Populates fields of the result declared in resultProperties.
     //          Should run in O(1), just copying a few variables.
+    //          Current base of the result is updated before the call.
     //
     //      - void update(const ref R read);
     //          Encapsulates logic of moving to the next base and updating
@@ -86,6 +90,7 @@ struct PerBaseInfo(R, Tags...) {
     }
 
     static struct Result {
+        /// Actual read base, with strand taken into account.
         Base base;
         alias base this;
 
@@ -124,21 +129,21 @@ struct PerBaseInfo(R, Tags...) {
 
     this(Args...)(R read, Args args) {
         _read = read;
-        _seq = read.sequence;
         _rev = read.is_reverse_strand;
+        _seq = reversableRange!complementBase(read.sequence, _rev);
 
         foreach (t; Extensions) {
             setup!t(read, args);
         }
     }
 
-    bool empty() @property const {
+    bool empty() @property {
         return _seq.empty;
     }
 
     Result front() @property {
         Result r = void;
-        r.base = _rev ? _seq.back.complement : _seq.front;
+        r.base = _seq.front;
         foreach (t; Extensions)
             populate!t(r);
         return r;
@@ -151,7 +156,7 @@ struct PerBaseInfo(R, Tags...) {
     PerBaseInfo!(R, Tags) save() @property {
         PerBaseInfo!(R, Tags) r = void;
         r._read = _read.dup;
-        r._seq = r._read.sequence;
+        r._seq = _seq.save;
         r._rev = _rev;
         foreach (t; Extensions)
             copy!t(r);
@@ -164,15 +169,18 @@ struct PerBaseInfo(R, Tags...) {
             update!t();
         }
 
-        if (_rev) 
-            _seq.popBack();
-        else 
-            _seq.popFront();
+        _seq.popFront();
+    }
+
+    /// Returns true if the read is reverse strand,
+    /// and false otherwise.
+    bool reverse_strand() @property const {
+        return _rev;
     }
 
     private {
         R _read = void;
-        typeof(_read.sequence) _seq = void;
+        ReversableRange!(complementBase, typeof(_read.sequence)) _seq = void;
         bool _rev = void;
     }
 }
@@ -188,6 +196,108 @@ struct PerBaseInfo(R, Tags...) {
 template basesWith(Tags...) {
     auto basesWith(R, Args...)(R read, Args args) {
         return PerBaseInfo!(R, Tags)(read, args);
+    }
+}
+
+/// Provides additional properties
+///     * reference_base
+///     * md_operation
+template MDbaseInfo(R) {
+
+    mixin template resultProperties() {
+        /// If current CIGAR operation is reference consuming,
+        /// returns reference base at this position, otherwise
+        /// returns '-'.
+        ///
+        /// If read is on '-' strand, the result will be
+        /// complementary base.
+        char reference_base() @property {
+            return _ref_base;
+        }
+
+        /// Current MD operation
+        MdOperation md_operation() @property {
+            return _md_op;
+        }
+
+        private {
+            char _ref_base = void;
+            MdOperation _md_op = void;
+        }
+    }
+
+    mixin template rangeMethods() {
+
+        private {
+            ReversableRange!(reverseMdOp, MdOperationRange) _md_ops = void;
+            uint _match; // remaining length of current match operation
+        }
+
+        void setup(Args...)(const ref R read, Args args)
+        {
+            auto md = read["MD"];
+            auto md_str = *(cast(string*)&md);
+            _md_ops = reversableRange!reverseMdOp(mdOperations(md_str),
+                                                  read.is_reverse_strand);
+          
+            while (!_md_ops.empty && _md_ops.front.is_deletion)
+                _md_ops.popFront();
+
+            if (!_md_ops.empty && _md_ops.front.is_match)
+                _match = _md_ops.front.match;
+        }
+
+        void populate(Result)(ref Result result)
+        {
+            if (!current_cigar_operation.is_reference_consuming)
+            {
+                result._ref_base = '-';
+                return;
+            }
+
+            if (_md_ops.empty) {
+                return;
+            }
+
+            auto op = _md_ops.front;
+            if (op.is_mismatch)
+                result._ref_base = op.mismatch.asCharacter;
+            else if (op.is_match) {
+                result._ref_base = result.base.asCharacter;
+            }
+            else assert(0);
+
+            result._md_op = op;
+        }
+
+        void update(const ref R read)
+        {
+            if (!current_cigar_operation.is_reference_consuming)
+                return;
+
+            if (_md_ops.front.is_mismatch)
+            {
+                _md_ops.popFront();
+            }
+            else if (_md_ops.front.is_match)
+            {
+                --_match;
+                if (_match == 0)
+                    _md_ops.popFront();
+            }
+            else assert(0);
+
+            while (!_md_ops.empty && _md_ops.front.is_deletion)
+                _md_ops.popFront();
+
+            if (_match == 0 && !_md_ops.empty && _md_ops.front.is_match)
+                _match = _md_ops.front.match;
+        }
+
+        void copy(Range)(ref Range source, ref Range target)
+        {
+            target.MD._md_ops = source.MD._md_ops.save;
+        }
     }
 }
 
@@ -251,8 +361,7 @@ template FZbaseInfo(R) {
             result._flow_call = _current_flow_call;
 
             debug {
-                if ((_rev && result.base != result._flow_call.base.complement)
-                    || (!_rev && result.base != result._flow_call.base)) {
+                if (result.base != result._flow_call.base) {
                     import std.stdio;
                     stderr.writeln("invalid flow call at ", _read_name, ": ", result.position);
                 }
@@ -302,28 +411,33 @@ template CIGARbaseInfo(R) {
         }
 
         private {
-            CigarOperation _cigar_operation;
-            ulong _reference_position;
+            CigarOperation _cigar_operation = void;
+            ulong _reference_position = void;
         }
     }
 
     mixin template rangeMethods() {
 
         private {
-            const(CigarOperation)[] _cigar = void;
+            ReversableRange!(identity, const(CigarOperation)[]) _cigar = void;
             long _index = void;
             CigarOperation _current_cigar_op = void;
             ulong _at = void;
             ulong _ref_pos = void;
         }
 
+        /// Current CIGAR operation, available to all extensions
+        const(CigarOperation) current_cigar_operation() @property const {
+            return _current_cigar_op;
+        }
+
         void setup(Args...)(const ref R read, Args) 
         {
-            _cigar = read.cigar;
+            _cigar = reversableRange(read.cigar, read.is_reverse_strand);
 
-            _index = _rev ? _cigar.length : -1;
-            _ref_pos = _rev ? (read.position + read.basesCovered() - 1)
-                            : read.position;
+            _index = -1;
+            _ref_pos = reverse_strand ? (read.position + read.basesCovered() - 1)
+                                      : read.position;
 
             _moveToNextCigarOperator();
         }
@@ -337,7 +451,7 @@ template CIGARbaseInfo(R) {
         {
            ++_at;
            if (_current_cigar_op.is_reference_consuming) {
-               _ref_pos += _rev ? -1 : 1;
+               _ref_pos += reverse_strand ? -1 : 1;
            }
 
            if (_at == _current_cigar_op.length) {
@@ -355,22 +469,17 @@ template CIGARbaseInfo(R) {
 
         private void _moveToNextCigarOperator() {
             _at = 0;
-            if (!_rev) {
-                for (++_index; _index < _cigar.length; ++_index)
+            for (++_index; _index < _cigar.length; ++_index)
+            {
+                _current_cigar_op = _cigar[_index];
+                if (_current_cigar_op.is_query_consuming)
+                    break;
+                if (_current_cigar_op.is_reference_consuming)
                 {
-                    _current_cigar_op = _cigar[_index];
-                    if (_current_cigar_op.is_query_consuming)
-                        break;
-                    if (_current_cigar_op.is_reference_consuming)
-                        _ref_pos += _current_cigar_op.length;
-                }
-            } else {
-                for (--_index; _index >= 0; --_index) {
-                    _current_cigar_op = _cigar[_index];
-                    if (_current_cigar_op.is_query_consuming)
-                        break;
-                    if (_current_cigar_op.is_reference_consuming)
+                    if (reverse_strand)
                         _ref_pos -= _current_cigar_op.length;
+                    else
+                        _ref_pos += _current_cigar_op.length;
                 }
             }
         }

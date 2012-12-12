@@ -231,3 +231,33 @@ unittest {
 
     assert((cast(Base16)b5).internal_code == 8);
 }
+
+/// Complement base, which might be Base5, Base16, char, or dchar.
+B complementBase(B)(B base) {
+    static if(is(Unqual!B == dchar) || is(Unqual!B == char))
+    {
+        return cast(B)(Base16(base).complement);
+    }
+    else
+        return base.complement;
+}
+
+/// Convert character to base
+template charToBase(B=Base16)
+{
+    B charToBase(C)(C c)
+        if(is(Unqual!C == char) || is(Unqual!C == dchar))
+    {
+        return B(c);
+    }
+}
+
+unittest {
+    assert(complementBase('T') == 'A');
+    assert(complementBase('G') == 'C');
+
+    assert(complementBase(Base5('A')) == Base5('T'));
+    assert(complementBase(Base16('C')) == Base16('G'));
+
+    assert(charToBase!Base16('A').complement == Base16('T'));
+}

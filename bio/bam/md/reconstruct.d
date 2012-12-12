@@ -159,7 +159,7 @@ auto dna(T)(T read)
                     }
                     break;
                 case MdOperationType.Deletion:
-                    _cur_md_op.deletion = _cur_md_op.deletion[1..$];
+                    _cur_md_op.deletion.popFront();
                     if (_cur_md_op.deletion.empty) {
                         _fetchNextMdOperation();
                     }
