@@ -73,7 +73,7 @@ struct PileupRead(Read=EagerBamRead) {
     }
 
     /// If current CIGAR operation is one of 'M', '=', or 'X', returns
-    /// Phred-scaled read base quality at the correct column.
+    /// Phred-scaled read base quality at the current column.
     /// Otherwise, returns 255.
     ubyte current_base_quality() @property const {
         assert(_query_offset <= _read.sequence_length);
@@ -84,16 +84,27 @@ struct PileupRead(Read=EagerBamRead) {
         }
     }
 
-    /// If current CIGAR operation is one of 'M', '=', or 'X', returns
-    /// index of current base in the read sequence. 
-    /// Otherwise, returns -1.
+    /// Returns number of bases consumed from the read sequence.
+    /// More concisely,
+    ///     * if current CIGAR operation is 'M', '=', or 'X',
+    ///       index of current read base in the read sequence
+    ///     * if current CIGAR operation is 'D' or 'N',
+    ///       index of read base after the deletion
+    /// (in both cases indices are 0-based)
     int query_offset() @property const {
         assert(_query_offset <= _read.sequence_length);
-        if (_cur_op.is_query_consuming && _cur_op.is_reference_consuming) {
-            return _query_offset;
-        } else {
-            return -1;
-        }
+        return _query_offset;
+    }
+
+    /// Returns duplicate
+    PileupRead dup() @property {
+        PileupRead r = void;
+        r._read = _read; // logically const, thus no .dup here
+        r._cur_op_index = _cur_op_index;
+        r._cur_op = _cur_op;
+        r._cur_op_offset = _cur_op_offset;
+        r._query_offset = _query_offset;
+        return r;
     }
 
     private {    

@@ -75,41 +75,41 @@ struct MdOperation {
     }
 
     static MdOperation createMatch(uint match) {
-        MdOperation m;
+        MdOperation m = void;
         m._type = MdOperationType.Match;
         m._match = match;
         return m;
     }
 
     static MdOperation createDeletion(string deletion) {
-        MdOperation m;
+        MdOperation m = void;
         m._type = MdOperationType.Deletion;
         m._deletion = nucleotideSequence(sliceableString(deletion));
         return m;
     }
 
     static MdOperation createMismatch(char mismatch) {
-        MdOperation m;
+        MdOperation m = void;
         m._type = MdOperationType.Mismatch;
         m._mismatch = Base16(mismatch);
         return m;
     }
 
     static MdOperation createDeletion(DeletionSequence seq) {
-        MdOperation m;
+        MdOperation m = void;
         m._type = MdOperationType.Deletion;
         m._deletion = seq;
         return m;
     }
 
     static MdOperation createMismatch(Base16 base) {
-        MdOperation m;
+        MdOperation m = void;
         m._type = MdOperationType.Mismatch;
         m._mismatch = base;
         return m;
     }
 
-    bool opEquals(ref MdOperation other) {
+    bool opEquals(ref const(MdOperation) other) const {
 
         if (type != other.type) {
             return false;
@@ -121,7 +121,7 @@ struct MdOperation {
             case MdOperationType.Mismatch:
                 return mismatch == other.mismatch;
             case MdOperationType.Deletion:
-                return equal(_deletion, other._deletion);
+                return equal(cast()_deletion, cast()other._deletion);
         }
     }
 

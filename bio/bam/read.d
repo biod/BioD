@@ -110,6 +110,11 @@ struct CigarOperation {
         return ((CIGAR_TYPE >> ((raw & 0xF) * 2)) & 2) != 0;
     }
 
+    /// True iff operation is one of M, =, X
+    bool is_match_or_mismatch() @property const {
+        return ((CIGAR_TYPE >> ((raw & 0xF) * 2)) & 3) == 3;
+    }
+
     string toString() const {
         return to!string(length) ~ type;
     }

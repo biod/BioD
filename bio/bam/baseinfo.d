@@ -231,6 +231,7 @@ template MDbaseInfo(R) {
         private {
             ReversableRange!(reverseMdOp, MdOperationRange) _md_ops = void;
             uint _match; // remaining length of current match operation
+            MdOperation _md_front = void;
         }
 
         void setup(Args...)(const ref R read, Args args)
@@ -240,11 +241,17 @@ template MDbaseInfo(R) {
             _md_ops = reversableRange!reverseMdOp(mdOperations(md_str),
                                                   read.is_reverse_strand);
           
-            while (!_md_ops.empty && _md_ops.front.is_deletion)
+            while (!_md_ops.empty)
+            {
+                _md_front = _md_ops.front;
                 _md_ops.popFront();
-
-            if (!_md_ops.empty && _md_ops.front.is_match)
-                _match = _md_ops.front.match;
+                if (!_md_front.is_deletion) {
+                    if (_md_front.is_match) {
+                        _match = _md_front.match;
+                    }
+                    break;
+                }
+            }
         }
 
         void populate(Result)(ref Result result)
@@ -255,11 +262,7 @@ template MDbaseInfo(R) {
                 return;
             }
 
-            if (_md_ops.empty) {
-                return;
-            }
-
-            auto op = _md_ops.front;
+            MdOperation op = _md_front;
             if (op.is_mismatch)
                 result._ref_base = op.mismatch.asCharacter;
             else if (op.is_match) {
@@ -275,28 +278,40 @@ template MDbaseInfo(R) {
             if (!current_cigar_operation.is_reference_consuming)
                 return;
 
-            if (_md_ops.front.is_mismatch)
+            if (_md_front.is_mismatch)
             {
+                if (_md_ops.empty)
+                    return;
+
+                _md_front = _md_ops.front;    
                 _md_ops.popFront();
             }
-            else if (_md_ops.front.is_match)
+            else if (_md_front.is_match)
             {
                 --_match;
-                if (_match == 0)
+                if (_match == 0 && !_md_ops.empty) {
+                    _md_front = _md_ops.front;
                     _md_ops.popFront();
+                }
             }
             else assert(0);
 
-            while (!_md_ops.empty && _md_ops.front.is_deletion)
-                _md_ops.popFront();
+            while (_md_front.is_deletion) {
+                if (_md_ops.empty)
+                    return;
 
-            if (_match == 0 && !_md_ops.empty && _md_ops.front.is_match)
-                _match = _md_ops.front.match;
+                _md_front = _md_ops.front;
+                _md_ops.popFront();
+            }
+
+            if (_match == 0 && _md_front.is_match)
+                _match = _md_front.match;
         }
 
         void copy(Range)(ref Range source, ref Range target)
         {
             target.MD._md_ops = source.MD._md_ops.save;
+            target.MD._md_front = source.MD._md_front;
         }
     }
 }
@@ -395,6 +410,7 @@ template FZbaseInfo(R) {
 /// Provides additional properties
 ///     * position
 ///     * cigar_operation
+///     * cigar_operation_offset
 template CIGARbaseInfo(R) {
 
     mixin template resultProperties() {
@@ -410,9 +426,15 @@ template CIGARbaseInfo(R) {
             return _reference_position;
         }
 
+        /// Offset in current CIGAR operation, starting from 0.
+        ulong cigar_operation_offset() @property const {
+            return _cigar_operation_offset;
+        }
+
         private {
             CigarOperation _cigar_operation = void;
             ulong _reference_position = void;
+            ulong _cigar_operation_offset = void;
         }
     }
 
@@ -445,6 +467,7 @@ template CIGARbaseInfo(R) {
         void populate(Result)(ref Result result) {
             result._cigar_operation = _current_cigar_op;
             result._reference_position = _ref_pos;
+            result._cigar_operation_offset = _at;
         }
 
         void update(const ref R read) 
