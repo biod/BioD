@@ -209,10 +209,6 @@ struct PileupColumn(R) {
 
     /// Reads that have leftmost mapped position at this column
     auto reads_starting_here() @property {
-        debug {
-            import std.stdio;
-            writeln(_n_starting_here);
-        }
         return _reads[$ - _n_starting_here .. $];
     }
 
