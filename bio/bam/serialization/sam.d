@@ -205,10 +205,10 @@ void serialize(S, R)(auto ref R alignment, ReferenceSequenceInfo[] info, auto re
     putinteger(stream, alignment.template_length);
     putcharacter(stream, '\t');
 
-    if (alignment.raw_sequence_data.length == 0) {
+    if (alignment.sequence_length == 0) {
         putstring(stream, "*\t");
     } else {
-        foreach(char c; alignment.sequence()) {
+        foreach(char c; alignment.sequence) {
             putcharacter(stream, c);
         }
         putcharacter(stream, '\t');

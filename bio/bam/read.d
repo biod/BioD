@@ -280,8 +280,7 @@ struct BamRead {
         return cast(string)str;
     }
 
-    /// Sequence data 
-    @property const(ubyte)[] raw_sequence_data() const nothrow {
+    private @property const(ubyte)[] raw_sequence_data() const nothrow {
         return _chunk[_seq_offset .. _seq_offset + (_l_seq + 1) / 2];
     }
 
@@ -1149,15 +1148,64 @@ struct EagerBamRead {
     }
 }
 
+static assert(is(EagerBamRead : BamRead));
+
+/// Checks if $(D T) behaves like $(D BamRead)
+template isBamRead(T)
+{
+    static if (is(Unqual!T : BamRead))
+        enum isBamRead = true;
+    else 
+        enum isBamRead = __traits(compiles, 
+        {
+            T t; bool p;
+            p = t.ref_id == 1;          p = t.position == 2;          p = t.bin.id == 3;  
+            p = t.mapping_quality == 4; p = t.flag == 5;              p = t.sequence_length == 6;
+            p = t.next_ref_id == 7;     p = t.next_pos == 8;          p = t.template_length == 9;
+            p = t.is_paired;            p = t.proper_pair;            p = t.is_unmapped;
+            p = t.mate_is_unmapped;     p = t.mate_is_reverse_strand; p = t.is_first_of_pair;
+            p = t.is_second_of_pair;    p = t.is_secondary_alignment; p = t.failed_quality_control;
+            p = t.is_duplicate;         p = t.strand == '+';          p = t.name == "";
+            p = t.cigar[0].type == 'M'; p = t.basesCovered() > 42;    p = t.cigarString() == "";
+            p = t.sequence[0] == 'A';   p = t.base_qualities[0] == 0;
+        });
+}
+
 /// Comparison function for 'queryname' sorting order
 /// (return whether first read is 'less' than second)
-bool compareReadNames(R1, R2)(const auto ref R1 a1, const auto ref R2 a2) {
+///
+/// This function can be called on:
+///     * two reads
+///     * read and string in any order
+bool compareReadNames(R1, R2)(const auto ref R1 a1, const auto ref R2 a2) 
+    if (isBamRead!R1 && isBamRead!R2)
+{
     return a1.name < a2.name;
 }
 
+/// ditto
+bool compareReadNames(R1, R2)(const auto ref R1 a1, const auto ref R2 a2) 
+    if (isBamRead!R1 && isSomeString!R2)
+{
+    return a1.name < a2;
+}
+
+/// ditto
+bool compareReadNames(R1, R2)(const auto ref R1 a1, const auto ref R2 a2) 
+    if (isSomeString!R1 && isBamRead!R2)
+{
+    return a1 < a2.name;
+}
+
 /// Comparison function for 'coordinate' sorting order
-/// (return whether first read is 'less' than second)
-bool compareCoordinates(R1, R2)(const auto ref R1 a1, const auto ref R2 a2) {
+/// (returns whether first read is 'less' than second)
+///
+/// This function can be called on:
+///     * two reads (in this case, reference IDs are also taken into account)
+///     * read and integer in any order
+bool compareCoordinates(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
+    if (isBamRead!R1 && isBamRead!R2)
+{
     if (a1.ref_id == -1) return false; // unmapped reads should be last
     if (a2.ref_id == -1) return true;
     if (a1.ref_id < a2.ref_id) return true;
@@ -1165,3 +1213,20 @@ bool compareCoordinates(R1, R2)(const auto ref R1 a1, const auto ref R2 a2) {
     if (a1.position < a2.position) return true;
     return false;
 }
+
+/// ditto
+bool compareCoordinates(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
+    if (isBamRead!R1 && isIntegral!R2)
+{
+    return a1.position < a2;
+}
+
+/// ditto
+bool compareCoordinates(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
+    if (isIntegral!R1 && isBamRead!R2)
+{
+    return a1 < a2.position;
+}
+
+static assert(isTwoWayCompatible!(compareReadNames, BamRead, string));
+static assert(isTwoWayCompatible!(compareCoordinates, BamRead, int));

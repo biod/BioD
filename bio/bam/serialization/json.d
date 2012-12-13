@@ -258,10 +258,10 @@ void jsonSerialize(S)(BamRead alignment, ReferenceSequenceInfo[] info, ref S str
     putinteger(stream, alignment.template_length);
 
     putstring(stream, `,"seq":"`);
-    if (alignment.raw_sequence_data.length == 0) {
+    if (alignment.sequence_length == 0) {
         putstring(stream, `*","qual":`);
     } else {
-        foreach(char c; alignment.sequence()) {
+        foreach(char c; alignment.sequence) {
             putcharacter(stream, c);
         }
         putstring(stream, `","qual":`);

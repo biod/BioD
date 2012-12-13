@@ -168,12 +168,16 @@ struct PileupRead(Read=EagerBamRead) {
     }
 }
 
+static assert(isBamRead!(PileupRead!BamRead));
+static assert(isBamRead!(PileupRead!EagerBamRead));
+
 /// Represents a single pileup column
 struct PileupColumn(R) {
     private {
         ulong _position;
         int _ref_id = -1;
         R _reads;
+        size_t _n_starting_here;
     }
 
     /// Reference base. 'N' if not available.
@@ -198,9 +202,18 @@ struct PileupColumn(R) {
         return _position;
     }
 
-    /// Reads overlapping the position
+    /// Reads overlapping the position, sorted by coordinate
     auto reads() @property {
-        return _reads[];
+        return assumeSorted!compareCoordinates(_reads[]);
+    }
+
+    /// Reads that have leftmost mapped position at this column
+    auto reads_starting_here() @property {
+        debug {
+            import std.stdio;
+            writeln(_n_starting_here);
+        }
+        return _reads[$ - _n_starting_here .. $];
     }
 
     /// Shortcut for map!(read => read.current_base)(reads)
@@ -281,6 +294,9 @@ class PileupRange(R, alias TColumn=PileupColumn) {
         }
 
         _read_buf.shrinkTo(survived);
+                                      // unless range is empty, this value is
+        _column._n_starting_here = 0; // updated either in initNewReference()
+                                      // or in the loop below
 
         if (!_reads.empty) {
             if (_reads.front.ref_id != _column._ref_id && 
@@ -288,6 +304,7 @@ class PileupRange(R, alias TColumn=PileupColumn) {
             {
                 initNewReference();
             } else {
+                size_t n = 0;
                 while (!_reads.empty && 
                         _reads.front.position == pos && 
                         _reads.front.ref_id == _column._ref_id) 
@@ -295,7 +312,9 @@ class PileupRange(R, alias TColumn=PileupColumn) {
                     auto read = _reads.front;
                     add(read);
                     _reads.popFront();
+                    ++n;
                 }
+                _column._n_starting_here = n;
             }
         }
 
@@ -307,6 +326,7 @@ class PileupRange(R, alias TColumn=PileupColumn) {
 
         _column._position = read.position;
         _column._ref_id = read.ref_id;
+        auto n = 1;
         add(read);
 
         _reads.popFront();
@@ -315,12 +335,14 @@ class PileupRange(R, alias TColumn=PileupColumn) {
             read = _reads.front;
             if (read.position == _column._position) {
                 add(read);
+                ++n;
                 _reads.popFront();
             } else {
                 break;
             }
         }
 
+        _column._n_starting_here = n;
         _column._reads = _read_buf.data;
     }
 }
