@@ -57,11 +57,11 @@ struct FlowCall {
 /// Flow call associated with a read
 struct ReadFlowCall {
     private {
+        Base _base;
         ushort _signal_intensity;
         ushort _offset;
         ushort _called_len;
-        Base _base;
-        size_t _flow_index;
+        ushort _flow_index;
     }
 
     /// Called nucleotide
@@ -192,8 +192,13 @@ struct ReadFlowCallRange(S)
 
     ReadFlowCall front() @property const {
         auto intensity = cast(ushort)(_intensities[_current_flow_index] - _overlap);
-        return ReadFlowCall(intensity, _current_offset, _current_length, 
-                            _current_base, _current_flow_index + _zf);
+        ReadFlowCall rfc = void;
+        rfc._signal_intensity = intensity;
+        rfc._offset = _current_offset;
+        rfc._called_len = _current_length;
+        rfc._flow_index = cast(ushort)(_current_flow_index + _zf);
+        rfc._base = _current_base;
+        return rfc;
     }
 
     void popFront() {

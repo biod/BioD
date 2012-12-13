@@ -60,7 +60,7 @@ auto prefetch(Range)(Range r, size_t amount) {
             return _range.empty && _roundbuf.empty;
         }
         
-        auto ref E front() @property {
+        auto ref front() @property {
             return _roundbuf.front;
         }
 

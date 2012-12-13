@@ -40,8 +40,8 @@ struct ReversableRange(alias reverseTransform=identity, R)
 {
     private 
     { 
-        R _range = void;
         bool _rev = void;
+        R _range = void;
     }
 
     /// Construct reversable range.

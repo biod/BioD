@@ -41,7 +41,7 @@ struct RoundBuf(T) {
     }
 
     /// ditto
-    auto ref T front() @property {
+    auto ref front() @property {
         enforce(!empty, "buffer is empty");
         return _items[_taken % $];
     }

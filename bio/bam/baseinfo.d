@@ -179,9 +179,9 @@ struct PerBaseInfo(R, Tags...) {
     }
 
     private {
+        bool _rev = void;
         R _read = void;
         ReversableRange!(complementBase, typeof(_read.sequence)) _seq = void;
-        bool _rev = void;
     }
 }
 
@@ -414,38 +414,67 @@ template FZbaseInfo(R) {
 template CIGARbaseInfo(R) {
 
     mixin template resultProperties() {
-        /// Current CIGAR operation
-        CigarOperation cigar_operation() @property const {
-            return _cigar_operation;
+
+        version(CigarExtra)
+        {
+            /// Current CIGAR operation
+            CigarOperation cigar_operation() @property {
+                return _cigar[_operation_index];
+            }
+
+            /// CIGAR operations before current one
+            auto cigar_before() @property {
+                return _cigar[0 .. _operation_index];
+            }
+
+            /// CIGAR operations after current one
+            auto cigar_after() @property {
+                return _cigar[_operation_index + 1 .. _cigar.length];
+            }
+        }
+        else
+        {
+            /// Current CIGAR operation
+            CigarOperation cigar_operation() @property const {
+                return _current_cigar_op;
+            }
         }
 
         /// Position of the corresponding base on the reference.
         /// If current CIGAR operation is not one of 'M', '=', 'X',
         /// returns the position of the previous valid base.
-        ulong position() @property const {
+        uint position() @property const {
             return _reference_position;
         }
 
         /// Offset in current CIGAR operation, starting from 0.
-        ulong cigar_operation_offset() @property const {
+        uint cigar_operation_offset() @property const {
             return _cigar_operation_offset;
         }
 
         private {
-            CigarOperation _cigar_operation = void;
-            ulong _reference_position = void;
-            ulong _cigar_operation_offset = void;
+            int _operation_index = void;
+            uint _reference_position = void;
+            uint _cigar_operation_offset = void;
+            version (CigarExtra)
+            {
+                ReversableRange!(identity, const(CigarOperation)[]) _cigar = void;
+            }
+            else
+            {
+                CigarOperation _current_cigar_op;
+            }
         }
     }
 
     mixin template rangeMethods() {
 
         private {
-            ReversableRange!(identity, const(CigarOperation)[]) _cigar = void;
-            long _index = void;
             CigarOperation _current_cigar_op = void;
-            ulong _at = void;
-            ulong _ref_pos = void;
+            int _index = void;
+            uint _at = void;
+            uint _ref_pos = void;
+            ReversableRange!(identity, const(CigarOperation)[]) _cigar = void;
         }
 
         /// Current CIGAR operation, available to all extensions
@@ -462,12 +491,21 @@ template CIGARbaseInfo(R) {
                                       : read.position;
 
             _moveToNextCigarOperator();
+            assert(_index >= 0);
         }
 
         void populate(Result)(ref Result result) {
-            result._cigar_operation = _current_cigar_op;
             result._reference_position = _ref_pos;
             result._cigar_operation_offset = _at;
+            version (CigarExtra)
+            {
+                result._cigar = _cigar;
+                result._operation_index = _index;
+            }
+            else
+            {
+                result._current_cigar_op = _current_cigar_op;
+            }
         }
 
         void update(const ref R read) 
