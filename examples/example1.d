@@ -1,7 +1,7 @@
 // run example: rdmd -I.. example1.d
 
 import bio.bam.reader;
-import bio.bam.pileuprange;
+import bio.bam.pileup;
 
 import std.stdio;
 

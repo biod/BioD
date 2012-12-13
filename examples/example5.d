@@ -2,7 +2,7 @@
 
 import bio.bam.reader;
 import bio.bam.read : compareCoordinates;
-import bio.bam.pileuprange;
+import bio.bam.pileup;
 
 import std.algorithm, std.conv, std.stdio;
 

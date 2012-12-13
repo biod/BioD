@@ -24,7 +24,7 @@ import bio.core.bgzf.blockrange;
 import bio.bam.reader;
 import bio.bam.writer;
 import bio.bam.md.reconstruct;
-import bio.bam.pileuprange;
+import bio.bam.pileup;
 import bio.bam.baseinfo;
 import bio.bam.validation.samheader;
 import bio.bam.validation.alignment;

@@ -13,7 +13,7 @@ import std.random;
 import std.typecons;
 
 import bio.bam.md.reconstruct;
-import bio.bam.pileuprange;
+import bio.bam.pileup;
 
 import bio.core.base;
 import bio.core.genotype;
