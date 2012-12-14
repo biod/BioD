@@ -388,11 +388,11 @@ unittest {
                 bases = basesWith!("FZ", "MD")(r, arg!"flowOrder"(flow_order), 
                                                   arg!"keySequence"(key_sequence));
                 // if reverse strand, bases are also reverse complemented
-                assert(equal(bases.save, map!"a.complement"(retro(r.sequence))));
+                assert(equal(bases, map!"a.complement"(retro(r.sequence))));
             } else {
                 bases = basesWith!("FZ", "MD")(r, arg!"flowOrder"(flow_order), 
                                                   arg!"keySequence"(key_sequence));
-                assert(equal(bases.save, r.sequence));
+                assert(equal(bases, r.sequence));
             }
         }
     }

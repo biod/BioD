@@ -99,6 +99,16 @@ struct PerBaseInfo(R, Tags...) {
             return to!string(base);
         }
 
+        bool opEquals(T)(T base) if (is(Unqual!T == Base))
+        {
+            return this.base == base;
+        }
+
+        bool opEquals(T)(T result) if (is(Unqual!T == Result))
+        {
+            return this == result;
+        }
+
         mixin(getResultProperties!Extensions());
     }
 
