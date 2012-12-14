@@ -134,8 +134,8 @@ struct Base {
         return Base5.fromBase16(this);
     }
 
-    char opCast(T)() const 
-        if (is(T == char)) 
+    T opCast(T)() const 
+        if (is(Unqual!T == char) || is(Unqual!T == dchar))
     {
         return asCharacter;
     }
@@ -152,6 +152,7 @@ unittest {
 alias Base Base16;
 
 /// Base representation supporting only 'A', 'C', 'G', 'T', and 'N'
+/// (internal codes are 0, 1, 2, 3, and 4 correspondingly)
 struct Base5 {
     mixin TinyMapInterface!5;
 
@@ -211,8 +212,8 @@ struct Base5 {
         return Base16.fromBase5(this);
     }
 
-    char opCast(T)() const 
-        if (is(T == char)) 
+    T opCast(T)() const 
+        if (is(Unqual!T == char) || is(Unqual!T == dchar))
     {
         return asCharacter;
     }

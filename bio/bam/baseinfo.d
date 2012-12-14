@@ -442,7 +442,7 @@ template CIGARbaseInfo(R) {
 
         /// Position of the corresponding base on the reference.
         /// If current CIGAR operation is not one of 'M', '=', 'X',
-        /// returns the position of the previous valid base.
+        /// returns the position of the previous mapped base.
         uint position() @property const {
             return _reference_position;
         }
