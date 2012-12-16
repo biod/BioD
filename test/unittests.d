@@ -356,11 +356,17 @@ unittest {
         auto read = reads[1];
         assert(!read.is_reverse_strand);
 
-        alias TypeTuple!("FZ", "MD", Option.cigarExtra) Options;
+        alias TypeTuple!("FZ", "MD", Option.cigarExtra, Option.mdExtra) Options;
         auto bases = basesWith!Options(read, 
                                        arg!"flowOrder"(flow_order),
                                        arg!"keySequence"(key_sequence));
-       
+      
+        assert(bases.front.md_operation.is_match);
+        assert(bases.front.md_operation.match == 309);
+        assert(bases.front.md_operation_offset == 0);
+        assert(bases.front.previous_md_operation.isNull);
+        assert(bases.front.next_md_operation.is_deletion);
+        assert(equal(bases.front.next_md_operation.deletion, "G"));
         assert(equal(bases.front.cigar_after, read.cigar[1 .. $]));
         assert(equal(drop(map!"a.reference_base"(bases.save), 191),
                      "-CCCGATTGGTCGTTGCTTTACGCTGATTGGCGAGTCCGGGGAACGTACCTTTGCTATCAGTCCAGGCCACATGAACCAGCTGCGGGCTGAAAGCATTCCGGAAGATGTGATTGCCGGACCTCGGCACTGGTTCTCACCTCATATCTGGTGCGTTGCAAGCCGGGTGAACCCATGCCGGAAGCACCATGAAAGCCATTGAGTACGCGAAGAAATATA"));

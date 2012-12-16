@@ -30,12 +30,18 @@ import bio.bam.md.core;
 import std.range;
 import std.conv;
 import std.traits;
+import std.typecons;
 import std.typetuple;
 
 /// 
 enum Option
 {
-    cigarExtra /// adds 'cigar_before' and 'cigar_after' properties to each base
+    /// adds 'cigar_before' and 'cigar_after' properties
+    cigarExtra, 
+
+    /// adds 'previous_md_operation', 'md_operation', 'md_operation_offset',
+    /// and 'next_md_operation' properties
+    mdExtra
 }
 
 ///
@@ -246,12 +252,13 @@ template basesWith(TagsAndOptions...) {
     }
 }
 
-/// Provides additional properties
-///     * reference_base
-///     * md_operation
+/// Provides additional property $(D reference_base)
 template MDbaseInfo(R, Options...) {
 
     mixin template resultProperties() {
+    
+        enum MdExtraProperties = staticIndexOf!(Option.mdExtra, Options) != -1;
+
         /// If current CIGAR operation is reference consuming,
         /// returns reference base at this position, otherwise
         /// returns '-'.
@@ -262,23 +269,66 @@ template MDbaseInfo(R, Options...) {
             return _ref_base;
         }
 
-        /// Current MD operation
-        MdOperation md_operation() @property {
-            return _md_op;
-        }
+        private char _ref_base = void;
 
-        private {
-            char _ref_base = void;
-            MdOperation _md_op = void;
+        static if (MdExtraProperties)
+        {
+            private Nullable!MdOperation _previous_md_operation = void;
+            private MdOperation _current_md_operation = void;
+            private uint _current_md_operation_offset = void;
+            private Nullable!MdOperation _next_md_operation = void;
+
+            /// Previous MD operation
+            Nullable!MdOperation previous_md_operation() @property {
+                return _previous_md_operation;
+            }
+
+            /// Current MD operation
+            MdOperation md_operation() @property {
+                return _current_md_operation;
+            }
+
+            /// If current MD operation is match, returns how many bases
+            /// have matched before the current base. Otherwise returns 0.
+            uint md_operation_offset() @property {
+                return _current_md_operation_offset;
+            }
+
+            /// Next MD operation
+            Nullable!MdOperation next_md_operation() @property {
+                return _next_md_operation;
+            }
         }
     }
 
     mixin template rangeMethods() {
 
+        enum MdExtraProperties = staticIndexOf!(Option.mdExtra, Options) != -1;
+
         private {
             ReversableRange!(reverseMdOp, MdOperationRange) _md_ops = void;
             uint _match; // remaining length of current match operation
             MdOperation _md_front = void;
+
+            static if (MdExtraProperties)
+            {
+                Nullable!MdOperation _previous_md_op;
+                bool _md_front_is_initialized;
+            }
+        }
+
+        private void updateMdFrontVariable()
+        {
+            static if (MdExtraProperties)
+            {
+                if (_md_front_is_initialized)
+                    _previous_md_op = _md_front;
+
+                _md_front_is_initialized = true;
+            }
+
+            _md_front = _md_ops.front;
+            _md_ops.popFront();
         }
 
         void setup(Args...)(const ref R read, Args args)
@@ -287,11 +337,10 @@ template MDbaseInfo(R, Options...) {
             auto md_str = *(cast(string*)&md);
             _md_ops = reversableRange!reverseMdOp(mdOperations(md_str),
                                                   read.is_reverse_strand);
-          
+         
             while (!_md_ops.empty)
             {
-                _md_front = _md_ops.front;
-                _md_ops.popFront();
+                updateMdFrontVariable();
                 if (!_md_front.is_deletion) {
                     if (_md_front.is_match) {
                         _match = _md_front.match;
@@ -317,7 +366,21 @@ template MDbaseInfo(R, Options...) {
             }
             else assert(0);
 
-            result._md_op = op;
+            static if (MdExtraProperties)
+            {
+                if (_previous_md_op.isNull)
+                    result._previous_md_operation.nullify();
+                else
+                    result._previous_md_operation = _previous_md_op.get;
+
+                result._current_md_operation = op;
+                result._current_md_operation_offset = _md_front.match - _match;
+
+                if (_md_ops.empty)
+                    result._next_md_operation.nullify();
+                else
+                    result._next_md_operation = _md_ops.front;
+            }
         }
 
         void update(const ref R read)
@@ -330,15 +393,13 @@ template MDbaseInfo(R, Options...) {
                 if (_md_ops.empty)
                     return;
 
-                _md_front = _md_ops.front;    
-                _md_ops.popFront();
+                updateMdFrontVariable();
             }
             else if (_md_front.is_match)
             {
                 --_match;
                 if (_match == 0 && !_md_ops.empty) {
-                    _md_front = _md_ops.front;
-                    _md_ops.popFront();
+                    updateMdFrontVariable();
                 }
             }
             else assert(0);
@@ -347,8 +408,7 @@ template MDbaseInfo(R, Options...) {
                 if (_md_ops.empty)
                     return;
 
-                _md_front = _md_ops.front;
-                _md_ops.popFront();
+                updateMdFrontVariable();
             }
 
             if (_match == 0 && _md_front.is_match)
@@ -359,6 +419,15 @@ template MDbaseInfo(R, Options...) {
         {
             target.MD._md_ops = source.MD._md_ops.save;
             target.MD._md_front = source.MD._md_front;
+
+            static if (MdExtraProperties)
+            {
+                if (source.MD._previous_md_op.isNull)
+                    target.MD._previous_md_op.nullify();
+                else
+                    target.MD._previous_md_op = source.MD._previous_md_op;
+                target.MD._md_front_is_initialized = source.MD._md_front_is_initialized;
+            }
         }
     }
 }
