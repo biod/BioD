@@ -32,6 +32,12 @@ import std.conv;
 import std.traits;
 import std.typetuple;
 
+/// 
+enum Option
+{
+    cigarExtra /// adds 'cigar_before' and 'cigar_after' properties to each base
+}
+
 ///
 struct MixinArg(T, string Tag) {
     T value;
@@ -45,7 +51,30 @@ MixinArg!(T, Tag) arg(string Tag, T)(T value) {
     return MixinArg!(T, Tag)(value);
 }
 
-struct PerBaseInfo(R, Tags...) {
+template staticFilter(alias P, T...)
+{
+    static if (T.length == 0)
+        alias TypeTuple!() staticFilter;
+    else static if (P!(T[0]))
+        alias TypeTuple!(T[0], staticFilter!(P, T[1..$])) staticFilter;
+    else
+        alias staticFilter!(P, T[1..$]) staticFilter;
+}
+
+template isTag(alias argument)
+{
+    enum isTag = is(typeof(argument) == string);
+}
+
+template isOption(alias argument)
+{
+    enum isOption = is(typeof(argument) == Option);
+}
+
+struct PerBaseInfo(R, TagsAndOptions...) {
+
+    alias staticFilter!(isTag, TagsAndOptions) Tags;
+    alias staticFilter!(isOption, TagsAndOptions) Options;
 
     private alias TypeTuple!("CIGAR", Tags) Extensions;
 
@@ -85,7 +114,7 @@ struct PerBaseInfo(R, Tags...) {
     private static string getResultProperties(Exts...)() {
         char[] result;
         foreach (ext; Exts) 
-            result ~= "mixin " ~ ext ~ "baseInfo!R.resultProperties;".dup;
+            result ~= "mixin " ~ ext ~ "baseInfo!(R, Options).resultProperties;".dup;
         return cast(string)result;
     }
 
@@ -99,14 +128,22 @@ struct PerBaseInfo(R, Tags...) {
             return to!string(base);
         }
 
-        bool opEquals(T)(T base) if (is(Unqual!T == Base))
+        bool opEquals(T)(T base) const
+            if (is(Unqual!T == Base)) 
         {
             return this.base == base;
         }
 
-        bool opEquals(T)(T result) if (is(Unqual!T == Result))
+        bool opEquals(T)(T result) const
+            if (is(Unqual!T == Result))
         {
             return this == result;
+        }
+
+        bool opEquals(T)(T base) const
+            if (is(Unqual!T == char) || is(Unqual!T == dchar))
+        {
+            return this.base == base;
         }
 
         mixin(getResultProperties!Extensions());
@@ -115,7 +152,7 @@ struct PerBaseInfo(R, Tags...) {
     private static string getRangeMethods(Exts...)() {
         char[] result;
         foreach (ext; Exts)
-            result ~= "mixin " ~ ext ~ "baseInfo!R.rangeMethods " ~ ext ~ ";".dup;
+            result ~= "mixin " ~ ext ~ "baseInfo!(R, Options).rangeMethods " ~ ext ~ ";".dup;
         return cast(string)result;
     }
 
@@ -163,8 +200,8 @@ struct PerBaseInfo(R, Tags...) {
         moveToNextBase();
     }
 
-    PerBaseInfo!(R, Tags) save() @property {
-        PerBaseInfo!(R, Tags) r = void;
+    PerBaseInfo save() @property {
+        PerBaseInfo r = void;
         r._read = _read.dup;
         r._seq = _seq.save;
         r._rev = _rev;
@@ -203,16 +240,16 @@ struct PerBaseInfo(R, Tags...) {
 ///
 /// basesWith!"FZ"(arg!"flowOrder"(flow_order), arg!"keySequence"(key_sequence));
 ///
-template basesWith(Tags...) {
+template basesWith(TagsAndOptions...) {
     auto basesWith(R, Args...)(R read, Args args) {
-        return PerBaseInfo!(R, Tags)(read, args);
+        return PerBaseInfo!(R, TagsAndOptions)(read, args);
     }
 }
 
 /// Provides additional properties
 ///     * reference_base
 ///     * md_operation
-template MDbaseInfo(R) {
+template MDbaseInfo(R, Options...) {
 
     mixin template resultProperties() {
         /// If current CIGAR operation is reference consuming,
@@ -327,7 +364,7 @@ template MDbaseInfo(R) {
 }
 
 /// Provides additional property $(D flow_call).
-template FZbaseInfo(R) {
+template FZbaseInfo(R, Options...) {
 
     mixin template resultProperties() {
         /// Current flow call
@@ -421,11 +458,13 @@ template FZbaseInfo(R) {
 ///     * position
 ///     * cigar_operation
 ///     * cigar_operation_offset
-template CIGARbaseInfo(R) {
+template CIGARbaseInfo(R, Options...) {
 
     mixin template resultProperties() {
 
-        version(CigarExtra)
+        enum CigarExtraProperties = staticIndexOf!(Option.cigarExtra, Options) != -1;
+
+        static if (CigarExtraProperties)
         {
             /// Current CIGAR operation
             CigarOperation cigar_operation() @property {
@@ -466,7 +505,7 @@ template CIGARbaseInfo(R) {
             int _operation_index = void;
             uint _reference_position = void;
             uint _cigar_operation_offset = void;
-            version (CigarExtra)
+            static if (CigarExtraProperties)
             {
                 ReversableRange!(identity, const(CigarOperation)[]) _cigar = void;
             }
@@ -478,6 +517,8 @@ template CIGARbaseInfo(R) {
     }
 
     mixin template rangeMethods() {
+
+        enum CigarExtraProperties = staticIndexOf!(Option.cigarExtra, Options) != -1;
 
         private {
             CigarOperation _current_cigar_op = void;
@@ -507,7 +548,7 @@ template CIGARbaseInfo(R) {
         void populate(Result)(ref Result result) {
             result._reference_position = _ref_pos;
             result._cigar_operation_offset = _at;
-            version (CigarExtra)
+            static if (CigarExtraProperties)
             {
                 result._cigar = _cigar;
                 result._operation_index = _index;

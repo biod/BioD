@@ -50,6 +50,7 @@ import std.array;
 import std.conv;
 import std.exception;
 import std.math;
+import std.typetuple;
 
 unittest {
 
@@ -354,10 +355,13 @@ unittest {
 
         auto read = reads[1];
         assert(!read.is_reverse_strand);
-        auto bases = basesWith!("FZ", "MD")(read, 
-                                            arg!"flowOrder"(flow_order),
-                                            arg!"keySequence"(key_sequence));
-        
+
+        alias TypeTuple!("FZ", "MD", Option.cigarExtra) Options;
+        auto bases = basesWith!Options(read, 
+                                       arg!"flowOrder"(flow_order),
+                                       arg!"keySequence"(key_sequence));
+       
+        assert(equal(bases.front.cigar_after, read.cigar[1 .. $]));
         assert(equal(drop(map!"a.reference_base"(bases.save), 191),
                      "-CCCGATTGGTCGTTGCTTTACGCTGATTGGCGAGTCCGGGGAACGTACCTTTGCTATCAGTCCAGGCCACATGAACCAGCTGCGGGCTGAAAGCATTCCGGAAGATGTGATTGCCGGACCTCGGCACTGGTTCTCACCTCATATCTGGTGCGTTGCAAGCCGGGTGAACCCATGCCGGAAGCACCATGAAAGCCATTGAGTACGCGAAGAAATATA"));
         assert(equal(bases.save, read.sequence));
@@ -385,13 +389,13 @@ unittest {
             if (r.is_unmapped) continue;
             if (r.cigar.length == 0) continue;
             if (r.is_reverse_strand) {
-                bases = basesWith!("FZ", "MD")(r, arg!"flowOrder"(flow_order), 
-                                                  arg!"keySequence"(key_sequence));
+                bases = basesWith!Options(r, arg!"flowOrder"(flow_order), 
+                                             arg!"keySequence"(key_sequence));
                 // if reverse strand, bases are also reverse complemented
                 assert(equal(bases, map!"a.complement"(retro(r.sequence))));
             } else {
-                bases = basesWith!("FZ", "MD")(r, arg!"flowOrder"(flow_order), 
-                                                  arg!"keySequence"(key_sequence));
+                bases = basesWith!Options(r, arg!"flowOrder"(flow_order), 
+                                             arg!"keySequence"(key_sequence));
                 assert(equal(bases, r.sequence));
             }
         }
