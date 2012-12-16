@@ -1067,9 +1067,9 @@ _again:
     read.mapping_quality = mapping_quality;
     read.position = pos - 1; // we use 0-based coordinates, not 1-based
     read.template_length = template_length;
-    read.next_pos = mate_pos - 1; // also 0-based
+    read.mate_position = mate_pos - 1; // also 0-based
     read.ref_id = ref_id;
-    read.next_ref_id = mate_ref_id;
+    read.mate_ref_id = mate_ref_id;
 
     return read;
 }
@@ -1088,9 +1088,9 @@ unittest {
     assert(alignment.flag == 185);
     assert(alignment.position == 60032);
     assert(alignment.mapping_quality == 25);
-    assert(alignment.next_pos == 60032);
+    assert(alignment.mate_position == 60032);
     assert(alignment.ref_id == 0);
-    assert(alignment.next_ref_id == 0);
+    assert(alignment.mate_ref_id == 0);
     assert(to!ubyte(alignment["AM"]) == 0);
     assert(to!ubyte(alignment["SM"]) == 25);
     assert(to!string(alignment["MD"]) == "17A8A8");

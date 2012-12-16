@@ -235,24 +235,24 @@ void jsonSerialize(S)(BamRead alignment, ReferenceSequenceInfo[] info, ref S str
         }
         putstring(stream, `","rnext":`);
     }
-    if (alignment.next_ref_id == alignment.ref_id) {
-        if (alignment.next_ref_id == -1) {
+    if (alignment.mate_ref_id == alignment.ref_id) {
+        if (alignment.mate_ref_id == -1) {
             putstring(stream, `"*","pnext":`);
         } else {
             putstring(stream, `"=","pnext":`);
         }
     } else {
-        if (alignment.next_ref_id == -1 ||
-            info[alignment.next_ref_id].name.length == 0)
+        if (alignment.mate_ref_id == -1 ||
+            info[alignment.mate_ref_id].name.length == 0)
         {
             putstring(stream, `"*","pnext":`);
         } else {
-            jsonSerializeCharacterRange(stream, info[alignment.next_ref_id].name);
+            jsonSerializeCharacterRange(stream, info[alignment.mate_ref_id].name);
             putstring(stream, `,"pnext":`);
         }
     }
 
-    putinteger(stream, alignment.next_pos + 1);
+    putinteger(stream, alignment.mate_position + 1);
 
     putstring(stream, `,"tlen":`);
     putinteger(stream, alignment.template_length);

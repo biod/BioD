@@ -127,39 +127,51 @@ struct BamRead {
 
     mixin TagStorage;
 
+    /// Reference index in BAM file header
     @property    int ref_id()           const nothrow { return _refID; }
+    /// ditto
+    @property   void ref_id(int n)                    { _dup(); _refID = n; }
 
     /// 0-based leftmost coordinate of the first matching base
     @property    int position()         const nothrow { return _pos; }
+    /// ditto
+    @property   void position(int n)                  { _dup(); _pos = n; _recalculate_bin(); }
 
-    /// Indexing bin which this read belongs to.
+    /// Indexing bin which this read belongs to. Recalculated when position is changed.
     @property    Bin bin()              const nothrow { return Bin(_bin); }
 
     /// Mapping quality. Equals to 255 if not available, otherwise
     /// equals to rounded -10 * log10(P {mapping position is wrong}).
     @property  ubyte mapping_quality()  const nothrow { return _mapq; }
+    /// ditto
+    @property   void mapping_quality(ubyte n)         { _dup(); _mapq = n; }
 
+    /// Flag bits (should be used on very rare occasions, see flag getters/setters below)
     @property ushort flag()             const nothrow { return _flag; }
-    @property    int sequence_length()  const nothrow { return _l_seq; }
-    @property    int next_ref_id()      const nothrow { return _next_refID; }
-    @property    int next_pos()         const nothrow { return _next_pos; }
-    @property    int template_length()  const nothrow { return _tlen; }
+    /// ditto
+    @property   void flag(ushort n)                   { _dup(); _flag = n; }
 
-    /// Set reference id.
-    @property void ref_id(int n)              { _dup(); _refID = n; }
-    /// Sets 0-based leftmost coordinate. Bin is automatically recalculated.
-    @property void position(int n)            { _dup(); _pos = n; _recalculate_bin(); }
-    /// Set mapping quality
-    @property void mapping_quality(ubyte n)   { _dup(); _mapq = n; }
-    /// Set flag 
-    @property void flag(ushort n)             { _dup(); _flag = n; }
-    /// Set mate reference id.
-    @property void next_ref_id(int n)         { _dup(); _next_refID = n; }
-    /// Set mate position
-    @property void next_pos(int n)            { _dup(); _next_pos = n; }
-    /// Set template length
-    @property void template_length(int n)     { _dup(); _tlen = n; }
-  
+    /// Sequence length. In fact, sequence.length can be used instead, but that might be
+    /// slower if the compiler is not smart enough to optimize away unrelated stuff.
+    @property    int sequence_length()  const nothrow { return _l_seq; }
+
+    /// Mate reference ID
+    @property    int mate_ref_id()      const nothrow { return _next_refID; }
+    /// ditto
+    @property   void mate_ref_id(int n)               { _dup(); _next_refID = n; }
+
+    /// Mate position
+    @property    int mate_position()    const nothrow { return _next_pos; }
+    /// ditto
+    @property   void mate_position(int n)             { _dup(); _next_pos = n; }
+
+    /// Template length
+    @property    int template_length()  const nothrow { return _tlen; }
+    /// ditto
+    @property   void template_length(int n)           { _dup(); _tlen = n; }
+
+    // ------------------------ FLAG GETTERS/SETTERS -------------------------------------- //
+
     /// Template having multiple segments in sequencing
     @property bool is_paired()                const nothrow { return cast(bool)(flag & 0x1); }
     /// ditto
@@ -215,6 +227,7 @@ struct BamRead {
     /// ditto
     @property void is_duplicate(bool b)             { _setFlag(10, b); } 
 
+
     /// Convenience function, returns '+' or '-' indicating the strand.
     @property char strand() const nothrow {
         return is_reverse_strand ? '-' : '+';
@@ -225,6 +238,7 @@ struct BamRead {
         enforce(c == '-' || c == '+', "Strand must be '-' or '+'");
         is_reverse_strand = c == '-';
     }
+
 
     /// Read name
     @property string name() const nothrow {
@@ -404,8 +418,8 @@ struct BamRead {
     static assert(isRandomAccessRange!(ReturnType!sequence));
 
     /// Set sequence. Must be of the same length as current sequence.
-    @property void sequence(string seq) {
-
+    @property void sequence(string seq) 
+    {
         enforce(seq.length == _l_seq, "Sequence must have the same length as current");
 
         _dup();
@@ -622,8 +636,8 @@ struct BamRead {
         packer.pack(mapping_quality);
         packer.pack(array(map!"a.length"(cigar)));
         packer.pack(array(map!"a.type"(cigar)));
-        packer.pack(next_ref_id);
-        packer.pack(next_pos);
+        packer.pack(mate_ref_id);
+        packer.pack(mate_position);
         packer.pack(template_length);
         packer.pack(to!string(sequence));
         packer.pack(base_qualities);
@@ -1166,7 +1180,7 @@ template isBamRead(T)
             T t; bool p;
             p = t.ref_id == 1;          p = t.position == 2;          p = t.bin.id == 3;  
             p = t.mapping_quality == 4; p = t.flag == 5;              p = t.sequence_length == 6;
-            p = t.next_ref_id == 7;     p = t.next_pos == 8;          p = t.template_length == 9;
+            p = t.mate_ref_id == 7;     p = t.mate_position == 8;     p = t.template_length == 9;
             p = t.is_paired;            p = t.proper_pair;            p = t.is_unmapped;
             p = t.mate_is_unmapped;     p = t.mate_is_reverse_strand; p = t.is_first_of_pair;
             p = t.is_second_of_pair;    p = t.is_secondary_alignment; p = t.failed_quality_control;

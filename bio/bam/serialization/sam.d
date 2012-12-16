@@ -182,24 +182,24 @@ void serialize(S, R)(auto ref R alignment, ReferenceSequenceInfo[] info, auto re
         }
         putcharacter(stream, '\t');
     }
-    if (alignment.next_ref_id == alignment.ref_id) {
-        if (alignment.next_ref_id == -1) {
+    if (alignment.mate_ref_id == alignment.ref_id) {
+        if (alignment.mate_ref_id == -1) {
             putstring(stream, "*\t");
         } else {
             putstring(stream, "=\t");
         }
     } else {
-        if (alignment.next_ref_id == -1 ||
-            info[alignment.next_ref_id].name.length == 0)
+        if (alignment.mate_ref_id == -1 ||
+            info[alignment.mate_ref_id].name.length == 0)
         {
             putstring(stream, "*\t");
         } else {
-            putstring(stream, info[alignment.next_ref_id].name);
+            putstring(stream, info[alignment.mate_ref_id].name);
             putcharacter(stream, '\t');
         }
     }
 
-    putinteger(stream, alignment.next_pos + 1);
+    putinteger(stream, alignment.mate_position + 1);
     putcharacter(stream, '\t');
 
     putinteger(stream, alignment.template_length);
