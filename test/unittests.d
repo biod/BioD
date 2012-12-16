@@ -356,7 +356,12 @@ unittest {
         auto read = reads[1];
         assert(!read.is_reverse_strand);
 
-        alias TypeTuple!("FZ", "MD", Option.cigarExtra, Option.mdExtra) Options;
+        alias TypeTuple!("FZ", "MD", 
+                         Option.cigarExtra, 
+                         Option.mdCurrentOp, 
+                         Option.mdPreviousOp,
+                         Option.mdNextOp) Options;
+
         auto bases = basesWith!Options(read, 
                                        arg!"flowOrder"(flow_order),
                                        arg!"keySequence"(key_sequence));

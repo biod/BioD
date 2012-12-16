@@ -39,9 +39,14 @@ enum Option
     /// adds 'cigar_before' and 'cigar_after' properties
     cigarExtra, 
 
-    /// adds 'previous_md_operation', 'md_operation', 'md_operation_offset',
-    /// and 'next_md_operation' properties
-    mdExtra
+    /// adds 'md_operation', 'md_operation_offset' properties
+    mdCurrentOp,
+
+    /// adds 'previous_md_operation' property
+    mdPreviousOp,
+
+    /// adds 'next_md_operation' property
+    mdNextOp
 }
 
 ///
@@ -257,7 +262,9 @@ template MDbaseInfo(R, Options...) {
 
     mixin template resultProperties() {
     
-        enum MdExtraProperties = staticIndexOf!(Option.mdExtra, Options) != -1;
+        enum MdCurrentOp = staticIndexOf!(Option.mdCurrentOp, Options) != -1;
+        enum MdPreviousOp = staticIndexOf!(Option.mdPreviousOp, Options) != -1;
+        enum MdNextOp = staticIndexOf!(Option.mdNextOp, Options) != -1;
 
         /// If current CIGAR operation is reference consuming,
         /// returns reference base at this position, otherwise
@@ -271,17 +278,21 @@ template MDbaseInfo(R, Options...) {
 
         private char _ref_base = void;
 
-        static if (MdExtraProperties)
+        static if (MdPreviousOp)
         {
             private Nullable!MdOperation _previous_md_operation = void;
-            private MdOperation _current_md_operation = void;
-            private uint _current_md_operation_offset = void;
-            private Nullable!MdOperation _next_md_operation = void;
 
             /// Previous MD operation
             Nullable!MdOperation previous_md_operation() @property {
                 return _previous_md_operation;
             }
+        }
+
+        static if (MdCurrentOp)
+        {
+
+            private MdOperation _current_md_operation = void;
+            private uint _current_md_operation_offset = void;
 
             /// Current MD operation
             MdOperation md_operation() @property {
@@ -293,7 +304,11 @@ template MDbaseInfo(R, Options...) {
             uint md_operation_offset() @property {
                 return _current_md_operation_offset;
             }
+        }
 
+        static if (MdNextOp)
+        {
+            private Nullable!MdOperation _next_md_operation = void;
             /// Next MD operation
             Nullable!MdOperation next_md_operation() @property {
                 return _next_md_operation;
@@ -303,14 +318,16 @@ template MDbaseInfo(R, Options...) {
 
     mixin template rangeMethods() {
 
-        enum MdExtraProperties = staticIndexOf!(Option.mdExtra, Options) != -1;
+        enum MdCurrentOp = staticIndexOf!(Option.mdCurrentOp, Options) != -1;
+        enum MdPreviousOp = staticIndexOf!(Option.mdPreviousOp, Options) != -1;
+        enum MdNextOp = staticIndexOf!(Option.mdNextOp, Options) != -1;
 
         private {
             ReversableRange!(reverseMdOp, MdOperationRange) _md_ops = void;
             uint _match; // remaining length of current match operation
             MdOperation _md_front = void;
 
-            static if (MdExtraProperties)
+            static if (MdPreviousOp)
             {
                 Nullable!MdOperation _previous_md_op;
                 bool _md_front_is_initialized;
@@ -319,7 +336,7 @@ template MDbaseInfo(R, Options...) {
 
         private void updateMdFrontVariable()
         {
-            static if (MdExtraProperties)
+            static if (MdPreviousOp)
             {
                 if (_md_front_is_initialized)
                     _previous_md_op = _md_front;
@@ -366,16 +383,23 @@ template MDbaseInfo(R, Options...) {
             }
             else assert(0);
 
-            static if (MdExtraProperties)
+            static if (MdPreviousOp)
             {
                 if (_previous_md_op.isNull)
                     result._previous_md_operation.nullify();
                 else
                     result._previous_md_operation = _previous_md_op.get;
+            }
+
+            static if (MdCurrentOp)
+            {
 
                 result._current_md_operation = op;
                 result._current_md_operation_offset = _md_front.match - _match;
+            }
 
+            static if (MdNextOp)
+            {
                 if (_md_ops.empty)
                     result._next_md_operation.nullify();
                 else
@@ -420,7 +444,7 @@ template MDbaseInfo(R, Options...) {
             target.MD._md_ops = source.MD._md_ops.save;
             target.MD._md_front = source.MD._md_front;
 
-            static if (MdExtraProperties)
+            static if (MdPreviousOp)
             {
                 if (source.MD._previous_md_op.isNull)
                     target.MD._previous_md_op.nullify();
