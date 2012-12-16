@@ -18,13 +18,11 @@ enum MdOperationType : ubyte {
 /// Single MD operation.
 struct MdOperation {
 
-    alias ReturnType!(nucleotideSequence!SliceableString) DeletionSequence;
-
     private {
         MdOperationType _type;
         union {
             uint _match; 
-            DeletionSequence _deletion;
+            NucleotideSequence _deletion;
             Base16 _mismatch;
         }
     }
@@ -70,7 +68,7 @@ struct MdOperation {
     }
 
     /// Deleted sequence
-    ref DeletionSequence deletion() @property {
+    ref NucleotideSequence deletion() @property {
         return _deletion;
     }
 
@@ -95,7 +93,7 @@ struct MdOperation {
         return m;
     }
 
-    static MdOperation createDeletion(DeletionSequence seq) {
+    static MdOperation createDeletion(NucleotideSequence seq) {
         MdOperation m = void;
         m._type = MdOperationType.Deletion;
         m._deletion = seq;

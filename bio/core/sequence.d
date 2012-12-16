@@ -208,6 +208,9 @@ auto nucleotideSequence(R)(R bases, bool reverse=false)
     }
 }
 
+///
+alias ReturnType!(nucleotideSequence!SliceableString) NucleotideSequence;
+
 unittest {
     auto seq0 = nucleotideSequence("ACGTACGT");
 
