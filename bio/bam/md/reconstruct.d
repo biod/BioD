@@ -31,7 +31,7 @@ import std.range;
 /// Reconstruct read DNA.
 /// Returns lazy sequence.
 auto dna(T)(T read) 
-    if(!isInputRange!T)
+    if(isBamRead!(Unqual!T))
 {
 
     debug {
@@ -264,9 +264,11 @@ unittest {
  * and end at the rightmost position of all the reads.
  */
 auto dna(R)(R reads)
-    if (isInputRange!R && is(Unqual!(ElementType!R) == BamRead))
+    if (isInputRange!R && isBamRead!(Unqual!(ElementType!R)))
 {
     static struct Result(F) {
+        alias Unqual!(ElementType!F) Read;
+
         this(F reads) {
             _reads = reads;
             if (_reads.empty) {
@@ -290,7 +292,7 @@ auto dna(R)(R reads)
             return _chunk.front;
         }
 
-        private void setSkipMode(ref BamRead read) {
+        private void setSkipMode(ref Read read) {
             _reads.popFront();
             _chunk = dna(read);
             _bases_to_skip = read.position - _reference_pos;
@@ -383,7 +385,7 @@ auto dna(R)(R reads)
 
         private size_t _bases_to_skip;
         private size_t _reference_pos;
-        private typeof(dna(_reads.front)) _chunk;
+        private ReturnType!(dna!Read) _chunk;
         private bool _empty = false;
         private F _reads;
     }
