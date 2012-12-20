@@ -379,14 +379,25 @@ struct BamRead {
         }
 
         @property Base opIndex(size_t i) const {
+
             auto pos = _index + i;
-            ubyte raw = _data[mixin(_getActualPosition("pos"))];
-            if (_use_first_4_bits == (pos % 2 == 1)) {
-                raw &= 0xF;
-            } else {
-                raw >>= 4;
+
+            if (_use_first_4_bits)
+            {
+                if (pos & 1)
+                    return Base.fromInternalCode(_data[pos >> 1] & 0xF);
+                else
+                    return Base.fromInternalCode(_data[pos >> 1] >> 4);
             }
-            return Base.fromInternalCode(raw);
+            else
+            {
+                if (pos & 1)
+                    return Base.fromInternalCode(_data[(pos >> 1) + 1] >> 4);
+                else
+                    return Base.fromInternalCode(_data[pos >> 1] & 0xF);
+            }
+
+            assert(false);
         }
 
         void popFront() {
