@@ -293,15 +293,23 @@ class PileupRange(R, alias TColumn=PileupColumn) {
 
         size_t survived = 0;
         auto data = _read_buf.data;
+
         for (size_t i = 0; i < data.length; ++i) {
             if (data[i].end_position > pos) {
-                data[i].incrementPosition();
-                data[survived++] = data[i];
+                if (survived < i)
+                {
+                    data[survived] = data[i];
+                }
+                ++survived;
             }
         }
 
-        _read_buf.shrinkTo(survived);
+        for (size_t i = 0; i < survived; ++i) {
+            data[i].incrementPosition();
+        }
                                       // unless range is empty, this value is
+        _read_buf.shrinkTo(survived);
+
         _column._n_starting_here = 0; // updated either in initNewReference()
                                       // or in the loop below
 
@@ -333,7 +341,7 @@ class PileupRange(R, alias TColumn=PileupColumn) {
 
         _column._position = read.position;
         _column._ref_id = read.ref_id;
-        auto n = 1;
+        uint n = 1;
         add(read);
 
         _reads.popFront();
