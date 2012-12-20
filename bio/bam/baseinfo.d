@@ -199,6 +199,14 @@ struct PerBaseInfo(R, TagsAndOptions...) {
         return _seq.empty;
     }
 
+    /// Allows to construct front element in-place, avoiding a copy.
+    void constructFront(Result* addr)
+    {
+        addr.base = _seq.front;
+        foreach (t; Extensions)
+            populate!t(*addr);
+    }
+
     Result front() @property {
         Result r = void;
         r.base = _seq.front;
