@@ -623,6 +623,10 @@ template CIGARbaseInfo(R, Options...) {
 
         private {
             CigarOperation _current_cigar_op = void;
+
+            ulong _cur_cig_op_len = void;
+            bool _cur_cig_op_is_ref_cons = void;
+
             int _index = void;
             uint _at = void;
             uint _ref_pos = void;
@@ -663,11 +667,12 @@ template CIGARbaseInfo(R, Options...) {
         void update(const ref R read) 
         {
            ++_at;
-           if (_current_cigar_op.is_reference_consuming) {
+
+           if  (_cur_cig_op_is_ref_cons) {
                _ref_pos += reverse_strand ? -1 : 1;
            }
 
-           if (_at == _current_cigar_op.length) {
+           if (_at == _cur_cig_op_len) {
                _moveToNextCigarOperator();
            }
         }
@@ -676,6 +681,8 @@ template CIGARbaseInfo(R, Options...) {
             target.CIGAR._cigar = source.CIGAR._cigar;
             target.CIGAR._index = source.CIGAR._index;
             target.CIGAR._current_cigar_op = source.CIGAR._current_cigar_op;
+            target.CIGAR._cur_cig_op_len = source.CIGAR._cur_cig_op_len;
+            target.CIGAR._cur_cig_op_is_ref_cons = source.CIGAR._cur_cig_op_is_ref_cons;
             target.CIGAR._at = source.CIGAR._at;
             target.CIGAR._ref_pos = source.CIGAR._ref_pos;
         }
@@ -685,14 +692,18 @@ template CIGARbaseInfo(R, Options...) {
             for (++_index; _index < _cigar.length; ++_index)
             {
                 _current_cigar_op = _cigar[_index];
+                _cur_cig_op_is_ref_cons = _current_cigar_op.is_reference_consuming;
+                _cur_cig_op_len = _current_cigar_op.length;
+
                 if (_current_cigar_op.is_query_consuming)
                     break;
-                if (_current_cigar_op.is_reference_consuming)
+
+                if (_cur_cig_op_is_ref_cons)
                 {
                     if (reverse_strand)
-                        _ref_pos -= _current_cigar_op.length;
+                        _ref_pos -= _cur_cig_op_len;
                     else
-                        _ref_pos += _current_cigar_op.length;
+                        _ref_pos += _cur_cig_op_len;
                 }
             }
         }
