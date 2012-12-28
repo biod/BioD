@@ -38,6 +38,7 @@ unittest {
     assert(approxEqual(tree.root.children[1].distance_to_parent, 0.2));
     auto child = tree.root.children[2];
     assert(child !is null);
+    assert(child.parent == tree.root);
     assert(child.name is null);
     assert(approxEqual(child.distance_to_parent, 0.5));
     assert(child.children.length == 2);
@@ -59,6 +60,7 @@ unittest {
     assert(tree.root.name == "A"); 
     assert(tree.root.children.length == 1);
     child = tree.root.children[0];
+    assert(child.parent == tree.root);
     assert(child.name == "F");
     assert(approxEqual(child.distance_to_parent, 0.1));
     assert(child.children.length == 2);
@@ -81,6 +83,7 @@ unittest {
     assert(tree.root.children[1].name is null);
     assert(tree.root.children[1].children.length == 0);
     child = tree.root.children[2];
+    assert(child.parent == tree.root);
     assert(child.name is null);
     assert(child.children.length == 2);
     assert(child.children[0].name is null);

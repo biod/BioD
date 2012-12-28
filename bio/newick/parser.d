@@ -102,6 +102,7 @@ private {
             
         while (true) {
             auto child = parseSubtree(s);
+            child.parent = node;
             children.put(child);
 
             ch = s.front;
