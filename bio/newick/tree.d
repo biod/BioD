@@ -38,9 +38,10 @@ class NewickTree {
 
     /** Distance between two nodes */
     double distance(NewickNode* n1, NewickNode* n2) {
+        if (n1 is null || n2 is null) return double.nan;
         if (n1 == n2) return 0;
         if (n1 == root) return distance(root, n2.parent) + n2.distance_to_parent;
-        if (n2 == root) return distance(n1, root) + n1.distance_to_parent;
+        if (n2 == root) return distance(n1.parent, root) + n1.distance_to_parent;
         assert(n1.parent !is null);
         assert(n2.parent !is null);
         return distance(n1.parent, n2.parent) + n1.distance_to_parent 

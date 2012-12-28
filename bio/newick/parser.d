@@ -20,6 +20,10 @@ NewickNode* parse(string s) {
 
 private {
 
+    bool isValidCharacter(dchar c) {
+        return isAlphaNum(c) || c == '_';
+    }
+
     void skipWhiteSpace(ref string s) {
         while (true) {
             if (s.empty)
@@ -59,7 +63,7 @@ private {
                 return new NewickNode;
 
             default:
-                enforce(isAlphaNum(ch), "Node name contains invalid character");
+                enforce(isValidCharacter(ch), "Node name contains invalid character");
                 return parseLeafNode(s);
         }
     }
@@ -72,7 +76,7 @@ private {
         auto node = nd is null ? (new NewickNode) : nd;
 
         size_t i = 0;
-        while (isAlphaNum(s[i])) {
+        while (isValidCharacter(s[i])) {
             ++i;
         }
 
