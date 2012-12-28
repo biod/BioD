@@ -3,6 +3,9 @@ module bio.newick.tree;
 import bio.newick.parser;
 import bio.newick.treenode;
 
+import std.algorithm;
+import std.range;
+
 /** 
   Newick tree
 */
@@ -36,16 +39,28 @@ class NewickTree {
     /** Dictionary of nodes */
     NewickNode*[string] nodes;
 
-    /** Distance between two nodes */
+    /** Distance between two nodes. Complexity is O(tree depth). */
     double distance(NewickNode* n1, NewickNode* n2) {
-        if (n1 is null || n2 is null) return double.nan;
-        if (n1 == n2) return 0;
-        if (n1 == root) return distance(root, n2.parent) + n2.distance_to_parent;
-        if (n2 == root) return distance(n1.parent, root) + n1.distance_to_parent;
-        assert(n1.parent !is null);
-        assert(n2.parent !is null);
-        return distance(n1.parent, n2.parent) + n1.distance_to_parent 
-                                              + n2.distance_to_parent;
+        // FIXME: allocate if necessary
+        NewickNode*[1024] n1_path; // n1, n1.parent, ..., except root
+        NewickNode*[1024] n2_path; // n2, n2.parent, ..., except root
+        int i1, i2;
+
+        while (n1 != root) {
+            n1_path[i1++] = n1;
+            n1 = n1.parent;
+        }
+
+        while (n2 != root) {
+            n2_path[i2++] = n2;
+            n2 = n2.parent;
+        }
+
+        for (--i1, --i2; 
+             i1 >= 0 && i2 >= 0 && n1_path[i1] == n2_path[i2];
+             --i1, --i2) {}
+
+        return reduce!"a+b.distance_to_parent"(0.0, chain(n1_path[0 .. i1 + 1], n2_path[0 .. i2 + 1]));
     }
 
     /** ditto */
@@ -111,6 +126,12 @@ unittest {
 
     tree = NewickTree.fromString("((B:0.2,(C:0.3,D:0.4)E:0.5)F:0.1)A;");
     assert(tree.root.name == "A"); 
+    assert(approxEqual(tree.distance("A", "B"), 0.3));
+    assert(approxEqual(tree.distance("B", "C"), 1.0));
+    assert(approxEqual(tree.distance("C", "D"), 0.7));
+    assert(approxEqual(tree.distance("A", "C"), 0.9));
+    assert(approxEqual(tree.distance("B", "D"), 1.1));
+    assert(approxEqual(tree.distance("A", "D"), 1.0));
     assert(tree.root.children.length == 1);
     child = tree.root.children[0];
     assert(child.parent == tree.root);
