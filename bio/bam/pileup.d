@@ -26,6 +26,7 @@ import bio.bam.splitter;
 import std.algorithm;
 import std.range;
 import std.random;
+import std.traits;
 import std.conv;
 import std.array;
 import std.exception;
@@ -33,12 +34,9 @@ import std.exception;
 /// Represents a read aligned to a column
 struct PileupRead(Read=EagerBamRead) {
 
-    private Read _read;
-    ///
-    ref const(Read) read() @property const {
-        return _read;
-    }
+    Read read;
     alias read this;
+    private alias read _read;
   
     /// Current CIGAR operation. One of 'M', '=', 'X', 'D', 'N.
     /// Use $(D cigar_after)/$(D cigar_before) to determine insertions.
@@ -438,7 +436,8 @@ final static class PileupRangeUsingMdTag(R) :
     // an assumption about any particular read having non-zero length on reference.
 
     // current chunk of reference
-    private typeof(dna(_column._reads[].front)) _chunk;
+    private alias typeof(_column._reads[].front) Read;
+    private ReturnType!(dna!Read) _chunk;
 
     // end position of the current chunk on reference (assuming half-open interval)
     private uint _chunk_end_position;
@@ -448,7 +447,7 @@ final static class PileupRangeUsingMdTag(R) :
     // More precisely, 
     // _next_chunk_provider = argmax (read => read.end_position) 
     //                 {reads overlapping current column}
-    private typeof(_column._reads[].front) _next_chunk_provider;
+    private Read _next_chunk_provider;
 
     private bool _has_next_chunk_provider = false;
 
@@ -518,7 +517,7 @@ final static class PileupRangeUsingMdTag(R) :
         }
     }
 
-    void popFront() {
+    override void popFront() {
         if (!_chunk.empty) {
             // update current reference base
             _column._reference_base = _chunk.front;

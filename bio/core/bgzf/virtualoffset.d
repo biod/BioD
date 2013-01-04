@@ -65,7 +65,8 @@ struct VirtualOffset {
     }
 
     bool opEquals(ulong voffset) const nothrow {
-        return opEquals(VirtualOffset(voffset));
+        auto vo = VirtualOffset(voffset);
+        return opEquals(vo);
     }
 
     ulong opCast() const nothrow {

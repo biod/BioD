@@ -12,7 +12,7 @@ import std.traits;
 /// Returns bidirectional range of MD operations. Zero matches are skipped.
 auto mdOperations(string md) {
 
-    struct Result {
+    static struct Result {
         private {
             string _md = void;
             MdOperation _cached_front = void;
