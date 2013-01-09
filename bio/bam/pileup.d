@@ -677,7 +677,7 @@ unittest {
         pileup2.popFront();
 
         // check that DNA is built correctly from MD tags and CIGAR
-        assert(column.reference_base == reference[column.position - first_read_position]);
+        assert(column.reference_base == reference[cast(size_t)(column.position - first_read_position)]);
 
         switch (column.position) {
             case 796:

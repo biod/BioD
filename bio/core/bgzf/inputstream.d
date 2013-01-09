@@ -338,7 +338,7 @@ final class BgzfInputStream : IChunkInputStream {
         throw new SeekException("Stream is not seekable");
     }
 
-    override ulong writeBlock(const void* buf, size_t size) {
+    override size_t writeBlock(const void* buf, size_t size) {
         throw new WriteException("Stream is not writeable");
     }
 
@@ -373,7 +373,7 @@ final class BgzfInputStream : IChunkInputStream {
         auto bgzf_range = BgzfRange(stream);
 
         auto decompressed_blocks = task_pool.map!decompressBgzfBlock(bgzf_range, 24);
-        _stream = makeChunkInputStream(decompressed_blocks, stream_size);
+        _stream = makeChunkInputStream(decompressed_blocks, cast(size_t)stream_size);
 
         readable = true;
         writeable = false;
