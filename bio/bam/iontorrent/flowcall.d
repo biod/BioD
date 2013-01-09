@@ -243,6 +243,9 @@ struct ReadFlowCallRange(S)
     }
 
     ReadFlowCall front() @property const {
+        enforce(_current_flow_index < _intensities.length,
+                "Inconsistency between FZ/ZM tag and read bases");
+
         auto intensity = cast(ushort)(_intensities[_current_flow_index] - _overlap);
         ReadFlowCall rfc = void;
         rfc._fc = FlowCall(intensity, _current_base, _tag);
