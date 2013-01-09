@@ -24,7 +24,7 @@ import bio.core.sequence;
 
 import bio.bam.read;
 import bio.bam.tagvalue;
-import bio.bam.fz.flowcall;
+import bio.bam.iontorrent.flowcall;
 import bio.bam.md.core;
 
 import std.range;
@@ -554,6 +554,9 @@ template FZbaseInfo(R, Options...) {
         }
     }
 }
+
+/// Retrieving flow signal intensities from ZM tags is also available.
+alias FZbaseInfo ZMbaseInfo;
 
 /// Provides additional properties
 ///     * position
