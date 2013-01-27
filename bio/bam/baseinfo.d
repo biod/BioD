@@ -289,7 +289,7 @@ template MDbaseInfo(R, Options...) {
         ///
         /// If read is on '-' strand, the result will be
         /// complementary base.
-        char reference_base() @property {
+        char reference_base() @property const {
             return _ref_base;
         }
 
@@ -318,7 +318,7 @@ template MDbaseInfo(R, Options...) {
 
             /// If current MD operation is match, returns how many bases
             /// have matched before the current base. Otherwise returns 0.
-            uint md_operation_offset() @property {
+            uint md_operation_offset() @property const {
                 return _current_md_operation_offset;
             }
         }
