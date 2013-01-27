@@ -44,9 +44,18 @@ struct TagStorageBuilder {
         _storage.clear();
     }
 
+    private void putByRef(string tag, ref Value v) {
+        _storage.put(cast(ubyte[])tag);
+        emplaceValue(_storage, v);
+    }
+
     /// Append tag value to the storage
     void put(string tag, ref Value value) {
-        _storage.put(cast(ubyte[])tag);
-        emplaceValue(_storage, value);
+        putByRef(tag, value);
+    }
+
+    /// ditto
+    void put(string tag, Value value) {
+        putByRef(tag, value);
     }
 }

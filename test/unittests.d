@@ -376,10 +376,10 @@ unittest {
         assert(bfront.next_md_operation.is_deletion);
         assert(equal(bfront.next_md_operation.deletion, "G"));
         assert(equal(bfront.cigar_after, read.cigar[1 .. $]));
-        assert(equal(drop(map!"a.reference_base"(bases.save), 191),
+        assert(equal(drop(map!"a.reference_base"(bases), 191),
                      "-CCCGATTGGTCGTTGCTTTACGCTGATTGGCGAGTCCGGGGAACGTACCTTTGCTATCAGTCCAGGCCACATGAACCAGCTGCGGGCTGAAAGCATTCCGGAAGATGTGATTGCCGGACCTCGGCACTGGTTCTCACCTCATATCTGGTGCGTTGCAAGCCGGGTGAACCCATGCCGGAAGCACCATGAAAGCCATTGAGTACGCGAAGAAATATA"));
-        assert(equal(bases.save, read.sequence));
-        assert(equal(take(map!"a.flow_call.intensity_value"(bases.save), 92),
+        assert(equal(bases, read.sequence));
+        assert(equal(take(map!"a.flow_call.intensity_value"(bases), 92),
                      [219, 219, 194, 194, 92, 107, 83, 198, 198, 78, 
                      // A   A    C    C    T   G   A    T    T    A
                       292, 292, 292,  81, 79,  78, 95, 99, 315, 315, 315,

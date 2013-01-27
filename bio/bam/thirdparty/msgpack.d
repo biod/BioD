@@ -249,7 +249,8 @@ struct RefBuffer
 }
 
 
-version(DigitalMars) unittest{
+unittest
+{
     static assert(isOutputRange!(RefBuffer, ubyte) &&
                   isOutputRange!(RefBuffer, ubyte[]));
 
@@ -323,7 +324,6 @@ struct Packer(Stream) if (isOutputRange!(Stream, ubyte) && isOutputRange!(Stream
      *  stream        = the stream to write.
      *  withFieldName = serialize a field name at class or struct
      */
-    @safe
     this(Stream stream, bool withFieldName = false)
     {
         stream_        = stream;
@@ -379,7 +379,7 @@ struct Packer(Stream) if (isOutputRange!(Stream, ubyte) && isOutputRange!(Stream
 
 
     /// ditto
-    ref Packer pack(T)(in T value) if (isUnsigned!T)
+    ref Packer pack(T)(in T value) if (isUnsigned!T && !is(Unqual!T == enum))
     {
         // ulong < ulong is slower than uint < uint
         static if (!is(Unqual!T  == ulong)) {
@@ -454,7 +454,7 @@ struct Packer(Stream) if (isOutputRange!(Stream, ubyte) && isOutputRange!(Stream
 
 
     /// ditto
-    ref Packer pack(T)(in T value) if (isSigned!T && isIntegral!T)
+    ref Packer pack(T)(in T value) if (isSigned!T && isIntegral!T && !is(Unqual!T == enum))
     {
         // long < long is slower than int < int
         static if (!is(Unqual!T == long)) {
@@ -582,7 +582,7 @@ struct Packer(Stream) if (isOutputRange!(Stream, ubyte) && isOutputRange!(Stream
 
 
     /// ditto
-    ref Packer pack(T)(in T value) if (isFloatingPoint!T)
+    ref Packer pack(T)(in T value) if (isFloatingPoint!T && !is(Unqual!T == enum))
     {
         static if (is(Unqual!T == float)) {
             const temp = convertEndianTo!32(_f(value).i);
@@ -652,9 +652,9 @@ struct Packer(Stream) if (isOutputRange!(Stream, ubyte) && isOutputRange!(Stream
 
 
     /// ditto
-    ref Packer pack(T)(T array) if (isRandomAccessRange!T || isArray!T)
+    ref Packer pack(T)(in T array) if (isArray!T)
     {
-        alias ElementType!T U;
+        alias typeof(T.init[0]) U;
 
         /*
          * Serializes raw type-information to stream.
@@ -683,15 +683,11 @@ struct Packer(Stream) if (isOutputRange!(Stream, ubyte) && isOutputRange!(Stream
             return packNil();
 
         // Raw bytes
-        static if (isArray!T && (isByte!(U) || isSomeChar!(U))) {
+        static if (isByte!(U) || isSomeChar!(U)) {
             ubyte[] raw = cast(ubyte[])array;
 
             beginRaw(raw.length);
             stream_.put(raw);
-        } else static if (isByte!U) {
-            beginRaw(array.length);
-            foreach (elem; array)
-                stream_.put(elem);
         } else {
             beginArray(array.length);
             foreach (elem; array)
@@ -770,10 +766,15 @@ struct Packer(Stream) if (isOutputRange!(Stream, ubyte) && isOutputRange!(Stream
         if (object is null)
             return packNil();
 
-        static if (__traits(compiles, { T t; t.toMsgpack(this, withFieldName_); })) {
-            object.toMsgpack(this, withFieldName_);
-        } else static if (__traits(compiles, { T t; t.toMsgpack(this); })) { // backward compatible
-            object.toMsgpack(this);
+        static if (hasMember!(T, "toMsgpack"))
+        {
+            static if (__traits(compiles, { T t; t.toMsgpack(this, withFieldName_); })) {
+                object.toMsgpack(this, withFieldName_);
+            } else static if (__traits(compiles, { T t; t.toMsgpack(this); })) { // backward compatible
+                object.toMsgpack(this);
+            } else {
+                static assert(0, "Failed to invoke 'toMsgpack' on type '" ~ Unqual!T.stringof ~ "'");
+            }
         } else {
             // TODO: Add object serialization handler
             if (T.classinfo !is object.classinfo) {
@@ -809,10 +810,15 @@ struct Packer(Stream) if (isOutputRange!(Stream, ubyte) && isOutputRange!(Stream
     /// ditto
     ref Packer pack(T)(auto ref T object) if (is(Unqual!T == struct))
     {
-        static if (__traits(compiles, { T t; t.toMsgpack(this, withFieldName_); })) {
-            object.toMsgpack(this, withFieldName_);
-        } else static if (__traits(compiles, { T t; t.toMsgpack(this); })) { // backward compatible
-            object.toMsgpack(this);
+        static if (hasMember!(T, "toMsgpack"))
+        {
+            static if (__traits(compiles, { T t; t.toMsgpack(this, withFieldName_); })) {
+                object.toMsgpack(this, withFieldName_);
+            } else static if (__traits(compiles, { T t; t.toMsgpack(this); })) { // backward compatible
+                object.toMsgpack(this);
+            } else {
+                static assert(0, "Failed to invoke 'toMsgpack' on type '" ~ Unqual!T.stringof ~ "'");
+            }
         } else static if (isTuple!T) {
             beginArray(object.field.length);
             foreach (f; object.field)
@@ -966,7 +972,6 @@ struct Packer(Stream) if (isOutputRange!(Stream, ubyte) && isOutputRange!(Stream
  * Returns:
  *  a $(D Packer) object instantiated and initialized according to the arguments.
  */
-@safe
 Packer!(Stream) packer(Stream)(Stream stream, bool withFieldName = false)
 {
     return typeof(return)(stream, withFieldName);
@@ -976,19 +981,21 @@ Packer!(Stream) packer(Stream)(Stream stream, bool withFieldName = false)
 version (unittest) 
 {
     alias Appender!(ubyte[]) SimpleBuffer;
+    alias packer packerBuilder;  // Avoid issue: http://d.puremagic.com/issues/show_bug.cgi?id=9169
 
     mixin template DefinePacker()
     {
-        SimpleBuffer buffer; Packer!(SimpleBuffer*) packer = packer(&buffer);
+        SimpleBuffer buffer; Packer!(SimpleBuffer*) packer = packerBuilder(&buffer);
     }
 
     mixin template DefineDictionalPacker()
     {
-        SimpleBuffer buffer; Packer!(SimpleBuffer*) packer = packer(&buffer, true);
+        SimpleBuffer buffer; Packer!(SimpleBuffer*) packer = packerBuilder(&buffer, true);
     }
 }
 
-version(DigitalMars) unittest{
+unittest
+{
     { // unique value
         mixin DefinePacker;
 
@@ -1085,7 +1092,7 @@ version(DigitalMars) unittest{
         static struct FTest { ubyte format; real value; }
 
         static FTest[] tests = [
-            {Format.FLOAT,  float.min},
+            {Format.FLOAT,  float.min_normal},
             {Format.DOUBLE, double.max},
             {Format.REAL,   real.max},
         ];
@@ -1152,17 +1159,7 @@ version(DigitalMars) unittest{
                 break;
             default:
                 const answer = convertEndianTo!64(_d(*tests[I].p2).i);
-                version(GNU) {
-                    import std.stdio;
-                    if (memcmp(&buffer.data[1], &answer, double.sizeof) != 0) {
-                        writeln("----- bug -----");
-                        writeln("at line ", __LINE__);
-                        writeln("expected: ", *cast(ubyte[4]*)&answer);
-                        writeln("got: ", *cast(ubyte[4]*)&buffer.data[1]);
-                    }
-                } else {
-                    assert(memcmp(&buffer.data[1], &answer, double.sizeof) == 0);
-                }
+                assert(memcmp(&buffer.data[1], &answer, double.sizeof) == 0);
             }
         }
     }
@@ -1375,7 +1372,7 @@ version (D_Ddoc)
          * Params:
          *  target = new serialized buffer to deserialize.
          */
-        /* @safe */ void feed(in ubyte[] target);
+        @safe void feed(in ubyte[] target);
 
 
         /**
@@ -1445,7 +1442,8 @@ else
         }
 
 
-        /* @safe */ void feed(in ubyte[] target)
+        @safe
+        void feed(in ubyte[] target)
         in
         {
             assert(target.length);
@@ -1542,7 +1540,7 @@ else
 
       private:
         @safe
-        void initializeBuffer(in ubyte[] target, in size_t bufferSize = 8192)
+        nothrow void initializeBuffer(in ubyte[] target, in size_t bufferSize = 8192)
         {
             const size = target.length;
 
@@ -1594,7 +1592,6 @@ struct Unpacker
      *  target     = byte buffer to deserialize
      *  bufferSize = size limit of buffer size
      */
-    @safe
     this(in ubyte[] target, in size_t bufferSize = 8192)
     {
         initializeBuffer(target, bufferSize);
@@ -1656,7 +1653,7 @@ struct Unpacker
 
 
     /// ditto
-    ref Unpacker unpack(T)(ref T value) if (isUnsigned!T)
+    ref Unpacker unpack(T)(ref T value) if (isUnsigned!T && !is(Unqual!T == enum))
     {
         canRead(Offset, 0);
         const header = read();
@@ -1700,7 +1697,7 @@ struct Unpacker
 
 
     /// ditto
-    ref Unpacker unpack(T)(ref T value) if (isSigned!T && isIntegral!T)
+    ref Unpacker unpack(T)(ref T value) if (isSigned!T && isIntegral!T && !is(Unqual!T == enum))
     {
         canRead(Offset, 0);
         const header = read();
@@ -1772,7 +1769,7 @@ struct Unpacker
 
 
     /// ditto
-    ref Unpacker unpack(T)(ref T value) if (isFloatingPoint!T)
+    ref Unpacker unpack(T)(ref T value) if (isFloatingPoint!T && !is(Unqual!T == enum))
     {
         canRead(Offset, 0);
         const header = read();
@@ -1869,21 +1866,13 @@ struct Unpacker
 
 
     /// ditto
-    template unpack(Types...) if (Types.length > 1)  // needs constraint-if because "--- killed by signal 11" occurs
-    {
-        ref Unpacker unpack(ref Types objects)
-        {
-            foreach (i, T; Types)
-                unpack!(T)(objects[i]);
-
-            return this;
-        }
-    }
-    /*
-     * @@@BUG@@@ http://d.puremagic.com/issues/show_bug.cgi?id=2460
     ref Unpacker unpack(Types...)(ref Types objects) if (Types.length > 1)
-    { // do stuff }
-     */
+    {
+        foreach (i, T; Types)
+            unpack!(T)(objects[i]);
+
+        return this;
+    }
 
 
     /**
@@ -2038,8 +2027,13 @@ struct Unpacker
         if (object is null)
             object = new T(args);
 
-        static if (__traits(compiles, { T t; t.fromMsgpack(this); })) {
-            object.fromMsgpack(this);
+        static if (hasMember!(T, "fromMsgpack"))
+        {
+            static if (__traits(compiles, { T t; t.fromMsgpack(this); })) {
+                object.fromMsgpack(this);
+            } else {
+                static assert(0, "Failed to invoke 'fromMsgpack' on type '" ~ Unqual!T.stringof ~ "'");
+            }
         } else {
             // TODO: Add object deserialization handler
             if (T.classinfo !is object.classinfo) {
@@ -2069,8 +2063,13 @@ struct Unpacker
     /// ditto
     ref Unpacker unpack(T)(ref T object) if (is(Unqual!T == struct))
     {
-        static if (__traits(compiles, { T t; t.fromMsgpack(this); })) {
-            object.fromMsgpack(this);
+        static if (hasMember!(T, "fromMsgpack"))
+        {
+            static if (__traits(compiles, { T t; t.fromMsgpack(this); })) {
+                object.fromMsgpack(this);
+            } else {
+                static assert(0, "Failed to invoke 'fromMsgpack' on type '" ~ Unqual!T.stringof ~ "'");
+            }
         } else {
             auto length = beginArray();
             if (length == 0)
@@ -2375,109 +2374,86 @@ struct Unpacker
 }
 
 
-version(DigitalMars) unittest{
+unittest
+{
     { // unique
         mixin DefinePacker;
 
-        Tuple!(bool, bool) result, test = tuple(true, false);
+        Tuple!(bool, bool) result;
+        Tuple!(bool, bool) test = tuple(true, false);
 
         packer.pack(test);
 
         auto unpacker = Unpacker(packer.stream.data);
-        unpacker.unpack(result);
 
+        unpacker.unpack(result);
         assert(test == result);
     }
     { // uint *
         mixin DefinePacker;
 
-        Tuple!(ubyte, ushort, uint, ulong) result,
-            test = tuple(cast(ubyte)ubyte.max, cast(ushort)ushort.max,
-                         cast(uint)uint.max,   cast(ulong)ulong.max);
+        Tuple!(ubyte, ushort, uint, ulong) result;
+        Tuple!(ubyte, ushort, uint, ulong) test = tuple(cast(ubyte)ubyte.max, cast(ushort)ushort.max,
+                                                        cast(uint)uint.max,   cast(ulong)ulong.max);
 
         packer.pack(test);
 
         auto unpacker = Unpacker(packer.stream.data);
-        unpacker.unpack(result);
 
+        unpacker.unpack(result);
         assert(test == result);
     }
     { // int *
         mixin DefinePacker;
 
-        Tuple!(byte, short, int, long) result,
-            test = tuple(cast(byte)byte.min, cast(short)short.min,
-                         cast(int)int.min,   cast(long)long.min);
+        Tuple!(byte, short, int, long) result;
+        Tuple!(byte, short, int, long) test = tuple(cast(byte)byte.min, cast(short)short.min,
+                                                    cast(int)int.min,   cast(long)long.min);
 
         packer.pack(test);
 
         auto unpacker = Unpacker(packer.stream.data);
-        unpacker.unpack(result);
 
+        unpacker.unpack(result);
         assert(test == result);
     }
     { // floating point
         mixin DefinePacker;
 
         static if (real.sizeof == double.sizeof)
-            Tuple!(float, double, double) result,
-                test = tuple(cast(float)float.min, cast(double)double.max, cast(real)real.min);
+        {
+            Tuple!(float, double, double) result;
+            Tuple!(float, double, double) test = tuple(cast(float)float.min_normal, cast(double)double.max, cast(real)real.min_normal);
+        }
         else
-            Tuple!(float, double, real) result,
-                test = tuple(cast(float)float.min, cast(double)double.max, cast(real)real.min);
+        {
+            Tuple!(float, double, real) result;
+            Tuple!(float, double, real) test = tuple(cast(float)float.min_normal, cast(double)double.max, cast(real)real.min_normal);
+        }
 
         packer.pack(test);
 
         auto unpacker = Unpacker(packer.stream.data);
+
         unpacker.unpack(result);
-        version(GNU) {
-            import std.stdio;
-            if (test != result) {
-                writeln("----- bug -----");
-                writeln("at line ", __LINE__);
-                writeln("expected: ", test);
-                writeln("got: ", result);
-            }
-        } else {
-            assert(test == result);
-        }
+        assert(test == result);
     }
     { // pointer
         mixin DefinePacker;
 
-        Tuple!(ulong, long, double) origin, values = tuple(ulong.max, long.min, double.min);
-        Tuple!(ulong*, long*, double*) 
-            result = tuple(&origin.field[0], &origin.field[1], &origin.field[2]),
-            test   = tuple(&values.field[0], &values.field[1], &values.field[2]);
+        Tuple!(ulong, long, double) origin;
+        Tuple!(ulong, long, double) values = tuple(ulong.max, long.min, double.min_normal);
+        Tuple!(ulong*, long*, double*) result = tuple(&origin.field[0], &origin.field[1], &origin.field[2]);
+        Tuple!(ulong*, long*, double*) test = tuple(&values.field[0], &values.field[1], &values.field[2]);
 
         packer.pack(test);
 
         auto unpacker = Unpacker(packer.stream.data);
-        unpacker.unpack(result);
 
-        foreach (i, v; test.field) {
-            version(GNU) {
-                import std.stdio;
-                if (*v != *result.field[i]) {
-                    writeln("----- bug -----");
-                    writeln("at line ", __LINE__);
-                    writeln("(i = ", i, ")");
-                    writeln("expected: ", *v);
-                    writeln("got: ", *result.field[i]);
-                }
-            } else {
-                assert(*v == *result.field[i]);
-            }
-        }
-        version(GNU) {
-            import std.stdio;
-            if (origin != values) {
-                writeln("origin: ", origin);
-                writeln("values: ", values);
-            }
-        } else {
-            assert(origin == values);
-        }
+        unpacker.unpack(result);
+        foreach (i, v; test.field)
+            assert(*v == *result.field[i]);
+        assert(origin == values);
     }
     { // enum
         enum   : float { D = 0.5 }
@@ -2491,50 +2467,24 @@ version(DigitalMars) unittest{
         packer.pack(D, e);
 
         auto unpacker = Unpacker(packer.stream.data);
-        unpacker.unpack(resultF, resultE);
 
-        version(GNU) {
-            import std.stdio;
-            if (f != resultF) {
-                writeln("----- bug -----");
-                writeln("at line ", __LINE__);
-                writeln("f: ", f);
-                writeln("resultF: ", resultF);
-            }
-            if (e != resultE) {
-                writeln("----- bug -----");
-                writeln("at line ", __LINE__);
-                writeln("e: ", cast(ulong)e);
-                writeln("resultE: ", cast(ulong)resultE);
-            }
-        } else {
-            assert(f == resultF);
-            assert(e == resultE);
-        }
+        unpacker.unpack(resultF, resultE);
+        assert(f == resultF);
+        assert(e == resultE);
     }
     { // container
         mixin DefinePacker;
 
-        Tuple!(ulong[], double[uint], string, bool[2], char[2]) result,
-            test = tuple([1UL, 2], [3U:4.0, 5:6.0, 7:8.0],
-                         "MessagePack is nice!", [true, false], "D!");
+        Tuple!(ulong[], double[uint], string, bool[2], char[2]) test
+            = tuple([1UL, 2], [3U:4.0, 5:6.0, 7:8.0], "MessagePack is nice!", [true, false], "D!");
 
         packer.pack(test);
 
         auto unpacker = Unpacker(packer.stream.data);
-        unpacker.unpack(result);
+        Tuple!(ulong[], double[uint], string, bool[2], char[2]) result;
 
-        version(GNU) {
-            import std.stdio;
-            if (test != result) {
-                writeln("----- bug -----");
-                writeln("at line ", __LINE__);
-                writeln("expected: ", test);
-                writeln("got: ", result);
-            }
-        } else {
-            assert(test == result);
-        }
+        unpacker.unpack(result);
+        assert(test == result);
     }
     { // user defined
         {
@@ -2658,18 +2608,7 @@ version(DigitalMars) unittest{
         uint u; long l; double d;
 
         unpacker.unpackArray(u, l, d);
-
-        version(GNU) {
-            import std.stdio;
-            if (test != tuple(u, l, d)) {
-                writeln("----- bug -----");
-                writeln("at line ", __LINE__);
-                writeln("expected: ", test);
-                writeln("got: ", tuple(u, l, d));
-            }
-        } else {
-            assert(test == tuple(u, l, d));
-        }
+        assert(test == tuple(u, l, d));
     }
     { // scan / opApply
         ubyte[] data;
@@ -2680,16 +2619,7 @@ version(DigitalMars) unittest{
 
         foreach (n, d, s; &Unpacker(packer.stream.data).scan!(int, double, string)) {
             assert(n == 1);
-            version(GNU) {
-                if (d != 0.5) {
-                    writeln("----- bug -----");
-                    writeln("at line ", __LINE__);
-                    writeln("expected: ", 0.5);
-                    writeln("got: ", d);
-                }
-            } else {
-                assert(d == 0.5);
-            }
+            assert(d == 0.5);
             assert(s == "Hi!");
         }
     }
@@ -2851,7 +2781,7 @@ struct Value
      *  Current implementation uses cast.
      */
     @property @trusted
-    T as(T)() if (is(T == bool))
+    T as(T)() if (is(Unqual!T == bool))
     {
         if (type != Type.boolean)
             onCastError();
@@ -2862,7 +2792,7 @@ struct Value
 
     /// ditto
     @property @trusted
-    T as(T)() if (isIntegral!T)
+    T as(T)() if (isIntegral!T && !is(Unqual!T == enum))
     {
         if (type == Type.unsigned)
             return cast(T)via.uinteger;
@@ -2878,7 +2808,7 @@ struct Value
 
     /// ditto
     @property @trusted
-    T as(T)() if (isFloatingPoint!T)
+    T as(T)() if (isFloatingPoint!T && !is(Unqual!T == enum))
     {
         if (type != Type.floating)
             onCastError();
@@ -2961,15 +2891,20 @@ struct Value
      *  converted value.
      */
     @property @trusted
-    T as(T, Args...)(Args args) if (is(T == class))
+    T as(T, Args...)(Args args) if (is(Unqual!T == class))
     {
         if (type == Type.nil)
             return null;
 
         T object = new T(args);
 
-        static if (__traits(compiles, { T t; t.fromMsgpack(this); })) {
-            object.fromMsgpack(this);
+        static if (hasMember!(T, "fromMsgpack"))
+        {
+            static if (__traits(compiles, { T t; t.fromMsgpack(this); })) {
+                object.fromMsgpack(this);
+            } else {
+                static assert(0, "Failed to invoke 'fromMsgpack' on type '" ~ Unqual!T.stringof ~ "'");
+            }
         } else {
             alias SerializingClasses!(T) Classes;
 
@@ -2990,12 +2925,17 @@ struct Value
 
     /// ditto
     @property @trusted
-    T as(T)() if (is(T == struct))
+    T as(T)() if (is(Unqual!T == struct))
     {
         T obj;
 
-        static if (__traits(compiles, { T t; t.fromMsgpack(this); })) {
-            obj.fromMsgpack(this);
+        static if (hasMember!(T, "fromMsgpack"))
+        {
+            static if (__traits(compiles, { T t; t.fromMsgpack(this); })) {
+                obj.fromMsgpack(this);
+            } else {
+                static assert(0, "Failed to invoke 'fromMsgpack' on type '" ~ Unqual!T.stringof ~ "'");
+            }
         } else {
             static if (isTuple!T) {
                 if (via.array.length != T.Types.length)
@@ -3165,7 +3105,8 @@ struct Value
 }
 
 
-version(DigitalMars) unittest{
+unittest
+{
     // nil
     Value value = Value();
     Value other = Value();
@@ -3205,14 +3146,11 @@ version(DigitalMars) unittest{
     assert(value.as!(int) == -20);
     assert(other          == -10L);
 
-    /**
-     * "src/msgpack.d(3129): Error: cannot resolve type for value.as!(E)" occured in dmd 2.059.
     // enum
     enum E : int { F = -20 }
 
     E e = value.as!(E);
     assert(e == E.F);
-     */
 
     // floating point
     value = Value(0.1e-10L);
@@ -3441,7 +3379,8 @@ struct Unpacked
 }
 
 
-version(DigitalMars) unittest{
+unittest
+{
     static assert(isForwardRange!Unpacked);
     static assert(hasLength!Unpacked);
 }
@@ -3938,7 +3877,8 @@ struct StreamingUnpacker
 }
 
 
-version(DigitalMars) unittest{
+unittest
+{
     // serialize
     mixin DefinePacker;
 
@@ -3967,17 +3907,7 @@ version(DigitalMars) unittest{
     assert(result[4].via.raw       == [72, 105, 33]);
     assert(result[5].as!(int[])    == [1]);
     assert(result[6].as!(int[int]) == [1:1]);
-    version(GNU) {
-        import std.stdio;
-        if (result[7].as!double != double.max) {
-            writeln("----- bug -----");
-            writeln("at line ", __LINE__);
-            writeln("expected: ", double.max);
-            writeln("got: ", result[7].as!double);
-        }
-    } else {
-        assert(result[7].as!(double)   == double.max);
-    }
+    assert(result[7].as!(double)   == double.max);
 }
 
 
@@ -4062,7 +3992,8 @@ void callbackBool(ref Value value, bool boolean)
 }
 
 
-version(DigitalMars) unittest{
+unittest
+{
     Value value;
 
     // Unsigned integer
@@ -4164,7 +4095,8 @@ ubyte[] pack(bool withFieldName = false, Args...)(in Args args)
 }
 
 
-version(DigitalMars) unittest{
+unittest
+{
     auto serialized = pack(false);
 
     assert(serialized[0] == Format.FALSE);
@@ -4222,24 +4154,23 @@ void unpack(Args...)(in ubyte[] buffer, ref Args args)
 }
 
 
-version(DigitalMars) unittest{
+unittest
+{
     { // stream
         auto result = unpack(pack(false));
 
         assert(result.via.boolean == false);
     }
     { // direct conversion
-        Tuple!(uint, string) result, test = tuple(1, "Hi!");
-        
-        unpack(pack(test), result);
+        Tuple!(uint, string) result;
+        Tuple!(uint, string) test = tuple(1, "Hi!");
 
+        unpack(pack(test), result);
         assert(result == test);
 
         test.field[0] = 2;
         test.field[1] = "Hey!";
-
         unpack(pack(test.field[0], test.field[1]), result.field[0], result.field[1]);
-
         assert(result == test);
     }
 }
@@ -4385,7 +4316,8 @@ mixin template MessagePackable(Members...)
 }
 
 
-version(DigitalMars) unittest{
+unittest
+{
     { // all members
         /*
          * Comment out because "src/msgpack.d(4048): Error: struct msgpack.__unittest16.S no size yet for forward reference" occurs
@@ -4554,7 +4486,8 @@ template isByte(T)
 }
 
 
-version(DigitalMars) unittest{
+unittest
+{
     static assert(isByte!(byte));
     static assert(isByte!(const(byte)));
     static assert(isByte!(ubyte));
@@ -4594,7 +4527,11 @@ template SerializingMemberNumbers(Classes...)
  */
 template SerializingClasses(T)
 {
-    alias TypeTuple!(Reverse!(Erase!(Object, BaseClassesTuple!(T))), T) SerializingClasses;
+    // There is no information in Object type. Currently disable Object serialization.
+    static if (is(T == Object))
+        static assert(false, "Object type serialization doesn't support yet. Please define toMsgpack/fromMsgpack and use cast");
+    else
+        alias TypeTuple!(Reverse!(Erase!(Object, BaseClassesTuple!(T))), T) SerializingClasses;
 }
 
 
@@ -4655,7 +4592,8 @@ version (LittleEndian)
     }
 
 
-    version(DigitalMars) unittest    {
+    unittest
+    {
         assert(convertEndianTo!16(0x0123)             == 0x2301);
         assert(convertEndianTo!32(0x01234567)         == 0x67452301);
         assert(convertEndianTo!64(0x0123456789abcdef) == 0xefcdab8967452301);
@@ -4674,7 +4612,8 @@ version (LittleEndian)
     }
 
 
-    version(DigitalMars) unittest    {
+    unittest
+    {
         foreach (Integer; TypeTuple!(ubyte, ushort, uint, ulong)) {
             assert(take8from!8 (cast(Integer)0x01)               == 0x01);
             assert(take8from!16(cast(Integer)0x0123)             == 0x23);
@@ -4711,7 +4650,8 @@ else
     }
 
 
-    version(DigitalMars) unittest    {
+    unittest
+    {
         assert(convertEndianTo!16(0x0123)       == 0x0123);
         assert(convertEndianTo!32(0x01234567)   == 0x01234567);
         assert(convertEndianTo!64(0x0123456789) == 0x0123456789);
@@ -4742,7 +4682,8 @@ else
     }
 
 
-    version(DigitalMars) unittest    {
+    unittest
+    {
         foreach (Integer; TypeTuple!(ubyte, ushort, uint, ulong)) {
             assert(take8from!8 (cast(Integer)0x01)               == 0x01);
             assert(take8from!16(cast(Integer)0x0123)             == 0x23);

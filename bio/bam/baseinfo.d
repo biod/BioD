@@ -229,6 +229,15 @@ struct PerBaseInfo(R, TagsAndOptions...) {
         return r;
     }
 
+    ref PerBaseInfo opAssign(PerBaseInfo other) {
+        _read = other._read;
+        _seq = other._seq.save;
+        _rev = other._rev;
+        foreach (t; Extensions)
+            other.copy!t(this);
+        return this;
+    }
+
     private void moveToNextBase() {
 
         foreach (t; Extensions) {
@@ -457,7 +466,7 @@ template MDbaseInfo(R, Options...) {
                 if (source.MD._previous_md_op.isNull)
                     target.MD._previous_md_op.nullify();
                 else
-                    target.MD._previous_md_op = source.MD._previous_md_op;
+                    target.MD._previous_md_op = source.MD._previous_md_op.get;
                 target.MD._md_front_is_initialized = source.MD._md_front_is_initialized;
             }
         }
