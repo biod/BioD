@@ -11,7 +11,3 @@ Library goals are:
 * Clear, documented, and maintainable codebase
 * Being suitable for one-off scripts, comparable in size with those written in Python/Ruby/Perl
 * Providing a platform for writing high-performance bioinformatics applications in D
-
---------------------------------------
-
-Only DMD 2.060 is supported at the moment.
