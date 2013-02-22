@@ -694,15 +694,15 @@ unittest {
                 break;
             case 810:
                 // last read is not yet fetched by pileup engine
-                assert(column.reads[$ - 2].cigar_after.front.type == 'D');
+                assert(column.reads[column.coverage - 2].cigar_after.front.type == 'D');
                 pileup.popFront();
                 break;
             case 817:
-                assert(column.reads[$ - 2].cigar_before.back.type == 'I');
+                assert(column.reads[column.coverage - 2].cigar_before.back.type == 'I');
                 pileup.popFront();
                 break;
             case 821:
-                assert(column.reads[$ - 3].cigar_operation.type == 'D');
+                assert(column.reads[column.coverage - 3].cigar_operation.type == 'D');
                 assert(equal(column.bases, "AAGG-AA"));
                 pileup.popFront();
                 break;
