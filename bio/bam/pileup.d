@@ -17,39 +17,37 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
-/// This module is used for iterating over columns of alignment.
-/// $(BR)
-/// The function makePileup is called on 
+/// $(P This module is used for iterating over columns of alignment.)
+/// $(P The function makePileup is called on 
 /// a range of coordinate-sorted reads mapped to the same reference.
-/// It returns an input range of columns.
-/// $(BR)
-/// This returned range can then be iterated with $(D foreach).
+/// It returns an input range of columns.)
+/// $(P This returned range can then be iterated with $(D foreach).
 /// First column is located at the same position on the reference,
 /// as the first base of the first read.
-/// Each $(D popFront) operation advances current position on the
-/// reference. Currently, there's no option to skip non-covered regions.
 /// $(BR)
-/// Each column keeps set of reads that overlap corresponding position
+/// Each $(D popFront) operation advances current position on the
+/// reference. Currently, there's no option to skip non-covered regions.)
+/// $(P Each column keeps set of reads that overlap corresponding position
 /// on the reference.
 /// If reads contain MD tags, and makePileup was asked
-/// to use them, reference base at the column is also available.
+/// to use them, reference base at the column is also available.)
 /// $(BR)
 /// Each read preserves all standard read properties 
-/// but also keeps column-related information, namely:
-/// $(UL
+/// but also keeps column-related information, namely
+/// <ul>
 ///     $(LI number of bases consumed from the read sequence so far)
 ///     $(LI current CIGAR operation and offset in it)
-///     $(LI all CIGAR operations before and after current one))
+///     $(LI all CIGAR operations before and after current one)</ul>
 /// $(BR)
 /// It is clear from the above that current CIGAR operation cannot be an insertion.
 /// The following are suggested ways to check for them:
-/// $(UL
+/// <ul>
 ///     $(LI $(D cigar_after.length > 0 &&
 ///              cigar_operation_offset == cigar_operation.length - 1 &&
 ///              cigar_after[0].type == 'I'))
 ///     $(LI $(D cigar_before.length > 0 &&
 ///              cigar_operation_offset == 0 &&
-///              cigar_before[$ - 1].type == 'I')))
+///              cigar_before[$ - 1].type == 'I'))</ul>
 /// $(BR)
 /// Examples:
 /// ---------------------------------------------------------

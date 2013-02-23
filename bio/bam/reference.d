@@ -17,6 +17,23 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
+/// $(P Each BAM file contains reads aligned to different reference sequences.)
+/// $(P These sequences have unique identifiers in BAM file, starting from 0.
+/// Unmapped reads are associated with id = -1.)
+/// $(P If BAI file is available, fast region queries are available, that is,
+/// getting all reads that overlap given region. This is achieved via $(D opSlice) method.)
+///
+/// Example:
+/// -----------------------------
+/// import bio.bam.reader, std.stdio;
+/// ...
+/// auto bam = new BamReader("file.bam");
+/// auto refseq = bam["chr17"];
+/// writeln(refseq.name, " - length ", refseq.length);
+/// foreach (read; refseq[1234 .. 5678])
+///     if (read.cigar.length > 1)
+///         writeln(read.name, " ", read.cigarString());
+/// -----------------------------
 module bio.bam.reference;
 
 public import bio.bam.referenceinfo;
@@ -29,12 +46,10 @@ import std.stream;
 import std.exception;
 import std.array;
 
-/**
-  Represents reference sequence.
- */
+///
 struct ReferenceSequence {
    
-    /// Name of reference sequence as in BAM file
+    /// Name
     string name() @property const {
         return _info.name;
     }
@@ -49,14 +64,16 @@ struct ReferenceSequence {
         return _ref_id;
     }
 
-    /// Get alignments overlapping [start, end)
+    /// Get alignments overlapping [start, end) region.
+    /// $(BR)
+    /// Coordinates are 0-based.
     auto opSlice(uint start, uint end) {
         enforce(start < end, "start must be less than end");
         enforce(_manager !is null, "random access is not available");
         return _manager.getReads(_ref_id, start, end);
     }
 
-    /// Get all alignments
+    /// Get all alignments for this reference
     auto opSlice() {
         return opSlice(0, length);
     }
@@ -66,20 +83,10 @@ struct ReferenceSequence {
         return opSlice().front.dup;
     }
 
-    /// First position on the reference overlapped by reads (0-based)
-    /// Returns -1 if set of reads is empty.
-    int firstPosition() {
-        auto reads = opSlice();
-        if (reads.empty) {
-            return -1;
-        }
-        return reads.front.position;
-    }
-
-    /// Virtual offset at which reads aligned to this reference start.
+    /// Virtual offset at which reads, aligned to this reference, start in BAM file.
     /// If there are no reads aligned to this reference, returns virtual
     /// offset of the EOF block if it's presented, or the end of file.
-    VirtualOffset startVirtualOffset() {
+    bio.core.bgzf.virtualoffset.VirtualOffset startVirtualOffset() {
         auto reads = opSlice();
         if (reads.empty) {
             return _manager.eofVirtualOffset();
@@ -87,10 +94,10 @@ struct ReferenceSequence {
         return reads.front.start_virtual_offset;
     }
 
-    /// Virtual offset before which reads aligned to this reference stop.
+    /// Virtual offset before which reads, aligned to this reference, stop.
     /// If there are no reads aligned to this reference, returns virtual
     /// offset of the EOF block if it's presented, or the end of file.
-    VirtualOffset endVirtualOffset() {
+    bio.core.bgzf.virtualoffset.VirtualOffset endVirtualOffset() {
 
         if (opSlice().empty) {
             return _manager.eofVirtualOffset();
@@ -124,8 +131,21 @@ struct ReferenceSequence {
 
         return result;
     }
-    
+ 
+    /// First position on the reference overlapped by reads (0-based)
+    /// $(BR)
+    /// Returns -1 if set of reads is empty.
+    int firstPosition() {
+        auto reads = opSlice();
+        if (reads.empty) {
+            return -1;
+        }
+        return reads.front.position;
+    }
+   
     /// Last position on the reference overlapped by reads (0-based)
+    /// $(BR)
+    /// Returns -1 if set of reads is empty.
     int lastPosition() {
         // The key idea is
         //  1) use last offset from linear index

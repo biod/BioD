@@ -17,6 +17,31 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
+/// BAM records may carry arbitrary information in tags.
+/// $(BR)
+/// $(D Value) type provides convenient way to work with this information.
+///
+/// Example:
+/// --------------------------------
+/// import bio.bam.reader, bio.bam.tagvalue;
+/// ...
+/// auto bam = new BamReader("file.bam");
+/// Value v = bam.reads.front["MD"];
+/// assert(v.is_string);
+/// v = 5;
+/// assert(v.is_signed);     // because 5 is of type int which is signed
+/// assert(v == "5");        // converted to string and then compared
+/// v = "abc";
+/// assert(v.is_string);
+/// v = [1, 2, 3];           // integer and float arrays are supported
+/// assert(v.is_numeric_array);
+/// v = [1.5f, 2.3f, 17.0f]; // double[] arrays must be converted to float[]
+/// assert(v.is_numeric_array);
+/// v = 5.6;
+/// assert(v.is_float);
+/// v = -17;
+/// assert(v.is_signed);
+/// ----------------------------------
 module bio.bam.tagvalue;
 
 public import std.conv;
@@ -63,7 +88,7 @@ alias TypeTuple!(CharToType!('c', byte),
                  CharToType!('I', uint),
                  CharToType!('f', float))       ArrayElementTagValueTypes;
 
-/**
+/*
   Useful in TagStorage implementations, for skipping elements
 
   Params:
@@ -86,7 +111,7 @@ uint charToSizeof(char c) {
     mixin(charToSizeofHelper());
 }
 
-/**
+/*
   Pair of type and its ubyte identifier. 
 
   (Currently, ubyte is enough, but that might change in the future.)
@@ -165,6 +190,7 @@ private template GetType(U) {
 /// assert(v.tag == GetTypeId!string);
 /// -----------------------------------
 template GetTypeId(T) {
+    ///
     enum GetTypeId = TypeIdMap[staticIndexOf!(T, staticMap!(GetType, TypeIdMap))].Id;
 }
 
@@ -281,16 +307,10 @@ string injectOpCast() {
   Tagged union, allows to store 
   8/16/32-bit integers, floats, chars, strings, 
   and arrays of integers/floats.
-
-  Currently, opCast is very restrictive and requires that 
-  the requested type is exactly the same as stored in Value
-  (otherwise, ConvException is thrown). That means that
-  you can't cast Value to string when it contains integer,
-  although it's possible to convert integer to string.
 */
 struct Value {
 
-    /**
+    /*
       Notice that having union first allows to do simple casts,
       without using opCast(). That's a bit hackish but
       allows for better speed.
@@ -325,16 +345,19 @@ struct Value {
     mixin(injectOpAssign());
     mixin(injectOpCast());
 
+    ///
     final void opAssign(Value v) {
         bam_typeid = v.bam_typeid;
         _tag = v._tag;
         u = v.u;
     }
 
+    /// ditto
     final void opAssign(typeof(null) n) {
         _tag = GetTypeId!(typeof(null));
     }
 
+    ///
     final bool opEquals(T)(const T val) {
         try {
             return to!T(this) == val;
@@ -343,10 +366,12 @@ struct Value {
         }
     }
 
+    ///
     string toString() const {
         return opCast!string();
     }
 
+    ///
     this(T)(T value) {
         opAssign(value);
     }
@@ -364,27 +389,40 @@ struct Value {
         }
     }
 
+    /// Holds $(D null). Represents non-existing tag. Such values can't be stored in tags.
     bool is_nothing() @property const { return _tag == GetTypeId!(typeof(null)); }
 
+    /// char
     bool is_character() @property const { return _tag == GetTypeId!char; }
+
+    /// float
     bool is_float() @property const { return _tag == GetTypeId!float; }
+
+    /// ubyte[]/byte[]/ushort[]/short[]/uint[]/int[]/float[]
     bool is_numeric_array() @property const { return (_tag & 0b11) == 0b01; }
+
+    /// ubyte[]/byte[]/ushort[]/short[]/uint[]/int[]
     bool is_array_of_integers() @property const { return (_tag & 0b111) == 0b001; }
+
+    /// float[]
     bool is_array_of_floats() @property const { return (_tag & 0b111) == 0b101; }
+
+    /// ubyte/byte/ushort/short/uint/int
     bool is_integer() @property const { return (_tag & 0b1111) == 0; }
 
-    /// true if the value is unsigned integer
+    /// ubyte/ushort/uint
     bool is_unsigned() @property const { return (_tag & 0b11111) == 0; }
 
-    /// true if the value is signed integer
+    /// byte/short/int
     bool is_signed() @property const { return (_tag & 0b11111) == 0b10000; }
 
-    /// true if the value represents 'Z' or 'H' tag
+    /// 'Z' or 'H' tag
     bool is_string() @property const { return (_tag & 0b11) == 0b11; }
 
-    /// true if the value represents 'H' tag
+    /// 'H' tag
     bool is_hexadecimal_string() @property const { return (_tag & 0b111) == 0b111; }
 
+    /// Serializes value in MessagePack format
     public void toMsgpack(Packer)(ref Packer packer) const {
         switch (_tag) {
             case GetTypeId!byte: packer.pack(*cast(byte*)(&u)); break;
