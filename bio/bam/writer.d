@@ -32,28 +32,48 @@ import std.stream;
 import std.traits;
 import std.system;
 
-/// Class for outputting BAM.
-/// Tries to write reads so that they don't cross BGZF block borders.
+/** Class for outputting BAM.
+    $(BR)
+    Compresses BGZF blocks in parallel.
+    Tries to write reads so that they don't cross BGZF block borders.
+    $(BR)
+    Usage is very simple, see example below.
+
+    Examples:
+    --------------------------------------
+    import bio.bam.writer, bio.bam.reader;
+    ...
+    auto src = new BamReader("in.bam");
+    auto dst = new BamWriter("out.bam", 9); // maximal compression
+    scope (exit) dst.finish();              // close the stream at exit
+    dst.writeSamHeader(src.header);         // copy header and reference sequence info
+    dst.writeReferenceSequenceInfo(src.reference_sequences);
+    foreach (read; src.reads) {
+        if (read.mapping_quality > 10)      // skip low-quality reads
+            dst.writeRecord(read);
+    }
+    --------------------------------------
+    */
 final class BamWriter {
 
-    /// Create new BAM writer outputting to $(D stream).
+    /// Creates new BAM writer outputting to file or $(I stream).
     /// Automatically writes BAM magic number (4 bytes).
     ///
     /// Params:
     ///     compression_level  = compression level, must be in range -1..9
     ///     task_pool          = task pool to use for parallel compression
-    this(Stream stream, 
-        int compression_level=-1,
-        TaskPool task_pool=taskPool) 
+    this(std.stream.Stream stream, 
+         int compression_level=-1,
+         std.parallelism.TaskPool task_pool=std.parallelism.taskPool) 
     {
         _stream = new BgzfOutputStream(stream, compression_level, task_pool);
         writeString(BAM_MAGIC);
     }
 
-    /// Create new BAM writer outputting to specified file.
+    /// ditto
     this(string filename,
          int compression_level=-1,
-         TaskPool task_pool=taskPool)
+         std.parallelism.TaskPool task_pool=std.parallelism.taskPool)
     {
         auto filestream = new bio.core.utils.stream.File(filename, "wb+");
         this(filestream, compression_level, task_pool);
@@ -78,19 +98,19 @@ final class BamWriter {
         _stream.writeExact(&num, T.sizeof);
     }
 
-    /// Write SAM header. Should be called after construction.
-    void writeSamHeader(SamHeader header) {
+    /// Writes SAM header. Should be called after construction.
+    void writeSamHeader(bio.sam.header.SamHeader header) {
         auto text = toSam(header);
         writeInteger(cast(int)text.length);
         writeString(text);
     }
 
-    /// Write reference sequence information. Should be called after
+    /// Writes reference sequence information. Should be called after
     /// dumping SAM header. Writer will store this array to use later for
     /// resolving read reference IDs to names.
     ///
     /// Flushes current BGZF block.
-    void writeReferenceSequenceInfo(ReferenceSequenceInfo[] reference_sequences)
+    void writeReferenceSequenceInfo(bio.bam.referenceinfo.ReferenceSequenceInfo[] reference_sequences)
     {
         _reference_sequences = reference_sequences;
 
@@ -105,7 +125,7 @@ final class BamWriter {
         _stream.flushCurrentBlock();
     }
 
-    /// Write BAM read. Throws exception if read reference ID is out of range.
+    /// Writes BAM read. Throws exception if read reference ID is out of range.
     void writeRecord(R)(R read) {
         enforce(read.ref_id < _reference_sequences.length,
                 "Read reference ID is out of range");
@@ -121,12 +141,12 @@ final class BamWriter {
         }
     }
 
-    /// Flush data into stream.
+    /// Flushes current BGZF block.
     void flush() {
         _stream.flush();
     }
 
-    /// Flush buffer and close output stream. Adds BAM EOF block automatically.
+    /// Flushes buffer and closes output stream. Adds BAM EOF block automatically.
     void finish() {
         _stream.close();
     }

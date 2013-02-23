@@ -17,6 +17,53 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
+/// This module is used for iterating over columns of alignment.
+/// $(BR)
+/// The function makePileup is called on 
+/// a range of coordinate-sorted reads mapped to the same reference.
+/// It returns an input range of columns.
+/// $(BR)
+/// This returned range can then be iterated with $(D foreach).
+/// First column is located at the same position on the reference,
+/// as the first base of the first read.
+/// Each $(D popFront) operation advances current position on the
+/// reference. Currently, there's no option to skip non-covered regions.
+/// $(BR)
+/// Each column keeps set of reads that overlap corresponding position
+/// on the reference.
+/// If reads contain MD tags, and makePileup was asked
+/// to use them, reference base at the column is also available.
+/// $(BR)
+/// Each read preserves all standard read properties 
+/// but also keeps column-related information, namely:
+/// $(UL
+///     $(LI number of bases consumed from the read sequence so far)
+///     $(LI current CIGAR operation and offset in it)
+///     $(LI all CIGAR operations before and after current one))
+/// $(BR)
+/// It is clear from the above that current CIGAR operation cannot be an insertion.
+/// The following are suggested ways to check for them:
+/// $(UL
+///     $(LI $(D cigar_after.length > 0 &&
+///              cigar_operation_offset == cigar_operation.length - 1 &&
+///              cigar_after[0].type == 'I'))
+///     $(LI $(D cigar_before.length > 0 &&
+///              cigar_operation_offset == 0 &&
+///              cigar_before[$ - 1].type == 'I')))
+/// $(BR)
+/// Examples:
+/// ---------------------------------------------------------
+/// import bio.bam.reader, bio.bam.pileup, std.stdio, std.algorithm : count;
+/// void main() {
+///     auto bam = new BamReader("file.bam");       // assume single reference and MD tags
+///     auto pileup = bam.reads().makePileup(true); // use MD tags
+///     foreach (column; pileup) {
+///         auto matches = column.bases.count(column.reference_base);
+///         if (matches < column.coverage * 2 / 3)
+///             writeln(column.position);           // print positions of possible mismatches
+///     }
+/// }
+/// ---------------------------------------------------------
 module bio.bam.pileup;
 
 import bio.bam.read;
@@ -32,15 +79,15 @@ import std.array;
 import std.exception;
 
 /// Represents a read aligned to a column
-struct PileupRead(Read=EagerBamRead) {
+struct PileupRead(Read=bio.bam.read.EagerBamRead) {
 
-    Read read;
+    Read read; ///
     alias read this;
     private alias read _read;
   
     /// Current CIGAR operation. One of 'M', '=', 'X', 'D', 'N.
     /// Use $(D cigar_after)/$(D cigar_before) to determine insertions.
-    CigarOperation cigar_operation() @property const {
+    bio.bam.read.CigarOperation cigar_operation() @property const {
         return _cur_op;
     }
 
@@ -50,12 +97,12 @@ struct PileupRead(Read=EagerBamRead) {
     }
 
     /// CIGAR operations after the current operation
-    const(CigarOperation)[] cigar_after() @property const {
+    const(bio.bam.read.CigarOperation)[] cigar_after() @property const {
         return _read.cigar[_cur_op_index + 1 .. $];
     }
 
     /// CIGAR operations before the current operation
-    const(CigarOperation)[] cigar_before() @property const {
+    const(bio.bam.read.CigarOperation)[] cigar_before() @property const {
         return _read.cigar[0 .. _cur_op_index];
     }
 
@@ -83,11 +130,14 @@ struct PileupRead(Read=EagerBamRead) {
     }
 
     /// Returns number of bases consumed from the read sequence.
+    /// $(BR)
     /// More concisely,
-    ///     * if current CIGAR operation is 'M', '=', or 'X',
-    ///       index of current read base in the read sequence
-    ///     * if current CIGAR operation is 'D' or 'N',
-    ///       index of read base after the deletion
+    /// $(UL
+    ///     $(LI if current CIGAR operation is 'M', '=', or 'X',
+    ///       index of current read base in the read sequence)
+    ///     $(LI if current CIGAR operation is 'D' or 'N',
+    ///       index of read base after the deletion)
+    /// )
     /// (in both cases indices are 0-based)
     int query_offset() @property const {
         assert(_query_offset <= _read.sequence_length);
@@ -429,6 +479,7 @@ auto pileupColumns(R)(R reads, bool use_md_tag=false) {
     return columns;
 }
 
+/// Tracks current reference base
 final static class PileupRangeUsingMdTag(R) : 
     PileupRange!(R, PileupColumn) 
 {
@@ -457,6 +508,7 @@ final static class PileupRangeUsingMdTag(R) :
     // we also track current reference ID
     private int _curr_ref_id = -1;
 
+    ///
     this(R reads) {
         super(reads);
     }
@@ -517,6 +569,7 @@ final static class PileupRangeUsingMdTag(R) :
         }
     }
 
+    ///
     override void popFront() {
         if (!_chunk.empty) {
             // update current reference base
@@ -570,16 +623,18 @@ final static class PileupRangeUsingMdTag(R) :
 /// to obtain some numeric characteristics.)
 /// 
 /// Params:
-///
-///     use_md_tag -  if true, use MD tag together with CIGAR
+///     use_md_tag =  if true, use MD tag together with CIGAR
 ///                   to recover reference bases
 ///
-///     start_from -  position from which to start
+///     start_from =  position from which to start
 ///
-///     end_at     -  position before which to stop
+///     end_at     =  position before which to stop
 ///
+/// $(BR)
 /// That is, the range of positions is half-open interval 
+/// $(BR)
 /// [max(start_from, first mapped read start position), 
+/// $(BR)
 ///  min(end_at, last mapped end position among all reads))
 auto makePileup(R)(R reads, 
                    bool use_md_tag=false,
@@ -857,30 +912,28 @@ static struct PileupChunkRange(C) {
     }
 }
 
-/// However, it's not effective to do operations on pileup in a single thread.
-/// This function constructs range of consecutive pileups from a range of reads
+/// This function constructs range of non-overlapping consecutive pileups from a range of reads
 /// so that these pileups can be processed in parallel.
 /// 
 /// It's allowed to pass ranges of sorted reads with different ref. IDs,
 /// they won't get mixed in any chunk.
 /// 
 /// Params:
-///   use_md_tag -   recover reference bases from MD tag and CIGAR
+///   use_md_tag =   recover reference bases from MD tag and CIGAR
 ///
-///   block_size -   approximate amount of memory that each pileup will consume,
+///   block_size =   approximate amount of memory that each pileup will consume,
 ///                  given in bytes. (Usually consumption will be a bit higher.)
 ///
-///   start_from -   position of the first column of the first chunk
+///   start_from =   position of the first column of the first chunk
 ///
-///   end_at     -   position after the last column of the last chunk
+///   end_at     =   position after the last column of the last chunk
 ///
-/// @@WARNING@@: block size should be big enough so that every block will share
+/// $(BR)
+/// WARNING:     block size should be big enough so that every block will share
 ///              some reads only with adjacent blocks. 
-///              As an example, you should not use block size 10000 with 454 reads,
-///              since each block will contain only about ~10 alignment records.
-///              The rule of thumb is 
-///              block size = 4 * largest coverage * average read length
-///              (e.g. for 454 reads, max. coverage 500 you would use size 1_000_000)
+///              $(BR)
+///              As such, it is not recommended to reduce the $(I block_size).
+///              But there might be a need to increase it in case of very high coverage.
 auto pileupChunks(R)(R reads, bool use_md_tag=false, size_t block_size=16_384_000,
                      ulong start_from=0, ulong end_at=ulong.max) {
     auto chunks = chunksConsumingLessThan(reads, block_size);
