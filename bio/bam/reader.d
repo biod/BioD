@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2013    Artem Tarasov <lomereiter@gmail.com>
 
     BioD is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -44,11 +44,30 @@ import core.stdc.stdio;
 import std.string;
 
 /**
-  Represents BAM file
+  BAM file reader, featuring parallel decompression of BGZF blocks.
  */
 class BamReader {
 
-    this(Stream stream, TaskPool task_pool = taskPool) {
+    /**
+      Creates reader associated with file or stream.
+      (If stream constructor is used, no random access is possible.)
+      $(BR)
+      Optionally, task pool can be specified. 
+      It will be used to unpack BGZF blocks in parallel.
+
+      Examples:
+      -------------------------------------------
+      import std.parallelism, bio.bam.reader;
+      void main() {
+        auto pool = new TaskPool(4); // use 4 threads
+        scope (exit) pool.finish();  // don't forget!
+        auto bam = new BamReader("file.bam", pool);
+        ...
+      }
+      -------------------------------------------
+     */
+    this(std.stream.Stream stream, 
+         std.parallelism.TaskPool task_pool = std.parallelism.taskPool) {
         _source_stream = new EndianStream(stream, Endian.littleEndian);
         _task_pool = task_pool;
 
@@ -73,45 +92,51 @@ class BamReader {
         }
     }
 
-    /**
-      Constructor taking filename of BAM file to open,
-      and optionally, task pool to use.
-      
-      Currently, opens the file read-only since library
-      has no support for writing yet.
-     */
-    this(string filename, TaskPool task_pool = taskPool) {
+    /// ditto
+    this(string filename, 
+         std.parallelism.TaskPool task_pool = std.parallelism.taskPool) {
 
         _filename = filename;
         _source_stream = getNativeEndianSourceStream();
         this(_source_stream, task_pool);
     }
-  
-    /// True if associated BAI file was found
+ 
+    /**
+      True if BAI file was found for this BAM file.
+      This is necessary for any random-access operations.
+      $(BR)
+      Looks for files in the same directory which filename
+      is either the file name of BAM file with '.bai' appended,
+      or with the last extension replaced with '.bai'
+      (that is, for $(I file.bam) paths $(I file.bai) and 
+      $(I file.bam.bai) will be checked)
+     */
     bool has_index() @property {
         return _random_access_manager.found_index_file;
     }
 
-    /// Filename, if available
+    /** Filename, if the object was created via file name constructor,
+        $(D null) otherwise.
+     */
     string filename() @property const {
         return _filename;
     }
 
     /// If file ends with EOF block, returns virtual offset of the start of EOF block.
     /// Otherwise, returns virtual offset of the physical end of file.
-    VirtualOffset eofVirtualOffset() {
+    bio.core.bgzf.virtualoffset.VirtualOffset eofVirtualOffset() {
         return _random_access_manager.eofVirtualOffset();
     }
 
     /// Get BGZF block at a given file offset.
-    BgzfBlock getBgzfBlockAt(ulong offset) {
+    bio.core.bgzf.block.BgzfBlock getBgzfBlockAt(ulong offset) {
         return _random_access_manager.getBgzfBlockAt(offset);
     }
 
-    /*
-       Get SAM header of file.
+    /**
+      Returns: SAM header of the BAM file
      */
-    SamHeader header() @property {
+    bio.sam.header.SamHeader header() @property {
         if (_header is null) {
             synchronized {
                 if (_header is null) {
@@ -126,30 +151,61 @@ class BamReader {
     /**
         Returns: information about reference sequences
      */
-    ReferenceSequenceInfo[] reference_sequences() @property {
+    bio.bam.referenceinfo.ReferenceSequenceInfo[] reference_sequences() @property {
         return _reference_sequences;
     }
 
     /**
-        Returns: range of all reads in the file.
+        Range of all alignment records in the file.
+        $(BR)
+        Element type of the returned range depends on the policy. 
+        Default one is $(DPREF2 bam, readrange, withoutOffsets),
+        in this case range element type is $(DPREF2 bam, read, BamRead).
+        $(BR)
+        The other option is $(DPREF2 bam, readrange, withOffsets),
+        which allows to track read virtual offsets in the file.
+        In this case range element type is $(DPREF2 bam, readrange, BamReadBlock).
 
-        However, using several ranges is not recommended since it can hurt
-        disk access performance.
+        Examples:
+        ----------------------------------
+        import bio.bam.readrange;
+        ...
+        auto bam = new BamReader("file.bam");
+        auto reads = bam.reads!withOffsets();
+        writeln(reads.front.start_virtual_offset);
+        ----------------------------------
      */
-    auto reads(alias IteratePolicy=withoutOffsets)() @property {
+    auto reads(alias IteratePolicy=bio.bam.readrange.withoutOffsets)() @property {
         auto _decompressed_stream = getDecompressedBamReadStream();
         return bamReadRange!IteratePolicy(_decompressed_stream);
     }
 
     /**
-        Returns: range of all reads in the file, calling $(D progressBarFunc)
+        Returns: range of all reads in the file, calling $(I progressBarFunc)
                  for each read. 
-
-        $(D progressBarFunc) will be called
+        $(BR)
+        $(I progressBarFunc) will be called
         each time next alignment is read, with the argument being a number from [0.0, 1.0],
         which is estimated progress percentage.
+        $(BR)
+        Notice that $(I progressBarFunc) takes $(D lazy) argument, 
+        so that the number of relatively expensive float division operations
+        can be controlled by user.
+
+        Examples:
+        ------------------------------------
+        import std.functional, std.stdio, bio.bam.reader;
+        void progress(lazy float p) {
+            static uint n;
+            if (++n % 63 == 0) writeln(p); // prints progress after every 63 records
+        }
+        ...
+        foreach (read; bam.readsWithProgress(toDelegate(&progress))) {
+            ...
+        }
+        ------------------------------------
     */
-    auto readsWithProgress(alias IteratePolicy=withoutOffsets)
+    auto readsWithProgress(alias IteratePolicy=bio.bam.readrange.withoutOffsets)
         (void delegate(lazy float p) progressBarFunc) 
     {
         auto _decompressed_stream = getDecompressedBamReadStream();
@@ -200,22 +256,24 @@ class BamReader {
     }
 
     /**
-      Get the read at a given virtual offset.
+      Returns: the read which starts at a given virtual offset.
      */
-    BamRead getReadAt(VirtualOffset offset) {
+    bio.bam.read.BamRead getReadAt(bio.core.bgzf.virtualoffset.VirtualOffset offset) {
         enforce(_random_access_manager !is null);
         return _random_access_manager.getReadAt(offset);
     }
 
     /**
-      Get all reads between two virtual offsets.
+      Returns: all reads located between two virtual offsets in the BAM file.
 
+      $(BR)
       First offset must point to the start of an alignment record,
       and be strictly less than the second one.
-
-      For decompression, uses task pool specified at BamReader construction.
+      $(BR)
+      For decompression, the task pool specified at the construction is used.
      */ 
-    auto getReadsBetween(VirtualOffset from, VirtualOffset to) {
+    auto getReadsBetween(bio.core.bgzf.virtualoffset.VirtualOffset from, 
+                         bio.core.bgzf.virtualoffset.VirtualOffset to) {
         enforce(from < to, "First offset must be strictly less than second");
         enforce(_stream_is_seekable, "Stream is not seekable");
         
@@ -223,9 +281,9 @@ class BamReader {
     }
 
     /**
-      Get BAI chunks containing all reads overlapping specified region.
+      Get BAI chunks containing all reads that overlap specified region.
      */
-    Chunk[] getChunks(int ref_id, int beg, int end) {
+    bio.bam.bai.chunk.Chunk[] getChunks(int ref_id, int beg, int end) {
         enforce(_random_access_manager !is null);
         enforce(beg < end);
 
@@ -233,9 +291,9 @@ class BamReader {
     }
 
     /**
-      Returns reference sequence with id $(D ref_id).
+      Returns reference sequence with id $(I ref_id).
      */
-    ReferenceSequence reference(int ref_id) {
+    bio.bam.reference.ReferenceSequence reference(int ref_id) {
         enforce(ref_id < _reference_sequences.length, "Invalid reference index");
         return ReferenceSequence(_random_access_manager, 
                                  ref_id,
@@ -243,23 +301,34 @@ class BamReader {
     }
 
     /**
-      Returns reference sequence named $(D ref_name).
+      Returns reference sequence named $(I ref_name).
+
+      Examples:
+      ---------------------------
+      import std.stdio, bio.bam.reader;
+      ...
+      auto bam = new BamReader("file.bam");
+      writeln(bam["chr2"].length);
+      ---------------------------
      */
-    ReferenceSequence opIndex(string ref_name) {
+    bio.bam.reference.ReferenceSequence opIndex(string ref_name) {
         enforce(hasReference(ref_name), "Reference with name " ~ ref_name ~ " does not exist");
         auto ref_id = _reference_sequence_dict[ref_name];
         return reference(ref_id);
     }
 
     /**
-      Check if reference named $(D ref_name) is presented in BAM header.
+      Check if reference named $(I ref_name) is presented in BAM header.
      */
     bool hasReference(string ref_name) {
         return null != (ref_name in _reference_sequence_dict);
     }
 
     /**
-      Set buffer size for I/O operations.
+      Set buffer size for I/O operations. 
+      $(BR)
+      This can help in multithreaded applications when several files are read 
+      simultaneously (e.g. merging).
      */
     void setBufferSize(size_t buffer_size) {
         this.buffer_size = buffer_size;

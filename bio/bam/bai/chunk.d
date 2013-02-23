@@ -21,11 +21,12 @@ module bio.bam.bai.chunk;
 
 import bio.core.bgzf.virtualoffset;
 
+/// Chunk of BAM file is specified by pair of virtual offsets
 struct Chunk {
     VirtualOffset beg; /// virtual file offset of the start of the chunk
     VirtualOffset end; /// virtual file offset of the end of the chunk
 
-    /// Compare beginnings
+    /// First compares beginnings, then ends
     int opCmp(Chunk other) const nothrow {
         if (beg < other.beg) return -1;
         if (beg > other.beg) return 1;
