@@ -17,6 +17,28 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
+/// Writing a script/tool for processing BAM data often starts this way:
+/// 
+/// ------------------------
+/// import bio.bam.reader;
+///
+/// void main(string[] args) {
+///     auto bam = new BamReader(args[1]); // open BAM file
+///     foreach (read; bam.reads) {        // iterate through its reads
+///         if (read.is_unmapped)
+///             continue;                  // maybe skip unmapped ones
+///         ...
+///     }
+/// }
+/// ------------------------
+/// 
+/// Or, if a specific interval on the reference sequence is to be explored:
+/// ------------------------
+/// import bio.bam.pileup;
+/// ...
+/// auto reads = bam["chr7"][50_000 .. 60_000]; // BAI index is required
+/// foreach (column; makePileup(reads)) { ... } // see $(PMODULE pileup) docs
+/// ------------------------
 module bio.bam.reader;
 
 public import bio.sam.header;
