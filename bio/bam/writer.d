@@ -39,7 +39,7 @@ import std.system;
     $(BR)
     Usage is very simple, see example below.
 
-    Examples:
+    Example:
     --------------------------------------
     import bio.bam.writer, bio.bam.reader;
     ...

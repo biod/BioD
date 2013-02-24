@@ -17,6 +17,30 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
+/// $(P $(D BamRead) type provides convenient interface for working with SAM/BAM records.)
+///
+/// $(P All flags, tags, and fields can be accessed and modified.)
+///
+/// Examples:
+/// ---------------------------
+/// import std.conv;
+/// ...
+/// assert(!read.is_unmapped);              // check flag
+/// assert(read.ref_id != -1);              // access field
+/// 
+/// int edit_distance = to!int(read["NM"]); // access tag
+/// read["NM"] = 0;                         // modify tag
+/// read["NM"] = null;                      // remove tag
+/// read["NM"] = null;                      // no-op
+///
+/// foreach (tag, value; read)              // iterate over tags
+///     writeln(tag, " ", value);           // and print their keys and values
+///
+/// read.sequence = "AGCAGACTACGTGTGCATAC"; // sets base qualities to 255
+/// assert(read.base_qualities[0] == 255);
+/// read.is_unmapped = true;                // set flag
+/// read.ref_id = -1;                       // set field
+/// ---------------------------
 module bio.bam.read;
 
 import bio.core.base;
@@ -79,12 +103,15 @@ struct CigarOperation {
         }
     }
 
+    /// Length must be strictly less than 2^28.
+    /// $(BR)
+    /// Operation type must be one of M, I, D, N, S, H, P, =, X.
     this(uint length, char operation_type) {
         enforce(length < (1<<28), "Too big length of CIGAR operation");
         raw = (length << 4) | char2op(operation_type);
     }
 
-    /// operation length
+    /// Operation length
     uint length() @property const nothrow {
         return raw >> 4;
     }
@@ -115,13 +142,14 @@ struct CigarOperation {
         return ((CIGAR_TYPE >> ((raw & 0xF) * 2)) & 3) == 3;
     }
 
+    ///
     string toString() const {
         return to!string(length) ~ type;
     }
 }
 
 /** 
-  Represents single read
+  BAM record representation.
 */
 struct BamRead {
 
@@ -138,7 +166,7 @@ struct BamRead {
     @property   void position(int n)                  { _dup(); _pos = n; _recalculate_bin(); }
 
     /// Indexing bin which this read belongs to. Recalculated when position is changed.
-    @property    Bin bin()              const nothrow { return Bin(_bin); }
+    @property    bio.bam.bai.bin.Bin bin()              const nothrow { return Bin(_bin); }
 
     /// Mapping quality. Equals to 255 if not available, otherwise
     /// equals to rounded -10 * log10(P {mapping position is wrong}).
@@ -239,8 +267,7 @@ struct BamRead {
         is_reverse_strand = c == '-';
     }
 
-
-    /// Read name
+    /// Read name, length must be in 1..255 interval.
     @property string name() const nothrow {
         // notice -1: the string is zero-terminated, so we should strip that '\0'
         return cast(string)(_chunk[_read_name_offset .. _read_name_offset + _l_read_name - 1]);
@@ -275,7 +302,9 @@ struct BamRead {
         _recalculate_bin();
     }
 
-    /// The number of reference bases covered
+    /// The number of reference bases covered by this read.
+    /// $(BR)
+    /// Returns 0 if the read is unmapped.
     int basesCovered() const {
 
         if (this.is_unmapped) {
@@ -285,7 +314,7 @@ struct BamRead {
         return reduce!"a + b.length"(0, filter!"a.is_reference_consuming"(cigar));
     }
 
-    /// Human-readable representation of CIGAR string
+    /// Human-readable representation of CIGAR string (same as in SAM format)
     string cigarString() const {
         char[] str;
 
@@ -303,6 +332,7 @@ struct BamRead {
         return _chunk[_seq_offset .. _seq_offset + (_l_seq + 1) / 2];
     }
 
+    /// Read-only random-access range for access to sequence data.
     static struct SequenceResult {
 
         private size_t _index;
@@ -316,15 +346,18 @@ struct BamRead {
             _use_first_4_bits = use_first_4_bits;
         }
 
+        ///
         @property bool empty() const {
             return _index >= _len;
         }
 
-        @property Base front() const {
+        ///
+        @property bio.core.base.Base front() const {
             return opIndex(0);
         }
 
-        @property Base back() const {
+        ///
+        @property bio.core.base.Base back() const {
             return opIndex(_len - 1);
         }
 
@@ -366,19 +399,22 @@ struct BamRead {
             return res;
         }
 
+        ///
         @property SequenceResult save() const {
             return SequenceResult(_data[mixin(_getActualPosition("_index")) .. $], 
                                   _len - _index, 
                                   _useFirst4Bits(_index));
         }
 
+        ///
         SequenceResult opSlice(size_t i, size_t j) const {
             return SequenceResult(_data[mixin(_getActualPosition("_index + i")) .. $], 
                                   j - i, 
                                   _useFirst4Bits(_index + i));
         }
 
-        @property Base opIndex(size_t i) const {
+        ///
+        @property bio.core.base.Base opIndex(size_t i) const {
 
             auto pos = _index + i;
 
@@ -400,45 +436,55 @@ struct BamRead {
             assert(false);
         }
 
+        ///
         void popFront() {
             ++_index;
         }
 
+        ///
         void popBack() {
             --_len;
         }
 
+        ///
         @property size_t length() const {
             return _len - _index;
         }
     }
 
     /// Random-access range of characters
-    @property auto sequence() const {
+    @property SequenceResult sequence() const {
         return SequenceResult(raw_sequence_data, sequence_length);
     }
 
     static assert(isRandomAccessRange!(ReturnType!sequence));
 
-    /// Set sequence. Must be of the same length as current sequence.
+    /// Sets query sequence. Sets all base qualities to 255 (i.e. unknown).
     @property void sequence(string seq) 
     {
-        enforce(seq.length == _l_seq, "Sequence must have the same length as current");
+        enforce(seq.length >= 1 && seq.length <= 255, "Sequence length must be in range 1-255");
 
         _dup();
 
-        auto _raw_length = (seq.length + 1) / 2;
+        auto raw_length = (seq.length + 1) / 2;
         // set sequence
-        ubyte[] _seq = _chunk[_seq_offset .. _seq_offset + _raw_length];
-        for (size_t i = 0; i < _raw_length; ++i) {
-            _seq[i] = cast(ubyte)(Base(seq[2 * i]).internal_code << 4);
+        auto replacement = uninitializedArray!(ubyte[])(raw_length + seq.length);
+        replacement[raw_length .. $] = 0xFF;
+        for (size_t i = 0; i < raw_length; ++i) {
+            replacement[i] = cast(ubyte)(Base(seq[2 * i]).internal_code << 4);
 
             if (seq.length > 2 * i + 1)
-                _seq[i] |= cast(ubyte)(Base(seq[2 * i + 1]).internal_code);
+                replacement[i] |= cast(ubyte)(Base(seq[2 * i + 1]).internal_code);
         }
+
+        bio.bam.utils.array.replaceSlice(_chunk, 
+                     _chunk[_seq_offset .. _tags_offset], 
+                     replacement);
+
+        _l_seq = cast(int)seq.length;
     }
 
-    /// Quality data
+    /// Quality data (phred-based scores)
     @property const(ubyte)[] base_qualities() const nothrow {
         return _chunk[_qual_offset .. _qual_offset + _l_seq * char.sizeof];
     }
@@ -450,7 +496,7 @@ struct BamRead {
         _chunk[_qual_offset .. _qual_offset + _l_seq] = quality;
     }
 
-    /**
+    /*
       Constructs the struct from memory chunk
       */
     this(ubyte[] chunk) {
@@ -554,11 +600,11 @@ struct BamRead {
         this.sequence = sequence;
     }
 
-    /// Low-level constructor for setting tag data on construction.
-    /// This allows to use less reallocations when creating an alignment
-    /// from scratch, by reusing memory for collecting tags.
-    /// Typically, you would use this constructor in conjunction with
-    /// utils.tagstoragebuilder module.
+    // Low-level constructor for setting tag data on construction.
+    // This allows to use less reallocations when creating an alignment
+    // from scratch, by reusing memory for collecting tags.
+    // Typically, you would use this constructor in conjunction with
+    // bio.bam.utils.tagstoragebuilder module.
     this(string read_name, 
          string sequence, 
          in CigarOperation[] cigar, 
@@ -570,7 +616,7 @@ struct BamRead {
         _chunk[_tags_offset .. $] = tag_data;
     }
 
-    /// Deep copy of an alignment.
+    /// Deep copy of the record.
     BamRead dup() @property const {
         BamRead result;
         result._chunk = this._chunk.dup;
@@ -579,7 +625,7 @@ struct BamRead {
     }
 
     /// Compare two alignments, including tags 
-    /// (they must be in the same order for equality).
+    /// (the tags must follow in the same order for equality).
     bool opEquals(const ref BamRead other) const pure nothrow {
         // in D, array comparison compares elements, not pointers.
         return this._chunk == other._chunk;
@@ -590,7 +636,7 @@ struct BamRead {
         return this._chunk == other._chunk;
     }
 
-    /// Size of alignment when output to stream in BAM format.
+    /// Size of the alignment record when output to stream in BAM format.
     /// Includes block_size as well (see SAM/BAM specification)
     @property size_t size_in_bytes() const {
         return int.sizeof + _chunk.length;
@@ -610,26 +656,23 @@ struct BamRead {
         writeTags(writer);
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
     /// Packs message in the following format:
+    /// $(BR)
     /// MsgPack array with elements
-    ///     0) name - string
-    ///     1) flag - ushort
-    ///     2) reference sequence id - int
-    ///     3) leftmost mapping position (1-based) - int
-    ///     4) mapping quality - ubyte
-    ///     5,6) CIGAR:
-    ///             array of lengths (int[])
-    ///             array of operations (ubyte[])
-    ///     7) mate reference sequence id - int
-    ///     8) mate position (1-based) - int
-    ///     9) template length - int
-    ///    10) segment sequence - string
-    ///    11) phred-base quality - array of ubyte
-    ///    12) tags - map: string -> value
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    ///   $(OL 
+    ///     $(LI name - string)
+    ///     $(LI flag - ushort)
+    ///     $(LI reference sequence id - int)
+    ///     $(LI leftmost mapping position (1-based) - int)
+    ///     $(LI mapping quality - ubyte)
+    ///     $(LI array of CIGAR operation lengths - int[])
+    ///     $(LI array of CIGAR operation types - ubyte[])
+    ///     $(LI mate reference sequence id - int)
+    ///     $(LI mate position (1-based) - int)
+    ///     $(LI template length - int)
+    ///     $(LI segment sequence - string)
+    ///     $(LI phred-base quality - ubyte[])
+    ///     $(LI tags - map: string -> value))
     void toMsgpack(Packer)(ref Packer packer) const {
         packer.beginArray(13);
         packer.pack(cast(ubyte[])name);
@@ -652,17 +695,16 @@ struct BamRead {
         }
     }
    
-    package ubyte[] _chunk; /// holds all the data, 
-                    /// the access is organized via properties
-                    /// (see below)
+    package ubyte[] _chunk; // holds all the data, 
+                    // the access is organized via properties
+                    // (see below)
 
 private:
 
-    bool _is_slice; /// indicates whether _chunk is a slice or an allocated array.
+    bool _is_slice; // indicates whether _chunk is a slice or an allocated array.
 
-    /// Official field names from SAM/BAM specification.
-    /// For internal use only
-
+    // Official field names from SAM/BAM specification.
+    // For internal use only
     @property  int _refID()      const nothrow { 
         return *(cast( int*)(_chunk.ptr + int.sizeof * 0)); 
     }
@@ -695,7 +737,7 @@ private:
         return *(cast( int*)(_chunk.ptr + int.sizeof * 7)); 
     }
 
-    /// Setters, also only for internal use
+    // Setters, also only for internal use
     @property void _refID(int n)       { *(cast( int*)(_chunk.ptr + int.sizeof * 0)) = n; }
     @property void _pos(int n)         { *(cast( int*)(_chunk.ptr + int.sizeof * 1)) = n; }
     @property void _bin_mq_nl(uint n)  { *(cast(uint*)(_chunk.ptr + int.sizeof * 2)) = n; }
@@ -705,15 +747,15 @@ private:
     @property void _next_pos(int n)    { *(cast( int*)(_chunk.ptr + int.sizeof * 6)) = n; }
     @property void _tlen(int n)        { *(cast( int*)(_chunk.ptr + int.sizeof * 7)) = n; }
 
-    /// Additional useful properties, also from SAM/BAM specification
-    ///
-    ///             The layout of bin_mq_nl and flag_nc is as follows
-    ///                     (upper bits -------> lower bits):
-    /// 
-    /// bin_mq_nl [ { bin (16b) }  { mapping quality (8b) } { read name length (8b) } ]
-    ///
-    /// flag_nc   [ { flag (16b) } { n_cigar_op (16b) } ]
-    ///
+    // Additional useful properties, also from SAM/BAM specification
+    //
+    //             The layout of bin_mq_nl and flag_nc is as follows
+    //                     (upper bits -------> lower bits):
+    // 
+    // bin_mq_nl [ { bin (16b) }  { mapping quality (8b) } { read name length (8b) } ]
+    //
+    // flag_nc   [ { flag (16b) } { n_cigar_op (16b) } ]
+    //
     @property ushort _bin()         const nothrow { 
         return _bin_mq_nl >> 16; 
     }
@@ -730,16 +772,16 @@ private:
         return _flag_nc & 0xFFFF; 
     }
   
-    /// Setters for those properties
+    // Setters for those properties
     @property void _bin(ushort n)         { _bin_mq_nl = (_bin_mq_nl &  0xFFFF) | (n << 16); } 
     @property void _mapq(ubyte n)         { _bin_mq_nl = (_bin_mq_nl & ~0xFF00) | (n << 8); }
     @property void _l_read_name(ubyte n)  { _bin_mq_nl = (_bin_mq_nl & ~0xFF  ) | n; }
     @property void _flag(ushort n)        { _flag_nc   = (_flag_nc   &  0xFFFF) | (n << 16); }
     @property void _n_cigar_op(ushort n)  { _flag_nc   = (_flag_nc   & ~0xFFFF) | n; }
 
-    /// Offsets of various arrays in bytes.
-    /// Currently, are computed each time, so if speed will be an issue,
-    /// they can be made fields instead of properties.
+    // Offsets of various arrays in bytes.
+    // Currently, are computed each time, so if speed will be an issue,
+    // they can be made fields instead of properties.
     @property size_t _read_name_offset() const nothrow { 
         return 8 * int.sizeof; 
     }
@@ -753,14 +795,15 @@ private:
     }
 
     @property size_t _qual_offset()      const nothrow { 
-        return _seq_offset + (_l_seq + 1) / 2 * ubyte.sizeof; 
-    }
-    /// Offset of auxiliary data
-    @property size_t _tags_offset()      const nothrow { 
-        return _qual_offset + _l_seq * char.sizeof; 
+        return _seq_offset + (_l_seq + 1) / 2;
     }
 
-    /// Sets n-th flag bit to boolean value b.
+    // Offset of auxiliary data
+    @property size_t _tags_offset()      const nothrow { 
+        return _qual_offset + _l_seq;
+    }
+
+    // Sets n-th flag bit to boolean value b.
     void _setFlag(int n, bool b) {
         assert(n < 16);
         // http://graphics.stanford.edu/~seander/bithacks.html#ConditionalSetOrClearBitsWithoutBranching
@@ -768,12 +811,12 @@ private:
         _flag = (_flag & ~mask) | ((-cast(int)b) & mask);
     }
 
-    /// If _chunk is still a slice, not an array, duplicate it.
-    /// Used when some part of alignment record is modified by user.
-    ///
-    /// Basically, it's sort of copy-on-write: a lot of read-only alignments
-    /// may point to the same location, but every modified one allocates its
-    /// own chunk of memory.
+    // If _chunk is still a slice, not an array, duplicate it.
+    // Used when some part of alignment record is modified by user.
+    //
+    // Basically, it's sort of copy-on-write: a lot of read-only alignments
+    // may point to the same location, but every modified one allocates its
+    // own chunk of memory.
     void _dup() {
         if (_is_slice) {
             _is_slice = false;
@@ -781,41 +824,50 @@ private:
         }
     }
 
-    /// Calculates bin number.
+    // Calculates bin number.
     void _recalculate_bin() {
         _bin = reg2bin(position, position + basesCovered());
     }
 }
 
 
-///////////////////////////////////////////////////////////////////////////////
-///
 /// Lazy tag storage. 
 ///
-///   Provides hash-like access (currently read-only) and opportunity to iterate
+///   Provides hash-like access and opportunity to iterate
 ///   storage like an associative array.
-///
-///////////////////////////////////////////////////////////////////////////////
 mixin template TagStorage() {
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// Provides access to chunk of memory which contains tags
-    /// This way, every time _tags_offset gets updated
-    /// (due to update of cigar string of read name and memory move),
-    /// the change is reflected automatically in tag storage.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    // Provides access to chunk of memory which contains tags.
+    // This way, every time _tags_offset gets updated
+    // (due to update of cigar string/read name/sequence and memory move),
+    // the change is reflected automatically in tag storage.
     private @property const(ubyte)[] _tags_chunk() const  {
         return _chunk[_tags_offset .. $];
     }
 
-    ////////////////////////////////////////////////////////////////////////////
+    /// Hash-like access to tags. Time complexity is $(BIGOH number of tags).
+    /// $(BR)
+    /// If tag with such $(I key) is not found, returned value 'is nothing'.
+    /// $(BR)
+    /// If key length is different from 2, exception is thrown.
+    /// $(BR)
+    /// Special case when $(I value) represents nothing is used for removing tag
+    /// (assuming that no more than one with this key is presented in the record).
     ///
-    ///  Hash-like access to tags. Time complexity is O(#tags).
+    /// Examples:
+    /// ----------------------------
+    /// auto v = read["NM"];
+    /// assert(v.is_integer);
     ///
-    ////////////////////////////////////////////////////////////////////////////
-    Value opIndex(string key) const {
+    /// auto v = read["MN"];
+    /// assert(v.is_nothing); // no such tag
+    ///
+    /// read["NM"] = 3; // converted to bio.bam.tagvalue.Value implicitly
+    ///
+    /// read["NM"] = null; // removes tag
+    /// assert(read["NM"].is_nothing);
+    /// ----------------------------
+    bio.bam.tagvalue.Value opIndex(string key) const {
         enforce(key.length == 2, "Key length must be 2");
         auto __tags_chunk = _tags_chunk; // _tags_chunk is evaluated lazily
         if (__tags_chunk.length < 4)
@@ -847,7 +899,12 @@ mixin template TagStorage() {
             size_t offset = 0;
             while (offset + 1 < __tags_chunk.length) {
                 if (__tags_chunk[offset .. offset + 2] == key) {
-                    replaceValueAt(offset + 2, value);
+                    if (value.is_nothing) {
+                        // special case - remove tag
+                        removeValueAt(offset);
+                    } else {
+                        replaceValueAt(offset + 2, value);
+                    }
                     return;
                 } else {
                     offset += 2;
@@ -855,13 +912,14 @@ mixin template TagStorage() {
                 }
             }
 
-            appendTag(key, value);
+            if (!value.is_nothing)
+                appendTag(key, value);
         } else {
             opIndexAssign(Value(value), key);
         }
     }
 
-    /// Append new tag to the end, skipping check if it already exists. O(1)
+    /// Append new tag to the end, skipping check if it already exists. $(BIGOH 1)
     void appendTag(string key, Value value) {
         auto oldlen = _chunk.length;
         _chunk.length = _chunk.length + sizeInBytes(value) + 2 * char.sizeof;
@@ -874,7 +932,7 @@ mixin template TagStorage() {
         _chunk.length = _tags_offset;
     }
 
-    /// Number of tags
+    /// Number of tags. $(BIGOH number of tags)
     size_t tagCount() {
         size_t result = 0;
         size_t offset = 0;
@@ -887,7 +945,7 @@ mixin template TagStorage() {
         return result;
     }
 
-    /// replace existing tag
+    // replace existing tag
     private void replaceValueAt(size_t offset, Value value) {
         // offset points to the beginning of the value
         auto begin = offset;
@@ -900,9 +958,18 @@ mixin template TagStorage() {
         emplaceValue(_chunk.ptr + _tags_offset + begin, value);
     }
 
-    /////////////////////////////////////////////////////////////////////////////
+    // remove existing tag
+    private void removeValueAt(size_t begin) {
+        // offset points to the beginning of the value
+        auto offset = begin + 2;
+        auto __tags_chunk = _tags_chunk;
+        skipValue(offset, __tags_chunk);
+        auto end = offset;
+        // this does the job (see prepareSlice code)
+        prepareSlice(_chunk, __tags_chunk[begin .. end], 0);
+    }
+
     ///  Provides opportunity to iterate over tags.
-    /////////////////////////////////////////////////////////////////////////////
     int opApply(scope int delegate(const ref string k, const ref Value v) dg) const {
         size_t offset = 0;
         auto __tags_chunk = _tags_chunk;
@@ -918,9 +985,7 @@ mixin template TagStorage() {
         return 0;
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///  Returns the number of tags. Time complexity is O(#tags)
-    ////////////////////////////////////////////////////////////////////////////
+    /// Returns the number of tags. Time complexity is $(BIGOH number of tags)
     size_t tagCount() const {
         size_t res = 0;
         size_t offset = 0;
@@ -943,10 +1008,8 @@ mixin template TagStorage() {
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///  Reads value which starts from (_tags_chunk.ptr + offset) address,
-    ///  and updates offset to the end of value. O(1)
-    ////////////////////////////////////////////////////////////////////////////
+    // Reads value which starts from (_tags_chunk.ptr + offset) address,
+    // and updates offset to the end of value. O(1)
     private Value readValue(ref size_t offset, const(ubyte)[] tags_chunk) const {
 
         string readValueArrayTypeHelper() {
@@ -998,9 +1061,7 @@ mixin template TagStorage() {
         }
     }
 
-    /**
-      Increases offset so that it points to the next value. O(1).
-    */
+    // Increases offset so that it points to the next value. O(1).
     private void skipValue(ref size_t offset, const(ubyte)[] tags_chunk) const {
         char type = cast(char)tags_chunk[offset++];
         if (type == 'Z' || type == 'H') {
@@ -1014,7 +1075,7 @@ mixin template TagStorage() {
         }
     }
 
-    /**
+    /*
       Intended to be used in constructor for initial endianness fixing
       in case the library is used on big-endian system.
 
@@ -1066,6 +1127,7 @@ unittest {
     import std.stdio;
     import std.math;
 
+    writeln("Testing BamRead behaviour...");
     auto read = BamRead("readname", 
                         "AGCTGACTACGTAATAGCCCTA", 
                         [CigarOperation(22, 'M')]);
@@ -1083,32 +1145,46 @@ unittest {
                            13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
     assert(reduce!"a+b"(0, read.base_qualities) == 253);
 
-    read.cigar = [CigarOperation(20, 'M'), CigarOperation(2, 'X')];
-    assert(read.cigarString() == "20M2X");
-
-    read.sequence = "AGCTGGCTACGTAATAGCCCTA";
-    assert(equal(read.sequence(), "AGCTGGCTACGTAATAGCCCTA"));
-    assert(retro(read.sequence)[3] == 'C');
-    assert(retro(read.sequence)[1] == 'T');
-    assert(read.sequence[4] == 'G');
-    assert(read.sequence[0] == 'A');
-    assert(equal(read.sequence[0..8], "AGCTGGCT"));
-    assert(equal(read.sequence[3..5], "TG"));
-    assert(equal(read.sequence[3..9][1..4], "GGC"));
-
     read["RG"] = 15;
     assert(read["RG"] == 15);
 
     read["X1"] = [1, 2, 3, 4, 5];
     assert(read["X1"] == [1, 2, 3, 4, 5]);
 
+    read.cigar = [CigarOperation(20, 'M'), CigarOperation(2, 'X')];
+    assert(read.cigarString() == "20M2X");
+
     read["RG"] = cast(float)5.6;
     assert(approxEqual(to!float(read["RG"]), 5.6));
+
+    read.sequence = "AGCTGGCTACGTAATAGCCCT";
+    assert(read.sequence_length == 21);
+    assert(read.base_qualities.length == 21);
+    assert(read.base_qualities[20] == 255);
+    assert(equal(read.sequence(), "AGCTGGCTACGTAATAGCCCT"));
+    assert(retro(read.sequence)[2] == 'C');
+    assert(retro(read.sequence)[0] == 'T');
+    assert(read.sequence[4] == 'G');
+    assert(read.sequence[0] == 'A');
+    assert(equal(read.sequence[0..8], "AGCTGGCT"));
+    assert(equal(read.sequence[3..5], "TG"));
+    assert(equal(read.sequence[3..9][1..4], "GGC"));
 
     read["X1"] = 42;
     assert(read["X1"] == 42);
 
     assert(read.tagCount() == 2);
+
+    read["X1"] = null;
+    assert(read["X1"].is_nothing);
+    assert(read.tagCount() == 1);
+    read.sequence = "GTAAGCTGGCACTAGCAGCCT";
+    read.cigar = [CigarOperation(read.sequence_length, 'M')];
+    read["RG"] = null;
+    read["RG"] = "readgroup1";
+    assert(read.tagCount() == 1);
+    read["RG"] = null;
+    assert(read.tagCount() == 0);
 
     // Test tagstoragebuilder
 
@@ -1144,14 +1220,15 @@ unittest {
     assert(read.tagCount() == 0);
 }
 
-/// BamRead wrapper which precomputes $(D end_position) = $(D position) + $(D basesCovered()).
+/// $(P BamRead wrapper which precomputes $(D end_position) = $(D position) + $(D basesCovered()).)
 ///
-/// Computation of basesCovered() takes quite a few cycles. Therefore in places where this
-/// property is frequently accessed, it makes sense to precompute it for later use.
+/// $(P Computation of basesCovered() takes quite a few cycles. Therefore in places where this
+/// property is frequently accessed, it makes sense to precompute it for later use.)
 ///
-/// The idea is that this should be a drop-in replacement for BamRead in algorithms,
-/// as the struct uses 'alias this' construction for the wrapped read.
+/// $(P The idea is that this should be a drop-in replacement for BamRead in algorithms,
+/// as the struct uses 'alias this' construction for the wrapped read.)
 struct EagerBamRead {
+    /// 
     this(BamRead read) {
         this.read = read;
         this.end_position = read.position + read.basesCovered();
@@ -1165,6 +1242,7 @@ struct EagerBamRead {
     /// End position on the reference, computed as position + basesCovered().
     int end_position;
 
+    ///
     EagerBamRead dup() @property const {
         return EagerBamRead(read.dup);
     }
@@ -1193,38 +1271,38 @@ template isBamRead(T)
         });
 }
 
-/// Comparison function for 'queryname' sorting order
-/// (return whether first read is 'less' than second)
+/// $(P Comparison function for 'queryname' sorting order
+/// (return whether first read is 'less' than second))
 ///
-/// This function can be called on:
-///     * two reads
-///     * read and string in any order
+/// $(P This function can be called on:
+///   $(UL 
+///     $(LI two reads)
+///     $(LI read and string in any order)))
 bool compareReadNames(R1, R2)(const auto ref R1 a1, const auto ref R2 a2) 
     if (isBamRead!R1 && isBamRead!R2)
 {
     return a1.name < a2.name;
 }
 
-/// ditto
 bool compareReadNames(R1, R2)(const auto ref R1 a1, const auto ref R2 a2) 
     if (isBamRead!R1 && isSomeString!R2)
 {
     return a1.name < a2;
 }
 
-/// ditto
 bool compareReadNames(R1, R2)(const auto ref R1 a1, const auto ref R2 a2) 
     if (isSomeString!R1 && isBamRead!R2)
 {
     return a1 < a2.name;
 }
 
-/// Comparison function for 'coordinate' sorting order
-/// (returns whether first read is 'less' than second)
+/// $(P Comparison function for 'coordinate' sorting order
+/// (returns whether first read is 'less' than second))
 ///
-/// This function can be called on:
-///     * two reads (in this case, reference IDs are also taken into account)
-///     * read and integer in any order
+/// $(P This function can be called on:
+///   $(UL 
+///     $(LI two reads (in this case, reference IDs are also taken into account))
+///     $(LI read and integer in any order)))
 bool compareCoordinates(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
     if (isBamRead!R1 && isBamRead!R2)
 {
@@ -1236,14 +1314,12 @@ bool compareCoordinates(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
     return false;
 }
 
-/// ditto
 bool compareCoordinates(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
     if (isBamRead!R1 && isIntegral!R2)
 {
     return a1.position < a2;
 }
 
-/// ditto
 bool compareCoordinates(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
     if (isIntegral!R1 && isBamRead!R2)
 {

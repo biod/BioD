@@ -389,7 +389,7 @@ struct Value {
         }
     }
 
-    /// Holds $(D null). Represents non-existing tag. Such values can't be stored in tags.
+    /// Holds $(D null). Represents non-existing tag. Such values are used to remove tags.
     bool is_nothing() @property const { return _tag == GetTypeId!(typeof(null)); }
 
     /// char

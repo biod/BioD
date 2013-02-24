@@ -49,7 +49,7 @@
 ///              cigar_operation_offset == 0 &&
 ///              cigar_before[$ - 1].type == 'I'))</ul>
 /// $(BR)
-/// Examples:
+/// Example:
 /// ---------------------------------------------------------
 /// import bio.bam.reader, bio.bam.pileup, std.stdio, std.algorithm : count;
 /// void main() {

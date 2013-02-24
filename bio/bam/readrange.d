@@ -28,19 +28,20 @@ import std.stream;
 import std.algorithm;
 import std.system;
 
-/// Tuple of virtual offset of the read, and the read itself.
+/// Read + its start/end virtual offsets
 struct BamReadBlock {
-    VirtualOffset start_virtual_offset;
-    VirtualOffset end_virtual_offset;
-    BamRead read;
-    alias read this;
+    VirtualOffset start_virtual_offset; ///
+    VirtualOffset end_virtual_offset; ///
+    BamRead read; ///
+    alias read this; ///
 
+    ///
     BamReadBlock dup() @property const {
         return BamReadBlock(start_virtual_offset, end_virtual_offset, read.dup);
     }
 }
 
-/// Policies for bamReadRange
+///
 mixin template withOffsets() {
     /**
         Returns: virtual offsets of beginning and end of the current read
@@ -59,10 +60,10 @@ mixin template withOffsets() {
     }
 }
 
-/// ditto
+///
 mixin template withoutOffsets() {
     /**
-        Returns: current bamRead
+        Returns: current read
      */
     ref BamRead front() @property {
         return _current_record;
@@ -71,6 +72,7 @@ mixin template withoutOffsets() {
     private void beforeNextBamReadLoad() {}
 }
 
+/// $(D front) return type is determined by $(I IteratePolicy)
 class BamReadRange(alias IteratePolicy) 
 { 
 
@@ -81,12 +83,14 @@ class BamReadRange(alias IteratePolicy)
         readNext();
     }
 
+    ///
     bool empty() @property const {
         return _empty;
     }
 
     mixin IteratePolicy;
-    
+   
+    ///
     void popFront() {
         readNext();
     }
@@ -98,7 +102,7 @@ private:
     BamRead _current_record;
     bool _empty = false;
 
-    /**
+    /*
       Reads next bamRead block from stream.
      */
     void readNext() {
@@ -142,7 +146,7 @@ private:
     }
 }
 
-/// Returns: lazy range of BamRead structs constructed from a given stream.
+/// Returns: lazy range of BamRead/BamReadBlock structs constructed from a given stream.
 auto bamReadRange(alias IteratePolicy=withoutOffsets)(ref IChunkInputStream stream) {
     return new BamReadRange!IteratePolicy(stream);
 }

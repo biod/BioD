@@ -55,7 +55,7 @@ class BamReader {
       Optionally, task pool can be specified. 
       It will be used to unpack BGZF blocks in parallel.
 
-      Examples:
+      Example:
       -------------------------------------------
       import std.parallelism, bio.bam.reader;
       void main() {
@@ -166,7 +166,7 @@ class BamReader {
         which allows to track read virtual offsets in the file.
         In this case range element type is $(DPREF2 bam, readrange, BamReadBlock).
 
-        Examples:
+        Example:
         ----------------------------------
         import bio.bam.readrange;
         ...
@@ -192,7 +192,7 @@ class BamReader {
         so that the number of relatively expensive float division operations
         can be controlled by user.
 
-        Examples:
+        Example:
         ------------------------------------
         import std.functional, std.stdio, bio.bam.reader;
         void progress(lazy float p) {
@@ -303,7 +303,7 @@ class BamReader {
     /**
       Returns reference sequence named $(I ref_name).
 
-      Examples:
+      Example:
       ---------------------------
       import std.stdio, bio.bam.reader;
       ...
