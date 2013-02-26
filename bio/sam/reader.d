@@ -19,9 +19,10 @@
 */
 module bio.sam.reader;
 
+import bio.bam.abstractreader;
 import bio.sam.header;
 import bio.bam.read;
-import bio.bam.reference;
+import bio.bam.referenceinfo;
 
 version(DigitalMars) {
     import bio.sam.utils.recordparser;
@@ -37,8 +38,10 @@ private {
     extern(C) size_t lseek(int, size_t, int);
 }
 
-class SamReader {
+///
+class SamReader : IBamSamReader {
 
+    ///
     this(string filename) {
         _file = File(filename);
         _filename = filename;
@@ -46,19 +49,22 @@ class SamReader {
         _initializeStream();
     }
 
-    SamHeader header() @property {
+    ///
+    bio.sam.header.SamHeader header() @property {
         return _header;
     }
 
-    ReferenceSequenceInfo[] reference_sequences() @property {
+    ///
+    const(bio.bam.referenceinfo.ReferenceSequenceInfo)[] reference_sequences() @property const {
         return _reference_sequences;
     }
 
     private alias File.ByLine!(char, char) LineRange;
 
     static struct SamRecordRange {
-        this(LineRange lines, ref SamHeader header) {
+        this(LineRange lines, ref SamHeader header, SamReader reader) {
             _header = header;
+            _reader = reader;
             _line_range = lines;
 
             _build_storage = new AlignmentBuildStorage();
@@ -86,6 +92,7 @@ class SamReader {
                     _current_alignment = parseAlignmentLine(cast(string)_line_range.front.dup,
                                                             _header,
                                                             _build_storage);
+                    _current_alignment.associateWithReader(cast(IBamSamReader)_reader);
                 }
             }
 
@@ -93,11 +100,12 @@ class SamReader {
             BamRead _current_alignment;
             bool _empty;
             SamHeader _header;
+            SamReader _reader;
             AlignmentBuildStorage _build_storage;
         }
     }
 
-    /// Reads in SAM file. Can be iterated only once.
+    /// Reads in SAM file.
     auto reads() @property {
         
         LineRange lines = _lines;
@@ -114,7 +122,17 @@ class SamReader {
                 lines.popFront();
         }
 
-        return SamRecordRange(lines, _header);
+        return SamRecordRange(lines, _header, this);
+    }
+
+    ///
+    std.range.InputRange!(bio.bam.read.BamRead) allReads() @property {
+        return inputRangeObject(reads);
+    }
+
+    /// Filename
+    string filename() @property const {
+        return _filename;
     }
 private:
 

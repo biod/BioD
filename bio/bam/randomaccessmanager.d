@@ -23,6 +23,7 @@
 module bio.bam.randomaccessmanager;
 
 import bio.bam.constants;
+import bio.bam.reader;
 import bio.bam.read;
 import bio.bam.readrange;
 import bio.bam.baifile;
@@ -75,6 +76,12 @@ class RandomAccessManager {
         _filename = filename;
     }
 
+    /// ditto
+    this(BamReader reader) {
+        _reader = reader;
+        _filename = reader.filename;
+    }
+
     /// Constructs new manager with given index file.
     /// This allows to do random-access interval queries.
     ///
@@ -82,8 +89,15 @@ class RandomAccessManager {
     ///     filename =  location of BAM file
     ///     bai  =  index file
     this(string filename, ref BaiFile bai) {
-
         _filename = filename;
+        _bai = bai;
+        _found_index_file = true;
+    }
+
+    /// ditto
+    this(BamReader reader, ref BaiFile bai) {
+        _reader = reader;
+        _filename = reader.filename;
         _bai = bai;
         _found_index_file = true;
     }
@@ -148,7 +162,7 @@ class RandomAccessManager {
     /// Every time new stream is used.
     BamRead getReadAt(VirtualOffset offset) {
         auto stream = createStreamStartingFrom(offset);
-        return bamReadRange(stream).front.dup;
+        return bamReadRange(stream, _reader).front.dup;
     }
 
     /// Get BGZF block at a given offset.
@@ -169,7 +183,7 @@ class RandomAccessManager {
             return record.end_virtual_offset > vo;
         }
 
-        return until!offsetTooBig(bamReadRange!withOffsets(stream), to);
+        return until!offsetTooBig(bamReadRange!withOffsets(stream, _reader), to);
     }
 
     bool found_index_file() @property {
@@ -256,7 +270,7 @@ class RandomAccessManager {
         auto decompressed_blocks = getUnpackedBlocks(bgzf_range);                   // (3)
         auto augmented_blocks = getAugmentedBlocks(decompressed_blocks, chunks);    // (4)
         IChunkInputStream stream = makeChunkInputStream(augmented_blocks);          // (5)
-        auto reads = bamReadRange!IteratePolicy(stream);
+        auto reads = bamReadRange!IteratePolicy(stream, _reader);
         return filterBamReads(reads, ref_id, beg, end);                             // (6)
     }
 
@@ -264,6 +278,7 @@ private:
     
     string _filename;
     BaiFile _bai;
+    BamReader _reader;
 
 public:
 

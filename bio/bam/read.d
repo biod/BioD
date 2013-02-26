@@ -45,6 +45,7 @@ module bio.bam.read;
 
 import bio.core.base;
 
+import bio.bam.abstractreader;
 import bio.bam.writer;
 import bio.bam.tagvalue;
 import bio.bam.bai.bin;
@@ -63,6 +64,7 @@ version(unittest) {
 import std.algorithm;
 import std.range;
 import std.conv;
+import std.format;
 import std.exception;
 import std.system;
 import std.traits;
@@ -143,8 +145,8 @@ struct CigarOperation {
     }
 
     ///
-    string toString() const {
-        return to!string(length) ~ type;
+    void toString(scope void delegate(const(char)[]) sink) const {
+        sink.formattedWrite("%s%s", length, type);
     }
 }
 
@@ -512,9 +514,9 @@ struct BamRead {
         // In summa, BAM is little-endian format, so big-endian 
         // users will suffer anyway, it's unavoidable.
 
+        _chunk = chunk;
         this._is_slice = true;
 
-        _chunk = chunk;
         if (std.system.endian != Endian.littleEndian) {
             switchChunkEndianness();
 
@@ -566,8 +568,6 @@ struct BamRead {
     {
         enforce(read_name.length < 256, "Too long read name, length must be <= 255");
 
-        this._is_slice = false;
-
         if (this._chunk is null) {
             this._chunk = new ubyte[calculateChunkSize(read_name, sequence, cigar)];
         }
@@ -597,6 +597,8 @@ struct BamRead {
         _chunk[_offset .. _offset + read_name.length] = cast(ubyte[])read_name;
         _chunk[_offset + read_name.length] = cast(ubyte)'\0';
 
+        this._is_slice = false;
+
         this.sequence = sequence;
     }
 
@@ -621,19 +623,24 @@ struct BamRead {
         BamRead result;
         result._chunk = this._chunk.dup;
         result._is_slice = false;
+        result._reader = cast()_reader;
         return result;
     }
 
     /// Compare two alignments, including tags 
     /// (the tags must follow in the same order for equality).
     bool opEquals(const ref BamRead other) const pure nothrow {
-        // in D, array comparison compares elements, not pointers.
-        return this._chunk == other._chunk;
+        // don't forget about _is_slice trick
+        auto m = _cigar_offset;
+        return _chunk[0 .. m - 1] == other._chunk[0 .. m - 1] &&
+               _chunk[m .. $] == other._chunk[m .. $];
     }
 
     /// ditto
     bool opEquals(BamRead other) const pure nothrow {
-        return this._chunk == other._chunk;
+        auto m = _cigar_offset;
+        return _chunk[0 .. m - 1] == other._chunk[0 .. m - 1] &&
+               _chunk[m .. $] == other._chunk[m .. $];
     }
 
     /// Size of the alignment record when output to stream in BAM format.
@@ -645,6 +652,9 @@ struct BamRead {
     package void write(ref BamWriter writer) {
         writer.writeInteger(cast(int)(_chunk.length));
 
+        ubyte old_byte = _chunk[_cigar_offset - 1];
+        _chunk[_cigar_offset - 1] = 0;
+
         if (std.system.endian != Endian.littleEndian) {
             switchChunkEndianness();
             writer.writeByteArray(_chunk[0 .. _tags_offset]);
@@ -652,6 +662,8 @@ struct BamRead {
         } else {
             writer.writeByteArray(_chunk[0 .. _tags_offset]);
         }
+
+        _chunk[_cigar_offset - 1] = old_byte;
 
         writeTags(writer);
     }
@@ -694,6 +706,69 @@ struct BamRead {
             packer.pack(value);
         }
     }
+
+    ///
+    void toString(scope void delegate(const(char)[]) sink) const {
+        sink(name);
+        sink("\t");
+        sink.formattedWrite("%d\t", flag);
+        if (ref_id == -1 || _reader is null)
+            sink("*");
+        else
+            sink(_reader.reference_sequences[ref_id].name);
+
+        sink.formattedWrite("\t%d\t%d\t", position + 1, mapping_quality);
+        if (cigar.length == 0)
+            sink("*\t");
+        else
+            sink.formattedWrite("%(%s%)\t", cigar);
+        if (mate_ref_id == ref_id) {
+            if (mate_ref_id == -1)
+                sink("*\t");
+            else
+                sink("=\t");
+        } else {
+            if (mate_ref_id == -1 || _reader is null) {
+                sink("*\t");
+            } else {
+                auto mate_name = _reader.reference_sequences[mate_ref_id].name;
+                sink(mate_name);
+                sink("\t");
+            }
+        }
+
+        sink.formattedWrite("%d\t%d\t", mate_position + 1, template_length);
+        if (sequence_length == 0)
+            sink("*");
+        else
+            foreach (char c; sequence)
+                sink.formattedWrite("%c", c);
+        sink("\t");
+
+        if (base_qualities.length == 0 || base_qualities[0] == 0xFF)
+            sink("*");
+        else
+            foreach (qual; base_qualities)
+                sink.formattedWrite("%s", cast(char)(qual + 33));
+
+        foreach (k, v; this) {
+            sink("\t");
+            sink(k);
+            sink(":");
+            v.formatSam(sink);
+        }
+    }
+
+    /// Associates read with BAM reader. This is done automatically
+    /// if this read is obtained through BamReader/Reference methods.
+    void associateWithReader(bio.bam.abstractreader.IBamSamReader reader) {
+        _reader = reader;
+    }
+
+    /// Associated BAM/SAM reader.
+    bio.bam.abstractreader.IBamSamReader reader() @property {
+        return _reader;
+    }
    
     package ubyte[] _chunk; // holds all the data, 
                     // the access is organized via properties
@@ -701,7 +776,20 @@ struct BamRead {
 
 private:
 
-    bool _is_slice; // indicates whether _chunk is a slice or an allocated array.
+    // by specs, name ends with '\0'
+    // let's use this byte for something useful!
+    //
+    // (Of course this places some restrictions on usage,
+    //  but allows to reduce size of record.)
+    bool _is_slice() @property const {
+        return cast(bool)_chunk[_cigar_offset - 1];
+    }
+
+    void _is_slice(bool is_slice) @property {
+        _chunk[_cigar_offset - 1] = is_slice ? 1 : 0;
+    }
+
+    IBamSamReader _reader;
 
     // Official field names from SAM/BAM specification.
     // For internal use only
@@ -713,7 +801,7 @@ private:
         return *(cast( int*)(_chunk.ptr + int.sizeof * 1)); 
     }
 
-    @property uint _bin_mq_nl()  const nothrow { 
+    @property uint _bin_mq_nl()  const nothrow pure @system { 
         return *(cast(uint*)(_chunk.ptr + int.sizeof * 2)); 
     }
 
@@ -762,7 +850,7 @@ private:
     @property  ubyte _mapq()        const nothrow { 
         return (_bin_mq_nl >> 8) & 0xFF; 
     }
-    @property  ubyte _l_read_name() const nothrow { 
+    @property  ubyte _l_read_name() const nothrow pure { 
         return _bin_mq_nl & 0xFF; 
     }
     @property ushort _flag()        const nothrow { 
@@ -782,11 +870,11 @@ private:
     // Offsets of various arrays in bytes.
     // Currently, are computed each time, so if speed will be an issue,
     // they can be made fields instead of properties.
-    @property size_t _read_name_offset() const nothrow { 
+    @property size_t _read_name_offset() const nothrow pure { 
         return 8 * int.sizeof; 
     }
 
-    @property size_t _cigar_offset()     const nothrow { 
+    @property size_t _cigar_offset()     const nothrow pure { 
         return _read_name_offset + _l_read_name * char.sizeof; 
     }
 
@@ -819,8 +907,8 @@ private:
     // own chunk of memory.
     void _dup() {
         if (_is_slice) {
-            _is_slice = false;
             _chunk = _chunk.dup;
+            _is_slice = false;
         }
     }
 

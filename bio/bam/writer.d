@@ -110,7 +110,7 @@ final class BamWriter {
     /// resolving read reference IDs to names.
     ///
     /// Flushes current BGZF block.
-    void writeReferenceSequenceInfo(bio.bam.referenceinfo.ReferenceSequenceInfo[] reference_sequences)
+    void writeReferenceSequenceInfo(const(bio.bam.referenceinfo.ReferenceSequenceInfo)[] reference_sequences)
     {
         _reference_sequences = reference_sequences;
 
@@ -153,7 +153,7 @@ final class BamWriter {
 
     private {
         BgzfOutputStream _stream;
-        ReferenceSequenceInfo[] _reference_sequences;
+        const(ReferenceSequenceInfo)[] _reference_sequences;
         size_t _current_size; // number of bytes written to the current BGZF block
     }
 }

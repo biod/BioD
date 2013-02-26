@@ -20,7 +20,7 @@
 module bio.bam.serialization.sam;
 
 import bio.bam.read;
-import bio.bam.reference;
+import bio.bam.referenceinfo;
 import bio.bam.tagvalue;
 import bio.core.utils.format;
 
@@ -115,7 +115,7 @@ void serialize(S)(const ref Value v, ref S stream) {
 /// -------------
 /// toSam(alignment, bam.reference_sequences);
 /// -------------
-string toSam(R)(auto ref R alignment, ReferenceSequenceInfo[] info) {
+string toSam(R)(auto ref R alignment, const(ReferenceSequenceInfo)[] info) {
     char[] buf;
     buf.reserve(512);
     serialize(alignment, info, buf);
@@ -124,7 +124,7 @@ string toSam(R)(auto ref R alignment, ReferenceSequenceInfo[] info) {
 
 /// Serialize $(D alignment) to FILE* or append it to char[]/char* 
 /// (in char* case it's your responsibility to allocate enough memory)
-void serialize(S, R)(auto ref R alignment, ReferenceSequenceInfo[] info, auto ref S stream) 
+void serialize(S, R)(auto ref R alignment, const(ReferenceSequenceInfo)[] info, auto ref S stream) 
     if (is(Unqual!S == FILE*) || is(Unqual!S == char*) || is(Unqual!S == char[]))
 {
 

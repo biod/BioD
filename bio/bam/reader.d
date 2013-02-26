@@ -41,6 +41,7 @@
 /// ------------------------
 module bio.bam.reader;
 
+import bio.bam.abstractreader;
 public import bio.sam.header;
 public import bio.bam.reference;
 public import bio.bam.read;
@@ -50,13 +51,13 @@ import bio.bam.randomaccessmanager;
 import bio.bam.baifile;
 import bio.core.utils.range;
 import bio.core.utils.stream;
-import bio.core.bgzf.blockrange;
-import bio.core.bgzf.inputstream;
+public import bio.core.bgzf.blockrange;
+public import bio.core.bgzf.inputstream;
 public import bio.core.bgzf.virtualoffset;
 
 import std.system;
 import std.stdio;
-import std.algorithm : map, min;
+import std.algorithm;
 import std.range : zip;
 import std.conv : to;
 import std.exception : enforce;
@@ -68,7 +69,7 @@ import std.string;
 /**
   BAM file reader, featuring parallel decompression of BGZF blocks.
  */
-class BamReader {
+class BamReader : IBamSamReader {
 
     /**
       Creates reader associated with file or stream.
@@ -173,7 +174,7 @@ class BamReader {
     /**
         Returns: information about reference sequences
      */
-    bio.bam.referenceinfo.ReferenceSequenceInfo[] reference_sequences() @property {
+    const(bio.bam.referenceinfo.ReferenceSequenceInfo)[] reference_sequences() @property const {
         return _reference_sequences;
     }
 
@@ -199,7 +200,7 @@ class BamReader {
      */
     auto reads(alias IteratePolicy=bio.bam.readrange.withoutOffsets)() @property {
         auto _decompressed_stream = getDecompressedBamReadStream();
-        return bamReadRange!IteratePolicy(_decompressed_stream);
+        return bamReadRange!IteratePolicy(_decompressed_stream, this);
     }
 
     /**
@@ -231,7 +232,7 @@ class BamReader {
         (void delegate(lazy float p) progressBarFunc) 
     {
         auto _decompressed_stream = getDecompressedBamReadStream();
-        auto reads_with_offsets = bamReadRange!withOffsets(_decompressed_stream);
+        auto reads_with_offsets = bamReadRange!withOffsets(_decompressed_stream, this);
 
         static struct Result(alias IteratePolicy, R, S) {
             this(R range, S stream, void delegate(lazy float p) progressBarFunc) {
@@ -275,6 +276,11 @@ class BamReader {
                        typeof(_decompressed_stream))(reads_with_offsets, 
                                                      _decompressed_stream,
                                                      progressBarFunc);
+    }
+
+    /// Part of IBamSamReader interface
+    std.range.InputRange!(bio.bam.read.BamRead) allReads() @property {
+        return inputRangeObject(reads!withoutOffsets());
     }
 
     /**
@@ -399,9 +405,9 @@ private:
                 // so we need to do that to get the right BAI status
 
                 if (_bai_status == BaiStatus.initialized) {
-                    _rndaccssmgr = new RandomAccessManager(_filename, bai);
+                    _rndaccssmgr = new RandomAccessManager(this, bai);
                 } else {
-                    _rndaccssmgr = new RandomAccessManager(_filename);
+                    _rndaccssmgr = new RandomAccessManager(this);
                 }
             }
         }

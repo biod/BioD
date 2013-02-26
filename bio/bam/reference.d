@@ -38,8 +38,8 @@ module bio.bam.reference;
 
 public import bio.bam.referenceinfo;
 
-import bio.bam.randomaccessmanager;
 import bio.bam.readrange;
+import bio.bam.randomaccessmanager;
 import bio.core.bgzf.virtualoffset;
 
 import std.stream;
@@ -121,7 +121,7 @@ struct ReferenceSequence {
 
         auto last_offset = ioffsets[$ - 1];
         auto stream = _manager.createStreamStartingFrom(last_offset);
-        auto last_few_reads = bamReadRange!withOffsets(stream);
+        auto last_few_reads = bamReadRange!withOffsets(stream, null);
 
         VirtualOffset result;
         assert(!last_few_reads.empty);
@@ -163,7 +163,7 @@ struct ReferenceSequence {
             auto offset = ioffsets[cast(size_t)index];
 
             auto stream = _manager.createStreamStartingFrom(offset);
-            auto reads = bamReadRange(stream);
+            auto reads = bamReadRange(stream, null);
 
             int last_position = int.min;
 

@@ -47,6 +47,7 @@ module bio.bam.tagvalue;
 public import std.conv;
 import std.typetuple;
 import std.exception;
+import std.format;
 
 import bio.bam.thirdparty.msgpack;
 
@@ -446,6 +447,31 @@ struct Value {
             case GetTypeId!(float[]): packer.pack(*cast(float[]*)(&u)); break;
 
             case GetTypeId!(typeof(null)): packer.pack(null); break;
+            default: break;
+        }
+    }
+
+    void formatSam(scope void delegate(const(char)[]) sink) const {
+        switch (_tag) {
+            case GetTypeId!byte: sink.formattedWrite("i:%s", *cast(byte*)(&u)); break;
+            case GetTypeId!ubyte: sink.formattedWrite("i:%s", *cast(ubyte*)(&u)); break;
+            case GetTypeId!short: sink.formattedWrite("i:%s", *cast(short*)(&u)); break;
+            case GetTypeId!ushort: sink.formattedWrite("i:%s", *cast(ushort*)(&u)); break;
+            case GetTypeId!int: sink.formattedWrite("i:%s", *cast(int*)(&u)); break;
+            case GetTypeId!uint: sink.formattedWrite("i:%s", *cast(uint*)(&u)); break;
+
+            case GetTypeId!float: sink.formattedWrite("f:%s", *cast(float*)(&u)); break;
+            case GetTypeId!string: sink("Z:"); sink(*cast(const(char)[]*)(&u)); break;
+            case hexStringTag: sink("H:"); sink(*cast(const(char)[]*)(&u)); break;
+            case GetTypeId!char: sink.formattedWrite("A:%c", *cast(char*)(&u)); break;
+
+            case GetTypeId!(byte[]): sink.formattedWrite("B:b:%s(%s,%)", *cast(byte[]*)(&u)); break;
+            case GetTypeId!(ubyte[]): sink.formattedWrite("B:B:%s(%s,%)", *cast(ubyte[]*)(&u)); break;
+            case GetTypeId!(short[]): sink.formattedWrite("B:s:%s(%s,%)", *cast(short[]*)(&u)); break;
+            case GetTypeId!(ushort[]): sink.formattedWrite("B:S:%s(%s,%)", *cast(ushort[]*)(&u)); break;
+            case GetTypeId!(int[]): sink.formattedWrite("B:i:%s(%s,%)", *cast(int[]*)(&u)); break;
+            case GetTypeId!(uint[]): sink.formattedWrite("B:I:%s(%s,%)", *cast(uint[]*)(&u)); break;
+            case GetTypeId!(float[]): sink.formattedWrite("B:f:%s(%s,%)", *cast(float[]*)(&u)); break;
             default: break;
         }
     }
