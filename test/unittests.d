@@ -116,6 +116,11 @@ unittest {
         }
 
         assert(name == value);
+        auto s1 = toSam(alignment, bf.reference_sequences);
+        auto s2 = to!string(alignment);
+        if (s1 != s2)
+            writeln(s1, "\n", s2);
+        assert(toSam(alignment, bf.reference_sequences) == to!string(alignment));
     }
 
     writeln("Testing exception handling...");
