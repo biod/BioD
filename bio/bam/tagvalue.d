@@ -48,6 +48,7 @@ public import std.conv;
 import std.typetuple;
 import std.exception;
 import std.format;
+import bio.core.utils.format;
 
 import bio.bam.thirdparty.msgpack;
 
@@ -452,27 +453,39 @@ struct Value {
     }
 
     void formatSam(scope void delegate(const(char)[]) sink) const {
-        switch (_tag) {
-            case GetTypeId!byte: sink.formattedWrite("i:%s", *cast(byte*)(&u)); break;
-            case GetTypeId!ubyte: sink.formattedWrite("i:%s", *cast(ubyte*)(&u)); break;
-            case GetTypeId!short: sink.formattedWrite("i:%s", *cast(short*)(&u)); break;
-            case GetTypeId!ushort: sink.formattedWrite("i:%s", *cast(ushort*)(&u)); break;
-            case GetTypeId!int: sink.formattedWrite("i:%s", *cast(int*)(&u)); break;
-            case GetTypeId!uint: sink.formattedWrite("i:%s", *cast(uint*)(&u)); break;
-
-            case GetTypeId!float: sink.formattedWrite("f:%s", *cast(float*)(&u)); break;
-            case GetTypeId!string: sink("Z:"); sink(*cast(const(char)[]*)(&u)); break;
-            case hexStringTag: sink("H:"); sink(*cast(const(char)[]*)(&u)); break;
-            case GetTypeId!char: sink.formattedWrite("A:%c", *cast(char*)(&u)); break;
-
-            case GetTypeId!(byte[]): sink.formattedWrite("B:c,%(%s,%)", *cast(byte[]*)(&u)); break;
-            case GetTypeId!(ubyte[]): sink.formattedWrite("B:C,%(%s,%)", *cast(ubyte[]*)(&u)); break;
-            case GetTypeId!(short[]): sink.formattedWrite("B:s,%(%s,%)", *cast(short[]*)(&u)); break;
-            case GetTypeId!(ushort[]): sink.formattedWrite("B:S,%(%s,%)", *cast(ushort[]*)(&u)); break;
-            case GetTypeId!(int[]): sink.formattedWrite("B:i,%(%s,%)", *cast(int[]*)(&u)); break;
-            case GetTypeId!(uint[]): sink.formattedWrite("B:I,%(%s,%)", *cast(uint[]*)(&u)); break;
-            case GetTypeId!(float[]): sink.formattedWrite("B:f,%(%s,%)", *cast(float[]*)(&u)); break;
-            default: break;
+        if (is_integer) {
+            sink("i:");
+            switch (_tag) {
+                case GetTypeId!byte: sink.putInteger(*cast(byte*)(&u)); break;
+                case GetTypeId!ubyte: sink.putInteger(*cast(ubyte*)(&u)); break;
+                case GetTypeId!short: sink.putInteger(*cast(short*)(&u)); break;
+                case GetTypeId!ushort: sink.putInteger(*cast(ushort*)(&u)); break;
+                case GetTypeId!int: sink.putInteger(*cast(int*)(&u)); break;
+                case GetTypeId!uint: sink.putInteger(*cast(uint*)(&u)); break;
+                default: break;
+            }
+        } else if (is_numeric_array) {
+            sink("B:");
+            sink.putChar(bam_typeid);
+            sink.putChar(',');
+            switch (_tag) {
+                case GetTypeId!(byte[]): sink.putArray(*cast(byte[]*)(&u), ','); break;
+                case GetTypeId!(ubyte[]): sink.putArray(*cast(ubyte[]*)(&u), ','); break;
+                case GetTypeId!(short[]): sink.putArray(*cast(short[]*)(&u), ','); break;
+                case GetTypeId!(ushort[]): sink.putArray(*cast(ushort[]*)(&u), ','); break;
+                case GetTypeId!(int[]): sink.putArray(*cast(int[]*)(&u), ','); break;
+                case GetTypeId!(uint[]): sink.putArray(*cast(uint[]*)(&u), ','); break;
+                case GetTypeId!(float[]): sink.putArray(*cast(float[]*)(&u), ','); break;
+                default: break;
+            }
+        } else {
+            switch (_tag) {
+                case GetTypeId!float: sink("f:"); sink.putFloat(*cast(float*)(&u)); break;
+                case GetTypeId!string: sink("Z:"); sink(*cast(const(char)[]*)(&u)); break;
+                case hexStringTag: sink("H:"); sink(*cast(const(char)[]*)(&u)); break;
+                case GetTypeId!char: sink("A:"); sink.putChar(*cast(char*)(&u)); break;
+                default: break;
+            }
         }
     }
 }

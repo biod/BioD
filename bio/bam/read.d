@@ -44,6 +44,7 @@
 module bio.bam.read;
 
 import bio.core.base;
+import bio.core.utils.format;
 
 import bio.bam.abstractreader;
 import bio.bam.writer;
@@ -146,7 +147,8 @@ struct CigarOperation {
 
     ///
     void toString(scope void delegate(const(char)[]) sink) const {
-        sink.formattedWrite("%s%s", length, type);
+        sink.putInteger(length);
+        sink.putChar(type);
     }
 }
 
@@ -710,18 +712,28 @@ struct BamRead {
     ///
     void toString(scope void delegate(const(char)[]) sink) const {
         sink(name);
-        sink("\t");
-        sink.formattedWrite("%d\t", flag);
+        sink.putChar('\t');
+        sink.putInteger(flag);
+        sink.putChar('\t');
         if (ref_id == -1 || _reader is null)
-            sink("*");
+            sink.putChar('*');
         else
             sink(_reader.reference_sequences[ref_id].name);
 
-        sink.formattedWrite("\t%d\t%d\t", position + 1, mapping_quality);
+        sink.putChar('\t');
+        sink.putInteger(position + 1);
+        sink.putChar('\t');
+        sink.putInteger(mapping_quality);
+        sink.putChar('\t');
+
         if (cigar.length == 0)
-            sink("*\t");
+            sink.putChar('*');
         else
-            sink.formattedWrite("%(%s%)\t", cigar);
+            foreach (op; cigar)
+                op.toString(sink);
+
+        sink.putChar('\t');
+
         if (mate_ref_id == ref_id) {
             if (mate_ref_id == -1)
                 sink("*\t");
@@ -737,24 +749,28 @@ struct BamRead {
             }
         }
 
-        sink.formattedWrite("%d\t%d\t", mate_position + 1, template_length);
+        sink.putInteger(mate_position + 1);
+        sink.putChar('\t');
+        sink.putInteger(template_length);
+        sink.putChar('\t');
+
         if (sequence_length == 0)
-            sink("*");
+            sink.putChar('*');
         else
             foreach (char c; sequence)
-                sink.formattedWrite("%c", c);
-        sink("\t");
+                sink.putChar(c);
+        sink.putChar('\t');
 
         if (base_qualities.length == 0 || base_qualities[0] == 0xFF)
-            sink("*");
+            sink.putChar('*');
         else
             foreach (qual; base_qualities)
-                sink.formattedWrite("%s", cast(char)(qual + 33));
+                sink.putChar(cast(char)(qual + 33));
 
         foreach (k, v; this) {
-            sink("\t");
+            sink.putChar('\t');
             sink(k);
-            sink(":");
+            sink.putChar(':');
             v.formatSam(sink);
         }
     }

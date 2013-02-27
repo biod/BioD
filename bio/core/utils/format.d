@@ -245,3 +245,78 @@ unittest {
     append(p, "%g", 8.9);
     assert(s[0 .. p - s] == "12345678.9");
 }
+
+void putFloat(T)(scope void delegate(const(char)[]) sink, T number) 
+    if (isFloatingPoint!T)
+{
+    char[1024] buffer = void;
+    int count;
+
+    auto p = buffer.ptr;
+    auto psize = buffer.length;
+    for (;;)
+    {
+        version(Win32)
+        {
+            count = _snprintf(p,psize,"%g", cast(double)number);
+            if (count != -1)
+                break;
+            psize *= 2;
+            p = cast(char *) alloca(psize);
+        }
+        version(Posix)
+        {
+            count = snprintf(p,psize,"%g", cast(double)number);
+            if (count == -1)
+                psize *= 2;
+            else if (count >= psize)
+                psize = count + 1;
+            else
+                break;
+            p = cast(char *) alloca(psize);
+        }
+    }
+
+    sink(p[0 .. count]);
+}
+
+void putInteger(T)(scope void delegate(const(char)[]) sink, T integer) 
+    if (isIntegral!T)
+{
+    char[64] buf = void;
+    auto len = itoa(integer, buf.ptr);
+    sink(buf[0 .. len]);
+}
+
+void putChar(T)(scope void delegate(const(char)[]) sink, T c) 
+    if (isSomeChar!T)
+{
+    char[1] buf = void;
+    buf[0] = c;
+    sink(buf[0 .. 1]);
+}
+
+void put(T)(scope void delegate(const(char)[]) sink, T value) {
+    static if (isIntegral!T)
+        putInteger(sink, value);
+    else static if (isFloatingPoint!T)
+        putFloat(sink, value);
+    else static if (isSomeChar!T)
+        putChar(sink, value);
+    else static if (isSomeString!T)
+        sink(cast(const(char)[])value);
+    else static assert(false);
+}
+
+void putArray(T, U)(scope void delegate(const(char)[]) sink, T array, U delimiter)
+    if (isArray!T && (isSomeChar!U || isSomeString!U) && __traits(compiles, put(sink, array[0])))
+{
+    if (array.length == 0)
+        return;
+
+    foreach (elem; array[0 .. $ - 1]) {
+        sink.put(elem);
+        sink.put(delimiter);
+    }
+    sink.put(array[$ - 1]);
+}
