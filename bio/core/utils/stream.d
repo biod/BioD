@@ -3,7 +3,9 @@ module bio.core.utils.stream;
 public import std.stream;
 import core.stdc.stdio;
 import core.stdc.errno;
+import core.stdc.string;
 import core.sys.posix.sys.select;
+import std.conv;
 
 version(Posix){
     private import core.sys.posix.unistd;
@@ -93,8 +95,11 @@ final class File: std.stream.File {
                         ret = select(hFile + 1, &rset, null, null, &timeout);
                         if (ret <= 0) {
                             size = 0;
+                            throw new ReadException("read timeout");
                             break;
                         }
+                    } else {
+                        throw new ReadException(to!string(strerror(errno)));
                     }
                 } else {
                     size = ret;
