@@ -28,8 +28,7 @@ import std.exception;
 import std.array;
 import std.range;
 import std.traits;
-
-import std.stdio;
+import std.stdio : stderr;
 
 private {
 
@@ -91,12 +90,8 @@ private {
     string serializeFields(Field...)() {
         static if (Field.length > 0) {
             char[] str = `if (`~Field[0].name~` != `~Field[0].FieldType.stringof~`.init) {`.dup;
-            str ~= `putstring(stream, "\t` ~ Field[0].abbr ~ `:");`.dup;
-            if (Field[0].FieldType.stringof == "string") {
-                str ~= `putstring(stream, `~Field[0].name~`);`.dup;
-            } else {
-                str ~= `putinteger(stream, `~Field[0].name~`);`.dup;
-            }
+            str ~= `sink.write("\t` ~ Field[0].abbr ~ `:");`.dup;
+            str ~= `sink.write(`~Field[0].name~`);`.dup;
             str ~= `}`.dup;
             return str.idup ~ serializeFields!(Field[1..$])();
         } else {
@@ -105,12 +100,12 @@ private {
     }
 
     /*
-        generates 'serialize' method which converts a struct
+        generates 'toSam' method which converts a struct
         to SAM header line
      */
-    mixin template serializeMethod(string line_prefix, Field...) {
-        void serialize(S)(ref S stream) const {
-            putstring(stream, line_prefix);
+    mixin template toSamMethod(string line_prefix, Field...) {
+        void toSam(Sink)(auto ref Sink sink) const if (isSomeSink!Sink) {
+            sink.write(line_prefix);
             mixin(serializeFields!Field());    
         }
     }
@@ -197,7 +192,7 @@ private {
          mixin(`struct `~struct_name~`{ 
                     mixin structFields!Field;
                     mixin parseStaticMethod!(struct_name, Field);
-                    mixin serializeMethod!(line_prefix, Field);
+                    mixin toSamMethod!(line_prefix, Field);
                     mixin toHashMethod!(struct_name, id_field, Field);
                     mixin opEqualsMethod!(struct_name, Field);
                     mixin getSetIDMethods!id_field;
@@ -533,9 +528,48 @@ class SamHeader {
 
     /// Get header text representation
     string text() @property {
-        return toSam(this);
+        return to!string(this);
     }
 
+    /// ditto
+    void toString(scope void delegate(const(char)[]) sink) {
+        toSam(sink);
+    }
+
+    /// Serializes $(D header) to $(D sink).
+    /// $(BR)
+    /// Includes trailing '\n'
+    void toSam(Sink)(auto ref Sink sink) if (isSomeSink!Sink) {
+        sink.write("@HD\tVN:");
+        sink.write(format_version);
+        if (sorting_order != SortingOrder.unknown) {
+            sink.write("\tSO:");
+            sink.write(to!string(sorting_order));
+        }
+        sink.write('\n');
+       
+        for (size_t i = 0; i < sequences.length; i++) {
+            auto sq_line = getSequence(i);
+            sq_line.toSam(sink);
+            sink.write('\n');
+        }
+
+        foreach (rg_line; read_groups) {
+            rg_line.toSam(sink);
+            sink.write('\n');
+        }
+
+        foreach (pg_line; programs) {
+            pg_line.toSam(sink);
+            sink.write('\n');
+        }
+
+        foreach (comment; comments) {
+            sink.write("@CO\t");
+            sink.write(comment);
+            sink.write('\n');
+        }
+    }
 }
 
 /// Sorting order
@@ -546,59 +580,18 @@ enum SortingOrder {
     queryname   ///
 }
 
-/// Get SAM representation of $(D header)
-string toSam(SamHeader header) {
-    char[] buf;
-    buf.reserve(65536);
-    serialize(header, buf);
-    return cast(string)buf;
-}
-
-/// Serialize $(D header) to $(D stream)
-void serialize(S)(SamHeader header, ref S stream) {
-    putstring(stream, "@HD\tVN:");
-    putstring(stream, header.format_version);
-    if (header.sorting_order != SortingOrder.unknown) {
-        putstring(stream, "\tSO:");
-        putstring(stream, to!string(header.sorting_order));
-    }
-    putcharacter(stream, '\n');
-   
-    for (size_t i = 0; i < header.sequences.length; i++) {
-        auto sq_line = header.getSequence(i);
-        sq_line.serialize(stream);
-        putcharacter(stream, '\n');
-    }
-
-    foreach (rg_line; header.read_groups) {
-        rg_line.serialize(stream);
-        putcharacter(stream, '\n');
-    }
-
-    foreach (pg_line; header.programs) {
-        pg_line.serialize(stream);
-        putcharacter(stream, '\n');
-    }
-
-    foreach (comment; header.comments) {
-        putstring(stream, "@CO\t");
-        putstring(stream, comment);
-        putcharacter(stream, '\n');
-    }
-}
-
 unittest {
     auto header = new SamHeader();
     import std.stdio;
-    assert(toSam(header) == "@HD\tVN:1.3\n");
+    assert(header.text == "@HD\tVN:1.3\n");
 
     auto sequence = SqLine("abc", 123123);
     header.sequences.add(sequence);
-    assert(toSam(header) == "@HD\tVN:1.3\n@SQ\tSN:abc\tLN:123123\n");
+    assert(header.text == "@HD\tVN:1.3\n@SQ\tSN:abc\tLN:123123\n");
 
     header.sorting_order = SortingOrder.coordinate;
     header.format_version = "1.2";
-    assert(toSam(header) == "@HD\tVN:1.2\tSO:coordinate\n@SQ\tSN:abc\tLN:123123\n");
+    assert(header.text == "@HD\tVN:1.2\tSO:coordinate\n@SQ\tSN:abc\tLN:123123\n");
     assert(header.getSequenceIndex("abc") == 0);
     assert(header.getSequenceIndex("bcd") == -1);
 
@@ -607,7 +600,7 @@ unittest {
     sequence.uri = "http://lorem.ipsum";
     header.sequences.add(sequence);
     header.format_version = "1.4";
-    assert(toSam(header) == "@HD\tVN:1.4\tSO:coordinate\n@SQ\tSN:bcd\tLN:678\tUR:http://lorem.ipsum\n");
+    assert(header.text == "@HD\tVN:1.4\tSO:coordinate\n@SQ\tSN:bcd\tLN:678\tUR:http://lorem.ipsum\n");
 
     header.sequences.add(SqLine("def", 321));
     assert(header.getSequenceIndex("abc") == -1);
@@ -619,7 +612,7 @@ unittest {
     assert(header.getSequenceIndex("bcd") == -1);
     assert(header.getSequenceIndex("def") == 0);
 
-    assert(toSam(header) == "@HD\tVN:1.4\tSO:coordinate\n@SQ\tSN:def\tLN:321\n");
+    assert(header.text == "@HD\tVN:1.4\tSO:coordinate\n@SQ\tSN:def\tLN:321\n");
 
     auto dict = new SqLineDictionary();
     dict.add(SqLine("yay", 111));
@@ -630,7 +623,7 @@ unittest {
     dict["zzz"] = zzz;
     header.sequences = dict;
 
-    assert(toSam(header) == 
+    assert(header.text == 
       "@HD\tVN:1.4\tSO:coordinate\n@SQ\tSN:yay\tLN:111\n@SQ\tSN:zzz\tLN:222\tUR:ftp://nyan.cat\n");
     assert(header.sequences == dict);
 
@@ -638,5 +631,5 @@ unittest {
     header.sequences.remove("zzz");
     header.comments ~= "this is a comment";
 
-    assert(toSam(header) == "@HD\tVN:1.4\tSO:coordinate\n@CO\tthis is a comment\n");
+    assert(header.text == "@HD\tVN:1.4\tSO:coordinate\n@CO\tthis is a comment\n");
 }

@@ -48,6 +48,7 @@ public import std.conv;
 import std.typetuple;
 import std.exception;
 import std.format;
+import std.array;
 import bio.core.utils.format;
 
 import bio.bam.thirdparty.msgpack;
@@ -452,40 +453,83 @@ struct Value {
         }
     }
 
-    void formatSam(scope void delegate(const(char)[]) sink) const {
+    /// SAM representation
+    string toSam()() const {
+        auto w = appender!(char[])();
+        toSam((const(char)[] s) { w.put(s); });
+        return cast(string)w.data;
+    }
+
+    /// ditto
+    void toSam(Sink)(auto ref Sink sink) const 
+        if (isSomeSink!Sink)
+    {
         if (is_integer) {
-            sink("i:");
+            sink.write("i:");
             switch (_tag) {
-                case GetTypeId!byte: sink.putInteger(*cast(byte*)(&u)); break;
-                case GetTypeId!ubyte: sink.putInteger(*cast(ubyte*)(&u)); break;
-                case GetTypeId!short: sink.putInteger(*cast(short*)(&u)); break;
-                case GetTypeId!ushort: sink.putInteger(*cast(ushort*)(&u)); break;
-                case GetTypeId!int: sink.putInteger(*cast(int*)(&u)); break;
-                case GetTypeId!uint: sink.putInteger(*cast(uint*)(&u)); break;
+                case GetTypeId!byte: sink.write(*cast(byte*)(&u)); break;
+                case GetTypeId!ubyte: sink.write(*cast(ubyte*)(&u)); break;
+                case GetTypeId!short: sink.write(*cast(short*)(&u)); break;
+                case GetTypeId!ushort: sink.write(*cast(ushort*)(&u)); break;
+                case GetTypeId!int: sink.write(*cast(int*)(&u)); break;
+                case GetTypeId!uint: sink.write(*cast(uint*)(&u)); break;
                 default: break;
             }
         } else if (is_numeric_array) {
-            sink("B:");
-            sink.putChar(bam_typeid);
-            sink.putChar(',');
+            sink.write("B:");
+            sink.write(bam_typeid);
+            sink.write(',');
             switch (_tag) {
-                case GetTypeId!(byte[]): sink.putArray(*cast(byte[]*)(&u), ','); break;
-                case GetTypeId!(ubyte[]): sink.putArray(*cast(ubyte[]*)(&u), ','); break;
-                case GetTypeId!(short[]): sink.putArray(*cast(short[]*)(&u), ','); break;
-                case GetTypeId!(ushort[]): sink.putArray(*cast(ushort[]*)(&u), ','); break;
-                case GetTypeId!(int[]): sink.putArray(*cast(int[]*)(&u), ','); break;
-                case GetTypeId!(uint[]): sink.putArray(*cast(uint[]*)(&u), ','); break;
-                case GetTypeId!(float[]): sink.putArray(*cast(float[]*)(&u), ','); break;
+                case GetTypeId!(byte[]): sink.writeArray(*cast(byte[]*)(&u), ','); break;
+                case GetTypeId!(ubyte[]): sink.writeArray(*cast(ubyte[]*)(&u), ','); break;
+                case GetTypeId!(short[]): sink.writeArray(*cast(short[]*)(&u), ','); break;
+                case GetTypeId!(ushort[]): sink.writeArray(*cast(ushort[]*)(&u), ','); break;
+                case GetTypeId!(int[]): sink.writeArray(*cast(int[]*)(&u), ','); break;
+                case GetTypeId!(uint[]): sink.writeArray(*cast(uint[]*)(&u), ','); break;
+                case GetTypeId!(float[]): sink.writeArray(*cast(float[]*)(&u), ','); break;
                 default: break;
             }
         } else {
             switch (_tag) {
-                case GetTypeId!float: sink("f:"); sink.putFloat(*cast(float*)(&u)); break;
-                case GetTypeId!string: sink("Z:"); sink(*cast(const(char)[]*)(&u)); break;
-                case hexStringTag: sink("H:"); sink(*cast(const(char)[]*)(&u)); break;
-                case GetTypeId!char: sink("A:"); sink.putChar(*cast(char*)(&u)); break;
+                case GetTypeId!float: sink.write("f:"); sink.write(*cast(float*)(&u)); break;
+                case GetTypeId!string: sink.write("Z:"); sink.write(*cast(const(char)[]*)(&u)); break;
+                case hexStringTag: sink.write("H:"); sink.write(*cast(const(char)[]*)(&u)); break;
+                case GetTypeId!char: sink.write("A:"); sink.write(*cast(char*)(&u)); break;
                 default: break;
             }
+        }
+    }
+
+    /// JSON representation
+    string toJson()() const {
+        auto w = appender!(char[])();
+        toJson((const(char)[] s) { w.put(s); });
+        return cast(string)w.data;
+    }
+
+    /// ditto
+    void toJson(Sink)(auto ref Sink sink) const 
+        if (isSomeSink!Sink)
+    {
+        switch (_tag) {
+            case GetTypeId!byte: sink.writeJson(*cast(byte*)(&u)); break;
+            case GetTypeId!ubyte: sink.writeJson(*cast(ubyte*)(&u)); break;
+            case GetTypeId!short: sink.writeJson(*cast(short*)(&u)); break;
+            case GetTypeId!ushort: sink.writeJson(*cast(ushort*)(&u)); break;
+            case GetTypeId!int: sink.writeJson(*cast(int*)(&u)); break;
+            case GetTypeId!uint: sink.writeJson(*cast(uint*)(&u)); break;
+            case GetTypeId!(byte[]): sink.writeJson(*cast(byte[]*)(&u)); break;
+            case GetTypeId!(ubyte[]): sink.writeJson(*cast(ubyte[]*)(&u)); break;
+            case GetTypeId!(short[]): sink.writeJson(*cast(short[]*)(&u)); break;
+            case GetTypeId!(ushort[]): sink.writeJson(*cast(ushort[]*)(&u)); break;
+            case GetTypeId!(int[]): sink.writeJson(*cast(int[]*)(&u)); break;
+            case GetTypeId!(uint[]): sink.writeJson(*cast(uint[]*)(&u)); break;
+            case GetTypeId!(float[]): sink.writeJson(*cast(float[]*)(&u)); break;
+            case GetTypeId!float: sink.writeJson(*cast(float*)(&u)); break;
+            case GetTypeId!string: sink.writeJson(*cast(string*)(&u)); break;
+            case hexStringTag: sink.writeJson(*cast(string*)(&u)); break;
+            case GetTypeId!char: sink.writeJson(*cast(char*)(&u)); break;
+            default: break;
         }
     }
 }

@@ -18,21 +18,15 @@
 
 */
 /**
-  D standard library formatting functions turned out to be
-  too slow for big data processing, while standard C functions
-  are very fast. This module contains set of functions for
-  building strings in memory and outputting them into a file.
+  $(P This module provides fast formatting functions.)
 
-  For outputting to file, FILE* pointers are supported.
-  For building strings in memory, provide char[] array or char*
-  pointer when you're sure that amount of preallocated memory
-  is enough to store string representation.
-
-  In case char* is used, it is passed by reference, and the pointer
-  is updated during string building.
-
-  Use pointer version when it allows you to get better performance,
-  but remember that it's quite dangerous.
+  $(P Each function has two overloads:
+    $(UL
+        $(LI $(D ref char*) - in this case, function starts
+            writing at the location, and updates the pointer.
+            No checks are done, it's user's responsibility that this is safe.)
+        $(LI $(D scope void delegate(const(char)[])) - formatted data 
+            is passed to the delegate for further processing.)))
  */
 module bio.core.utils.format;
 
@@ -41,105 +35,10 @@ import std.c.stdlib;
 import std.string;
 import std.traits;
 import std.array;
-
-/// Used for building a string in a buffer or for outputting to stream.
-size_t append(Args...)(FILE* stream, string format, Args args)
-{
-    auto _format = toStringz(format);
-    return fprintf(stream, _format, args);
-}
-
-/// ditto
-size_t append(Args...)(ref char* stream, string format, Args args) {
-    auto _format = toStringz(format);
-    auto sz = sprintf(stream, _format, args);
-    stream += sz;
-    return sz;
-}
-
-/// ditto
-size_t append(Args...)(ref char[] stream, string format, Args args) 
-{
-    char[1024] buffer;
-    int count;
-
-    auto f = toStringz(format);
-    auto p = buffer.ptr;
-    auto psize = buffer.length;
-    for (;;)
-    {
-        version(Win32)
-        {
-            count = _snprintf(p,psize,f,args);
-            if (count != -1)
-                break;
-            psize *= 2;
-            p = cast(char *) alloca(psize);
-        }
-        version(Posix)
-        {
-            count = snprintf(p,psize,f,args);
-            if (count == -1)
-                psize *= 2;
-            else if (count >= psize)
-                psize = count + 1;
-            else
-                break;
-            p = cast(char *) alloca(psize);
-        }
-    }
-
-    stream ~= p[0 .. count];
-    return count;
-}
-
-/// Put char into a stream
-size_t putcharacter(FILE* stream, char c)
-{
-    fputc(c, stream);    
-    return 1;
-}
-
-/// Append char to a buffer
-size_t putcharacter(ref char[] stream, char c)
-{
-    stream ~= c;
-    return 1;
-}
-
-/// ditto
-size_t putcharacter(ref char* stream, char c) {
-    *stream++ = c;
-    return 1;
-}
-
-/// Append string to output stream.
-size_t putstring(T)(FILE* stream, T[] s) 
-    if (is(Unqual!T == char))
-{
-    fwrite(s.ptr, s.length, char.sizeof, stream);
-    return s.length;
-}
-
-/// Append string to a buffer
-size_t putstring(T)(ref char[] stream, T[] s) 
-    if (is(Unqual!T == char)) 
-{
-    stream ~= s;
-    return s.length;
-}
-
-/// ditto
-size_t putstring(T)(ref char* stream, T[] s) 
-    if (is(Unqual!T == char)) 
-{
-    stream[0 .. s.length] = s;
-    stream += s.length;
-    return s.length;
-}
+import std.math;
 
 private {
-    /// Reverses closed interval [begin .. end]
+    // Reverses closed interval [begin .. end]
     void strreverse(char* begin, char* end)
     {
         char aux;
@@ -147,9 +46,9 @@ private {
             aux = *end, *end-- = *begin, *begin++ = aux;
     }
 
-    /// Prints $(D value) at the address where $(D str) points to.
-    /// Returns number of characters written.
-    auto itoa(T)(T value, char* str)
+    // Prints $(D value) at the address where $(D str) points to.
+    // Returns number of characters written.
+    size_t itoa(T)(T value, char* str)
     {
         char* wstr=str;
 
@@ -173,150 +72,237 @@ private {
     }
 }
 
-
-/// Put integer number into a stream
-size_t putinteger(T)(FILE* stream, T number)
-    if (isIntegral!T)
-{
-    char[64] buf;
-    auto len = itoa(number, buf.ptr);
-    fwrite(buf.ptr, len, char.sizeof, stream);
-    return len;
+///
+template isSomeSink(T) {
+    static if (is(T == void delegate(const(char)[])))
+        enum isSomeSink = true;
+    else static if (is(T == char*))
+        enum isSomeSink = true;
+    else
+        enum isSomeSink = false;
 }
 
-/// Add string representation of an integer to a buffer
-size_t putinteger(T)(ref char[] stream, T number)
-    if (isIntegral!T)
-{
-    char[64] buf;
-    auto len = itoa(number, buf.ptr);
-    stream ~= buf[0 .. len];
-    return len;
-}
-
-/// ditto
-size_t putinteger(T)(ref char* stream, T number) {
-    auto len = itoa(number, stream);
-    stream += len;
-    return len;
-}
-
-unittest {
-    char[] buf;
-    append(buf, "%d%g", 1, 2.4);
-    assert(cast(string)(buf) == "12.4");
-
-    append(buf, "%s", toStringz("k"));
-    assert(cast(string)(buf) == "12.4k");
-
-    auto str = "m";
-    append(buf, "%.*s", str.length, str.ptr);
-    assert(cast(string)(buf) == "12.4km");
-
-    append(buf, "%c%c", '/', 'h');
-    assert(cast(string)(buf) == "12.4km/h");
-
-    ushort k = 5;
-    append(buf, "%d", k);
-    assert(cast(char)(buf[$-1]) == '5');
-
-    buf.length = 0;
-    putstring(buf, "tes");
-    putcharacter(buf, 't');
-
-    uint z = 345;
-    append(buf, "%d", z);
-
-    assert(cast(string)(buf) == "test345");
-
-    buf.length = 0;
-    putinteger(buf, 25);
-    assert(cast(string)(buf) == "25");
-    putinteger(buf, -31);
-    assert(cast(string)(buf) == "25-31");
-
-    char* s = cast(char*)malloc(100);
-    scope(exit) free(s);
-
-    char* p = s;
-    putstring(p, "123");
-    putinteger(p, 456);
-    putcharacter(p, '7');
-    append(p, "%g", 8.9);
-    assert(s[0 .. p - s] == "12345678.9");
-}
-
-void putFloat(T)(scope void delegate(const(char)[]) sink, T number) 
-    if (isFloatingPoint!T)
-{
-    char[1024] buffer = void;
-    int count;
-
-    auto p = buffer.ptr;
-    auto psize = buffer.length;
-    for (;;)
+private {
+    void writeFloat(T)(ref char* sink, T number) 
+        if (isFloatingPoint!T)
     {
-        version(Win32)
+        char[4] format;
+        format[0] = '%';
+        format[1] = 'g';
+        format[2] = '\0';
+        sink += sprintf(sink, format.ptr, number);
+    }
+
+    void writeFloat(T)(scope void delegate(const(char)[]) sink, T number) 
+        if (isFloatingPoint!T)
+    {
+        char[1024] buffer = void;
+        int count;
+
+        auto p = buffer.ptr;
+        auto psize = buffer.length;
+        for (;;)
         {
-            count = _snprintf(p,psize,"%g", cast(double)number);
-            if (count != -1)
-                break;
-            psize *= 2;
-            p = cast(char *) alloca(psize);
-        }
-        version(Posix)
-        {
-            count = snprintf(p,psize,"%g", cast(double)number);
-            if (count == -1)
+            version(Win32)
+            {
+                count = _snprintf(p,psize,"%g", cast(double)number);
+                if (count != -1)
+                    break;
                 psize *= 2;
-            else if (count >= psize)
-                psize = count + 1;
-            else
-                break;
-            p = cast(char *) alloca(psize);
+                p = cast(char *) alloca(psize);
+            }
+            version(Posix)
+            {
+                count = snprintf(p,psize,"%g", cast(double)number);
+                if (count == -1)
+                    psize *= 2;
+                else if (count >= psize)
+                    psize = count + 1;
+                else
+                    break;
+                p = cast(char *) alloca(psize);
+            }
+        }
+
+        sink(p[0 .. count]);
+    }
+
+    void writeInteger(T)(ref char* sink, T integer)
+        if (isIntegral!T)
+    {
+        sink += itoa(integer, sink);
+    }
+
+    void writeInteger(T)(scope void delegate(const(char)[]) sink, T integer) 
+        if (isIntegral!T)
+    {
+        char[32] buf = void;
+        auto len = itoa(integer, buf.ptr);
+        sink(buf[0 .. len]);
+    }
+
+    void writeChar(T)(ref char* sink, T c)
+        if (isSomeChar!T)
+    {
+        *sink++ = c;
+    }
+
+    void writeChar(T)(scope void delegate(const(char)[]) sink, T c) 
+        if (isSomeChar!T)
+    {
+        sink((&c)[0 .. 1]);
+    }
+
+    void writeString(T)(ref char* sink, T s)
+        if (isSomeString!T)
+    {
+        auto str = cast(const(char)[])s;
+        memcpy(sink, str.ptr, str.length);
+        sink += str.length;
+    }
+
+    void writeString(T)(scope void delegate(const(char)[]) sink, T s)
+        if (isSomeString!T)
+    {
+        sink(cast(const(char)[])s);
+    }
+
+    void writeImpl(Sink, T)(auto ref Sink sink, T value) 
+        if (isSomeSink!Sink)
+    {
+        static if (isIntegral!T)
+            writeInteger(sink, value);
+        else static if (isFloatingPoint!T)
+            writeFloat(sink, value);
+        else static if (isSomeChar!T)
+            writeChar(sink, value);
+        else static if (isSomeString!T)
+            writeString(sink, value);
+        else static assert(false, 
+                    "only integers, floats, chars and strings are supported");
+    }
+
+    // -------------------- JSON output utils ----------------------------------
+
+    // JSON doesn't support NaN and +/- infinity.
+    // Therefore the approach taken here is to represent
+    // infinity as 1.0e+1024, and NaN as null.
+    void writeFloatJson(Sink, T)(auto ref Sink sink, T value) 
+        if (isFloatingPoint!T)
+    {
+        if (isFinite(value)) {
+            sink.write(value);
+        } else {
+            if (value == float.infinity) {
+                sink.write("1.0e+1024");
+            } else if (value == -float.infinity) {
+                sink.write("-1.0e+1024");
+            } else if (isNaN(value)) {
+                sink.write("null");
+            } else {
+                assert(0);
+            }
         }
     }
 
-    sink(p[0 .. count]);
+    immutable char[256] specialCharacterTable = [
+    /*   0-15  */    0,0,  0,0,0,0,0,0, 'b','t','n',0, 'f','r',0,  0, 
+    /*  16-31  */    0,0,  0,0,0,0,0,0,   0,  0,  0,0,   0,  0,0,  0,
+    /*  32-47  */    0,0,'"',0,0,0,0,0,   0,  0,  0,0,   0,  0,0,  0, 
+    /*  48-63  */    0,0,  0,0,0,0,0,0,   0,  0,  0,0,   0,  0,0,'/', 
+    /*  64-79  */    0,0,  0,0,0,0,0,0,   0,  0,  0,0,   0,  0,0,  0,
+    /*  80-95  */    0,0,  0,0,0,0,0,0,   0,  0,  0,0,'\\',  0,0,  0, 
+    /*  96-111 */    0,0,  0,0,0,0,0,0,   0,  0,  0,0,   0,  0,0,  0,
+    /* 112-127 */    0,0,  0,0,0,0,0,0,   0,  0,  0,0,   0,  0,0,  0,
+
+                     0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+                     0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+                     0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+                     0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+                     0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+                     0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+                     0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+                     0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0
+    ];
+
+    void writeStringJson(Sink, T)(auto ref Sink sink, T s) 
+        if (isSomeString!T)
+    {
+        sink.write('"');
+        foreach (char c; s) {
+            auto sc = specialCharacterTable[cast(ubyte)c];
+            if (sc == 0) {
+                sink.write(c);
+            } else {
+                sink.write('\\');
+                sink.write(sc);
+            }
+        }
+        sink.write('"');
+    }
+
+    void writeCharJson(Sink, T)(auto ref Sink sink, T c)
+        if (isSomeChar!T)
+    {
+        sink.writeStringJson((&c)[0 .. 1]);
+    }
+
+    void writeArrayJson(Sink, T)(auto ref Sink sink, T array)
+        if (isArray!T && __traits(compiles, sink.writeJson(array[0])))
+    {
+        if (array.length == 0) {
+            sink.write("[]");
+            return;
+        }
+
+        sink.write('[');
+        foreach (elem; array[0 .. $ - 1]) {
+            sink.writeJson(elem);
+            sink.write(',');
+        }
+        sink.writeJson(array[$ - 1]);
+        sink.write(']');
+    }
+
+    void writeJsonImpl(Sink, T)(auto ref Sink sink, T value) 
+        if (isSomeSink!Sink)
+    {
+        static if (isIntegral!T)
+            writeInteger(sink, value);
+        else static if (isFloatingPoint!T)
+            writeFloatJson(sink, value);
+        else static if (isSomeChar!T)
+            writeCharJson(sink, value);
+        else static if (isSomeString!T)
+            writeStringJson(sink, value);
+        else static if (isArray!T && __traits(compiles, sink.writeJsonImpl(value[0])))
+            writeArrayJson(sink, value);
+        else static assert(false, 
+                    "only numbers, chars, strings and arrays are supported");
+    }
 }
 
-void putInteger(T)(scope void delegate(const(char)[]) sink, T integer) 
-    if (isIntegral!T)
-{
-    char[64] buf = void;
-    auto len = itoa(integer, buf.ptr);
-    sink(buf[0 .. len]);
-}
+///
+void write(T)(ref char* sink, T value) { writeImpl(sink, value); }
+///
+void write(T)(scope void delegate(const(char)[]) sink, T value) { writeImpl(sink, value); }
 
-void putChar(T)(scope void delegate(const(char)[]) sink, T c) 
-    if (isSomeChar!T)
-{
-    char[1] buf = void;
-    buf[0] = c;
-    sink(buf[0 .. 1]);
-}
-
-void put(T)(scope void delegate(const(char)[]) sink, T value) {
-    static if (isIntegral!T)
-        putInteger(sink, value);
-    else static if (isFloatingPoint!T)
-        putFloat(sink, value);
-    else static if (isSomeChar!T)
-        putChar(sink, value);
-    else static if (isSomeString!T)
-        sink(cast(const(char)[])value);
-    else static assert(false);
-}
-
-void putArray(T, U)(scope void delegate(const(char)[]) sink, T array, U delimiter)
-    if (isArray!T && (isSomeChar!U || isSomeString!U) && __traits(compiles, put(sink, array[0])))
+///
+void writeArray(Sink, T, U)(auto ref Sink sink, T array, U delimiter)
+    if (isSomeSink!Sink && isArray!T && (isSomeChar!U || isSomeString!U) && 
+        __traits(compiles, sink.write(array[0])))
 {
     if (array.length == 0)
         return;
 
     foreach (elem; array[0 .. $ - 1]) {
-        sink.put(elem);
-        sink.put(delimiter);
+        sink.write(elem);
+        sink.write(delimiter);
     }
-    sink.put(array[$ - 1]);
+    sink.write(array[$ - 1]);
 }
+
+/// Supports numbers, strings, and arrays. No dictionary - because D doesn't have a good one.
+void writeJson(T)(ref char* sink, T value) { writeJsonImpl(sink, value); }
+/// ditto
+void writeJson(T)(scope void delegate(const(char)[]) sink, T value) { writeJsonImpl(sink, value); }

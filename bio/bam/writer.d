@@ -100,7 +100,7 @@ final class BamWriter {
 
     /// Writes SAM header. Should be called after construction.
     void writeSamHeader(bio.sam.header.SamHeader header) {
-        auto text = toSam(header);
+        auto text = header.text;
         writeInteger(cast(int)text.length);
         writeString(text);
     }

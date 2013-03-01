@@ -29,7 +29,6 @@ import bio.bam.validation.samheader;
 import bio.bam.validation.alignment;
 import bio.bam.utils.samheadermerger;
 import bio.sam.utils.recordparser;
-import bio.bam.serialization.sam;
 import bio.core.bgzf.outputstream;
 import bio.core.utils.roundbuf;
 import bio.core.utils.range;
@@ -87,10 +86,7 @@ unittest {
     reads.popFront();
     reads.popFront();
     assert(reads.front.cigarString() == "35M");
-    assert(toSam(reads.front, bf.reference_sequences) == "EAS51_64:3:190:727:308	99	chr1	103	99	35M	=	263	195	GGTGCAGAGCCGAGTCACGGGGTTGCCAGCACAGG	<<<<<<<<<<<<<<<<<<<<<<<<<<<::<<<844	MF:i:18	Aq:i:73	NM:i:0	UQ:i:0	H0:i:1	H1:i:0");
-    foreach (record; bf.reads) {
-        assert(toSam(record, bf.reference_sequences) == to!string(record));
-    }
+    assert(reads.front.to!string() == "EAS51_64:3:190:727:308	99	chr1	103	99	35M	=	263	195	GGTGCAGAGCCGAGTCACGGGGTTGCCAGCACAGG	<<<<<<<<<<<<<<<<<<<<<<<<<<<::<<<844	MF:i:18	Aq:i:73	NM:i:0	UQ:i:0	H0:i:1	H1:i:0");
     assert(bf.header.getSequenceIndex("chr1") == read.ref_id);
     }
 
@@ -109,18 +105,13 @@ unittest {
             name = name[1..$];
         }
         name = name[1..$];
-        string value = toSam(alignment[tag.idup]);
+        auto value = alignment[tag.idup].toSam();
         if (name != value) {
             writeln("tag: ", tag, "\tname: ", name, "\tvalue: ", value);
             writeln("value bam_typeid: ", alignment[tag.idup].bam_typeid);
         }
 
         assert(name == value);
-        auto s1 = toSam(alignment, bf.reference_sequences);
-        auto s2 = to!string(alignment);
-        if (s1 != s2)
-            writeln(s1, "\n", s2);
-        assert(toSam(alignment, bf.reference_sequences) == to!string(alignment));
     }
 
     writeln("Testing exception handling...");
@@ -195,42 +186,42 @@ unittest {
     writeln("Testing Value code...");
     Value v = 5;
     assert(v.is_integer);
-    assert(toSam(v) == "i:5");
+    assert(v.toSam() == "i:5");
     assert(v == 5);
     assert(v == "5");
     assert(v != [1,2,3]);
     v = "abc";
     assert(v.is_string);
-    assert(toSam(v) == "Z:abc");
+    assert(v.toSam() == "Z:abc");
     assert(v == "abc");
     v = [1, 2, 3];
     assert(v.is_numeric_array);
-    assert(toSam(v) == "B:i,1,2,3");
+    assert(v.toSam() == "B:i,1,2,3");
     assert(v == [1,2,3]);
     assert(v == "[1, 2, 3]");
     v = [1.5, 2.3, 17.0];
     assert(v.is_numeric_array);
-    assert(toSam(v) == "B:f,1.5,2.3,17");
+    assert(v.toSam() == "B:f,1.5,2.3,17");
     assert(approxEqual(to!(float[])(v), [1.5, 2.3, 17]));
     v = 5.6;
     assert(v.is_float);
-    assert(toSam(v) == "f:5.6");
+    assert(v.toSam() == "f:5.6");
     assert(approxEqual(to!float(v), 5.6));
     v = -17;
     assert(v.is_signed);
-    assert(toSam(v) == "i:-17");
+    assert(v.toSam() == "i:-17");
     assert(v == -17);
     assert(v == "-17");
     v = 297u;
     assert(v.is_unsigned);
-    assert(toSam(v) == "i:297");
+    assert(v.toSam() == "i:297");
     assert(v == 297);
     assert(v == "297");
 
     short[] array_of_shorts = [4, 5, 6];
     v = array_of_shorts;
     assert(v.is_numeric_array);
-    assert(toSam(v) == "B:s,4,5,6");
+    assert(v.toSam() == "B:s,4,5,6");
     assert(to!(short[])(v) == array_of_shorts);
     assert(v == [4,5,6]);
     assert(v == "[4, 5, 6]");
@@ -243,11 +234,11 @@ unittest {
     assert(v.is_hexadecimal_string);    
     assert(v == "0eabcf123");
 
-    writeln("Test parseAlignmentLine/toSam functions...");
+    writeln("Testing parseAlignmentLine/toSam functions...");
     fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
     bf = new BamReader(fn);
     foreach (read; bf.reads) {
-        auto line = toSam(read, bf.reference_sequences);
+        auto line = read.to!string();
         auto read2 = parseAlignmentLine(line, bf.header);
         if (read != read2) {
             writeln(read.name);
@@ -258,7 +249,7 @@ unittest {
     fn = buildPath(dirName(__FILE__), "data", "tags.bam");
     bf = new BamReader(fn);
     foreach (read; bf.reads) {
-        auto line = toSam(read, bf.reference_sequences);
+        auto line = read.to!string();
         auto read2 = parseAlignmentLine(line, bf.header);
         if (read != read2 && isValid(read)) {
             writeln(read.name);
@@ -266,7 +257,7 @@ unittest {
         assert(read == read2 || !isValid(read));
     }
 
-    writeln("Test BAM writing...");
+    writeln("Testing BAM writing...");
     fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
     bf = new BamReader(fn);
     {
@@ -288,14 +279,11 @@ unittest {
     stream.close();
     }
 
-    writeln("Test SAM reading...");
+    writeln("Testing SAM reading...");
     {
     auto sf = new SamReader(buildPath(dirName(__FILE__), "data", "ex1_header.sam"));
     assert(sf.reads.front.ref_id == 0);
     assert(equal(sf.reads, bf.reads!withoutOffsets));
-    foreach (samread; sf.reads) {
-        assert(to!string(samread) == toSam(samread, sf.reference_sequences));
-    }
     }
 
     writeln("Testing pileup (high-level aspects)...");

@@ -57,11 +57,6 @@ import bio.core.utils.switchendianness;
 
 import bio.bam.thirdparty.msgpack : Packer, unpack;
 
-version(unittest) {
-    import bio.bam.utils.tagstoragebuilder;
-    import std.stdio;
-}
-
 import std.algorithm;
 import std.range;
 import std.conv;
@@ -70,6 +65,7 @@ import std.exception;
 import std.system;
 import std.traits;
 import std.array;
+import std.c.stdlib;
 
 /**
   Represents single CIGAR operation
@@ -145,10 +141,15 @@ struct CigarOperation {
         return ((CIGAR_TYPE >> ((raw & 0xF) * 2)) & 3) == 3;
     }
 
-    ///
+    private void toSam(Sink)(auto ref Sink sink) const 
+        if (isSomeSink!Sink)
+    {
+        sink.write(length);
+        sink.write(type);
+    }
+
     void toString(scope void delegate(const(char)[]) sink) const {
-        sink.putInteger(length);
-        sink.putChar(type);
+        toSam(sink);
     }
 }
 
@@ -466,8 +467,6 @@ struct BamRead {
     /// Sets query sequence. Sets all base qualities to 255 (i.e. unknown).
     @property void sequence(string seq) 
     {
-        enforce(seq.length >= 1 && seq.length <= 255, "Sequence length must be in range 1-255");
-
         _dup();
 
         auto raw_length = (seq.length + 1) / 2;
@@ -709,70 +708,172 @@ struct BamRead {
         }
     }
 
-    ///
-    void toString(scope void delegate(const(char)[]) sink) const {
-        sink(name);
-        sink.putChar('\t');
-        sink.putInteger(flag);
-        sink.putChar('\t');
+    /// String representation.
+    /// $(BR)
+    /// Possible formats are SAM ("%s") and JSON ("%j")
+    void toString(scope void delegate(const(char)[]) sink, FormatSpec!char fmt) const {
+        if (size_in_bytes < 10000 && fmt.spec == 's') {
+            auto p = cast(char*)alloca(size_in_bytes * 5);
+            char* end = p;
+            toSam(end);
+            sink(p[0 .. end - p]);
+        } else if (size_in_bytes < 5000 && fmt.spec == 'j') {
+            auto p = cast(char*)alloca(size_in_bytes * 10 + 1000);
+            char* end = p;
+            toJson(end);
+            sink(p[0 .. end - p]);
+        } else if (fmt.spec == 's') {
+            toSam(sink);
+        } else if (fmt.spec == 'j') {
+            toJson(sink);
+        } else {
+            throw new FormatException("unknown format specifier");
+        }
+    }
+    
+    /// ditto
+    void toSam(Sink)(auto ref Sink sink) const 
+        if (isSomeSink!Sink)
+    {
+        sink.write(name);
+        sink.write('\t');
+        sink.write(flag);
+        sink.write('\t');
         if (ref_id == -1 || _reader is null)
-            sink.putChar('*');
+            sink.write('*');
         else
-            sink(_reader.reference_sequences[ref_id].name);
+            sink.write(_reader.reference_sequences[ref_id].name);
 
-        sink.putChar('\t');
-        sink.putInteger(position + 1);
-        sink.putChar('\t');
-        sink.putInteger(mapping_quality);
-        sink.putChar('\t');
+        sink.write('\t');
+        sink.write(position + 1);
+        sink.write('\t');
+        sink.write(mapping_quality);
+        sink.write('\t');
 
         if (cigar.length == 0)
-            sink.putChar('*');
+            sink.write('*');
         else
             foreach (op; cigar)
-                op.toString(sink);
+                op.toSam(sink);
 
-        sink.putChar('\t');
+        sink.write('\t');
 
         if (mate_ref_id == ref_id) {
             if (mate_ref_id == -1)
-                sink("*\t");
+                sink.write("*\t");
             else
-                sink("=\t");
+                sink.write("=\t");
         } else {
             if (mate_ref_id == -1 || _reader is null) {
-                sink("*\t");
+                sink.write("*\t");
             } else {
                 auto mate_name = _reader.reference_sequences[mate_ref_id].name;
-                sink(mate_name);
-                sink("\t");
+                sink.write(mate_name);
+                sink.write("\t");
             }
         }
 
-        sink.putInteger(mate_position + 1);
-        sink.putChar('\t');
-        sink.putInteger(template_length);
-        sink.putChar('\t');
+        sink.write(mate_position + 1);
+        sink.write('\t');
+        sink.write(template_length);
+        sink.write('\t');
 
         if (sequence_length == 0)
-            sink.putChar('*');
+            sink.write('*');
         else
             foreach (char c; sequence)
-                sink.putChar(c);
-        sink.putChar('\t');
+                sink.write(c);
+        sink.write('\t');
 
         if (base_qualities.length == 0 || base_qualities[0] == 0xFF)
-            sink.putChar('*');
+            sink.write('*');
         else
             foreach (qual; base_qualities)
-                sink.putChar(cast(char)(qual + 33));
+                sink.write(cast(char)(qual + 33));
 
         foreach (k, v; this) {
-            sink.putChar('\t');
-            sink(k);
-            sink.putChar(':');
-            v.formatSam(sink);
+            sink.write('\t');
+            sink.write(k);
+            sink.write(':');
+            v.toSam(sink);
         }
+    }
+
+    /// ditto
+    string toSam()() const {
+        return to!string(this);
+    }
+
+    /// JSON representation
+    void toJson(Sink)(auto ref Sink sink) const
+        if (isSomeSink!Sink)
+    {
+        sink.write(`{"qname":`); sink.writeJson(name);
+        sink.write(`,"flag":`); sink.write(flag);
+
+        sink.write(`,"rname":`);
+        if (ref_id == -1 || _reader is null)
+            sink.write(`"*"`);
+        else
+            sink.writeJson(_reader.reference_sequences[ref_id].name);
+
+        sink.write(`,"pos":`); sink.write(position + 1);
+        sink.write(`,"mapq":`); sink.write(mapping_quality);
+
+        sink.write(`,"cigar":"`);
+        if (cigar.empty)
+            sink.write('*');
+        else
+            foreach (op; cigar)
+                op.toSam(sink);
+        sink.write('"');
+
+        sink.write(`,"rnext":`);
+        if (mate_ref_id == ref_id) {
+            if (mate_ref_id == -1)
+                sink.write(`"*"`);
+            else
+                sink.write(`"="`);
+        } else if (mate_ref_id == -1 || _reader is null) {
+            sink.write(`"*"`);
+        } else {
+            sink.writeJson(_reader.reference_sequences[mate_ref_id].name);
+        }
+        
+        sink.write(`,"pnext":`); sink.write(mate_position + 1);
+        sink.write(`,"tlen":`); sink.write(template_length);
+     
+        sink.write(`,"seq":"`);
+        if (sequence_length == 0)
+            sink.write('*');
+        else
+            foreach (char c; sequence)
+                sink.write(c);
+        sink.write('"');
+
+        sink.write(`,"qual":`);
+        sink.writeJson(base_qualities);
+
+        sink.write(`,"tags":{`);
+   
+        bool not_first = false;
+        foreach (k, v; this) {
+            if (not_first)
+                sink.write(',');
+            sink.writeJson(k);
+            sink.write(':');
+            v.toJson(sink);
+            not_first = true;
+        }
+
+        sink.write("}}");
+    }
+
+    /// ditto
+    string toJson()() const {
+        auto w = appender!(char[])();
+        toJson((const(char)[] s) { w.put(s); });
+        return cast(string)w.data;
     }
 
     /// Associates read with BAM reader. This is done automatically
@@ -1227,6 +1328,8 @@ mixin template TagStorage() {
 }
 
 unittest {
+
+    import bio.bam.utils.tagstoragebuilder;
     import std.algorithm;
     import std.stdio;
     import std.math;

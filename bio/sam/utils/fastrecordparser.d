@@ -4102,7 +4102,6 @@ unittest {
     assert(to!char(alignment["XT"]) == 'U');
 
     import std.stdio;
-    import bio.bam.serialization.sam;
     import bio.bam.reference;
 
     auto info = ReferenceSequenceInfo("20", 1234567);
