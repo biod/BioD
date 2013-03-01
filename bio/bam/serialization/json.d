@@ -169,7 +169,7 @@ void jsonSerialize(S)(const(Value) v, ref S stream) {
 /// -------------
 /// toJson(alignment, bam.reference_sequences);
 /// -------------
-string toJson(BamRead alignment, ReferenceSequenceInfo[] info) {
+string toJson(BamRead alignment, const(ReferenceSequenceInfo)[] info) {
     char[] buf;
     buf.reserve(512);
     jsonSerialize(alignment, info, buf);
@@ -178,7 +178,7 @@ string toJson(BamRead alignment, ReferenceSequenceInfo[] info) {
 
 /// Serialize $(D alignment) to FILE* or append it to char[]/char* 
 /// (in char* case it's your responsibility to allocate enough memory)
-void jsonSerialize(S)(BamRead alignment, ReferenceSequenceInfo[] info, ref S stream) 
+void jsonSerialize(S)(BamRead alignment, const(ReferenceSequenceInfo)[] info, ref S stream) 
     if (is(Unqual!S == FILE*) || is(Unqual!S == char*) || is(Unqual!S == char[]))
 {
 
