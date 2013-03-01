@@ -1,7 +1,9 @@
 module bio.core.utils.stream;
 
 public import std.stream;
-private import core.stdc.stdio;
+import core.stdc.stdio;
+import core.stdc.errno;
+import core.sys.posix.sys.select;
 
 version(Posix){
     private import core.sys.posix.unistd;
@@ -64,4 +66,43 @@ final class File: std.stream.File {
         readEOF = false;
         return cast(ulong)result;
       }
+
+    override size_t readBlock(void* buffer, size_t size) {
+        assertReadable();
+        auto hFile = handle();
+        version (Windows) {
+            auto dwSize = to!DWORD(size);
+            ReadFile(hFile, buffer, dwSize, &dwSize, null);
+            size = dwSize;
+        } else version (Posix) {
+            // http://developerweb.net/viewtopic.php?id=4267
+            fd_set rset;
+            timeval timeout;
+            immutable MAX_IDLE_SECS = 1;
+            while (true) {
+                auto ret = core.sys.posix.unistd.read(hFile, buffer, size);
+                if (ret == -1) {
+                    if (errno == EINTR)
+                        continue;
+
+                    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                        FD_ZERO(&rset);
+                        FD_SET(hFile, &rset);
+                        timeout.tv_sec = MAX_IDLE_SECS;
+                        timeout.tv_usec = 0;
+                        ret = select(hFile + 1, &rset, null, null, &timeout);
+                        if (ret <= 0) {
+                            size = 0;
+                            break;
+                        }
+                    }
+                } else {
+                    size = ret;
+                    break;
+                }
+            }
+        }
+        readEOF = (size == 0);
+        return size;
+    }
 }
