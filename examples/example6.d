@@ -2,7 +2,7 @@
 
 // this example shows how to create BAM files from scratch
 import bio.bam.read, bio.bam.referenceinfo, bio.sam.header;
-import bio.bam.reader, bio.bam.writer, bio.bam.serialization.sam;
+import bio.bam.reader, bio.bam.writer;
 import std.stream, std.stdio;
 
 void main() {
@@ -33,6 +33,6 @@ void main() {
     stream.seekSet(0); // but here we will read from the stream
 
     auto reader = new BamReader(stream);
-    write(reader.header.toSam()); // serialized header already contains newline
-    writeln(toSam(reader.reads.front, [reference]));
+    write(reader.header.text); // serialized header already contains newline
+    writefln("%j", reader.reads.front); // prints record in JSON format
 }
