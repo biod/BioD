@@ -24,6 +24,8 @@ import bio.core.utils.format;
 
 import std.algorithm;
 import std.conv;
+import std.format;
+import std.json;
 import std.exception;
 import std.array;
 import std.range;
@@ -526,19 +528,23 @@ class SamHeader {
         return sequences.getSequence(index);
     }
 
-    /// Get header text representation
+    /// Get header text representation in SAM format (includes trailing '\n')
     string text() @property {
         return to!string(this);
     }
 
-    /// ditto
-    void toString(scope void delegate(const(char)[]) sink) {
-        toSam(sink);
+    /// Header text representation in SAM ("%s") or JSON format ("%j").
+    /// $(BR)
+    /// Includes trailing '\n'.
+    void toString(scope void delegate(const(char)[]) sink, FormatSpec!char fmt) {
+        if (fmt.spec == 's')
+            toSam(sink);
+        else if (fmt.spec == 'j')
+            toJson(sink);
+        else
+            throw new FormatException("unknown format specifier");
     }
 
-    /// Serializes $(D header) to $(D sink).
-    /// $(BR)
-    /// Includes trailing '\n'
     void toSam(Sink)(auto ref Sink sink) if (isSomeSink!Sink) {
         sink.write("@HD\tVN:");
         sink.write(format_version);
@@ -569,6 +575,83 @@ class SamHeader {
             sink.write(comment);
             sink.write('\n');
         }
+    }
+
+    void toJson(Sink)(auto ref Sink sink) if (isSomeSink!Sink) {
+        static JSONValue jv(T)(T value) {
+            JSONValue v;
+            static if(is(T == string)) {
+                v.str = value;
+                v.type = JSON_TYPE.STRING;
+            } else static if(is(T == uint)) {
+                v.integer = value;
+                v.type = JSON_TYPE.INTEGER;
+            }
+            return v;
+        }
+
+        JSONValue result;
+        result.type = JSON_TYPE.OBJECT;
+
+        result.object["format_version"] = jv(format_version);
+
+        if (sorting_order != SortingOrder.unknown) {
+            result.object["sorting_order"] = jv(to!string(sorting_order));
+        }
+
+        JSONValue tmp;
+        tmp.type = JSON_TYPE.ARRAY;
+        tmp.array = new JSONValue[sequences.length];
+
+        for (auto i = 0; i < sequences.length; i++) {
+            auto line = getSequence(i);
+            JSONValue sq;
+            sq.type = JSON_TYPE.OBJECT;
+            sq.object["sequence_name"] = jv(line.name);
+            sq.object["sequence_length"] = jv(line.length);
+            sq.object["assembly"] = jv(line.assembly);
+            sq.object["md5"] = jv(line.md5);
+            sq.object["species"] = jv(line.species);
+            sq.object["uri"] = jv(line.uri);
+            tmp.array[i] = sq;
+        }
+        result.object["sq_lines"] = tmp;
+
+        tmp.array = new JSONValue[read_groups.length];
+        size_t i = 0;
+        foreach (line; read_groups) {
+            JSONValue sq;
+            sq.type = JSON_TYPE.OBJECT;
+            sq.object["identifier"] = jv(line.identifier);
+            sq.object["sequencing_center"] = jv(line.sequencing_center);
+            sq.object["description"] = jv(line.description);
+            sq.object["date"] = jv(line.date);
+            sq.object["flow_order"] = jv(line.flow_order);
+            sq.object["key_sequence"] = jv(line.key_sequence);
+            sq.object["library"] = jv(line.library);
+            sq.object["programs"] = jv(line.programs);
+            sq.object["predicted_insert_size"] = jv(line.predicted_insert_size);
+            sq.object["platform"] = jv(line.platform);
+            sq.object["platform_unit"] = jv(line.platform_unit);
+            sq.object["sample"] = jv(line.sample);
+            tmp.array[i++] = sq;
+        }
+        result.object["rg_lines"] = tmp;
+
+        tmp.array = new JSONValue[programs.length];
+        i = 0;
+        foreach (line; programs) {
+            JSONValue sq;
+            sq.type = JSON_TYPE.OBJECT;
+            sq.object["identifier"] = jv(line.identifier);
+            sq.object["program_name"] = jv(line.name);
+            sq.object["command_line"] = jv(line.command_line);
+            sq.object["previous_program"] = jv(line.previous_program);
+            sq.object["program_version"] = jv(line.program_version);
+            tmp.array[i++] = sq;
+        }
+        result.object["pg_lines"] = tmp;
+        sink.write(toJSON(&result));
     }
 }
 
