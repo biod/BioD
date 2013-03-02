@@ -367,6 +367,17 @@ class HeaderLineDictionary(T) {
     }
 
     ///
+    int opApply(scope int delegate(T line) dg) const {
+        foreach (size_t i; 0 .. _dict.length) {
+            auto res = dg(_dict[_index_to_id[i]]);
+            if (res != 0) {
+                return res;
+            }
+        }
+        return 0;
+    }
+
+    ///
     int opApply(scope int delegate(ref size_t index, ref T line) dg) {
         foreach (size_t i; 0 .. _dict.length) {
             auto res = dg(i, _dict[_index_to_id[i]]);
@@ -407,7 +418,7 @@ class HeaderLineDictionary(T) {
 final class SqLineDictionary : HeaderLineDictionary!SqLine
 {
     ///
-    SqLine getSequence(size_t index) {
+    SqLine getSequence(size_t index) const {
         return _dict[_index_to_id[index]];
     }
 
@@ -652,6 +663,32 @@ class SamHeader {
         }
         result.object["pg_lines"] = tmp;
         sink.write(toJSON(&result));
+    }
+
+    /// Packs message in the following format:
+    /// $(BR)
+    /// MsgPack array with elements
+    ///   $(OL 
+    ///     $(LI format version - string)
+    ///     $(LI sorting order - string)
+    ///     $(LI @SQ lines - array of dictionaries)
+    ///     $(LI @RG lines - array of dictionaries)
+    ///     $(LI @PG lines - array of dictionaries))
+    /// $(BR)
+    /// Dictionary keys are the same as in SAM format.
+    void toMsgpack(Packer)(ref Packer packer) const {
+        packer.beginArray(5);
+        packer.pack(format_version);
+        packer.pack(to!string(sorting_order));
+        packer.beginArray(sequences.length);
+        foreach (sq; sequences)
+            packer.pack(sq);
+        packer.beginArray(read_groups.length);
+        foreach (rg; read_groups)
+            packer.pack(rg);
+        packer.beginArray(programs.length);
+        foreach (pg; programs)
+            packer.pack(pg);
     }
 }
 
