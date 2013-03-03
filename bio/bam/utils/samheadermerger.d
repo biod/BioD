@@ -37,14 +37,13 @@ import bio.bam.utils.graph;
 class SamHeaderMerger {
 
     /// Takes array of SAM headers as an input.
-    ///
-    /// WARNING: merger might modify the passed array for better performance.
     this(SamHeader[] headers, bool validate_headers=false) {
         _headers = headers;
         _len = _headers.length;
 
         merged_header = new SamHeader();
         ref_id_map = new size_t[size_t][_len];
+        ref_id_reverse_map = new size_t[size_t][_len];
         program_id_map = new string[string][_len];
         readgroup_id_map = new string[string][_len];
 
@@ -86,10 +85,13 @@ class SamHeaderMerger {
     /// the same for program record identifiers
     string[string][] program_id_map;
 
+    /// Map: index of SamHeader in input array of headers -> new refID -> old refID
+    size_t[size_t][] ref_id_reverse_map;
+
 private:
 
     // NOTE FOR DEVELOPER:
-    // for more info on what's going on here, read comments in CLItools/sambamba-merge/merge.d
+    // for more info on what's going on here, read comments in sambamba/sambamba/merge.d
 
     SamHeader[] _headers;
     size_t _len; // number of headers
@@ -137,11 +139,12 @@ private:
             merged_header.sequences.add(dict[v]);
         }
 
-        // make mapping
+        // make mappings
         foreach (size_t i, header; _headers) {
             foreach (size_t j, SqLine sq; header.sequences) {
                 auto new_index = merged_header.sequences.getSequenceIndex(sq.name);
                 ref_id_map[i][j] = to!size_t(new_index);
+                ref_id_reverse_map[i][to!size_t(new_index)] = j;
             }
         }
     }

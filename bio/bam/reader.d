@@ -116,12 +116,16 @@ class BamReader : IBamSamReader {
     }
 
     /// ditto
-    this(string filename, 
-         std.parallelism.TaskPool task_pool = std.parallelism.taskPool) {
+    this(string filename, std.parallelism.TaskPool task_pool) {
 
         _filename = filename;
         _source_stream = getNativeEndianSourceStream();
         this(_source_stream, task_pool);
+    }
+
+    /// ditto
+    this(string filename) {
+        this(filename, std.parallelism.taskPool);
     }
  
     /**
