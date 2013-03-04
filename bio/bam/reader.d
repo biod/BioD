@@ -309,7 +309,7 @@ class BamReader : IBamSamReader {
         enforce(from < to, "First offset must be strictly less than second");
         enforce(_stream_is_seekable, "Stream is not seekable");
         
-        return _random_access_manager.getReadsBetween(from, to, _task_pool);
+        return _random_access_manager.getReadsBetween(from, to);
     }
 
     /**
@@ -413,6 +413,8 @@ private:
                 } else {
                     _rndaccssmgr = new RandomAccessManager(this);
                 }
+
+                _rndaccssmgr.setTaskPool(_task_pool);
             }
         }
         return _rndaccssmgr;

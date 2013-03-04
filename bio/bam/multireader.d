@@ -24,10 +24,11 @@ import bio.bam.reader;
 import bio.bam.read;
 import bio.bam.referenceinfo;
 import bio.bam.utils.samheadermerger;
-import bio.core.utils.range;
 
 import std.algorithm;
 import std.range;
+import std.conv;
+import std.parallelism;
 import std.array;
 import std.exception;
 import std.typecons;
@@ -150,6 +151,11 @@ class MultiBamReader {
     }
 
     ///
+    this(string[] filenames, std.parallelism.TaskPool task_pool = taskPool) {
+        this(filenames.map!(fn => new BamReader(fn, task_pool)).array());
+    }
+
+    ///
     BamReader[] readers() @property {
         return _readers;
     }
@@ -204,6 +210,7 @@ class MultiBamReader {
     }
 }
 
+///
 struct MultiBamReference {
     private {
         BamReader[] _readers;
