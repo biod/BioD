@@ -104,6 +104,10 @@ class RandomAccessManager {
         _task_pool = task_pool;
     }
 
+    void setBufferSize(size_t buffer_size) {
+        _buffer_size = buffer_size;
+    }
+
     /// Constructs new manager for BAM file
     this(string filename) {
         _filename = filename;
@@ -262,9 +266,6 @@ class RandomAccessManager {
 
     /// Fetch alignments with given reference sequence id, overlapping [beg..end)
     auto getReads(alias IteratePolicy=withOffsets)(int ref_id, uint beg, uint end) {
-        auto _stream = new bio.core.utils.stream.File(_filename);
-        Stream _compressed_stream = new EndianStream(_stream, Endian.littleEndian);
-
         auto chunks = array(nonOverlappingChunks(getChunks(ref_id, beg, end)));
 
         debug {
@@ -310,6 +311,7 @@ private:
     BaiFile _bai;
     BamReader _reader;
     TaskPool _task_pool;
+    size_t _buffer_size;
 
     TaskPool task_pool() @property {
         if (_task_pool is null)
@@ -321,26 +323,47 @@ public:
 
     // Let's implement the plan described above!
 
-    // (1) : Chunk -> [BgzfBlock]
-    auto chunkToBgzfRange(Chunk chunk) {
-        // FIXME: we shouldn't create new stream for each chunk!
-        auto stream = new bio.core.utils.stream.File(_filename);
-
-        stream.seekSet(cast(size_t)chunk.beg.coffset);
-
+    // (1) : (Chunk, Stream) -> [BgzfBlock]
+    static struct ChunkToBgzfRange {
         static bool offsetTooBig(BgzfBlock block, ulong offset) {
             return block.start_offset > offset;
         }
 
-        return until!offsetTooBig(BgzfRange(stream), chunk.end.coffset);
+        private {
+            Chunk _chunk;
+            Stream _stream;
+            bool _init = false;
+            Until!(offsetTooBig, BgzfRange, ulong) _range;
+        }
+
+        this(Chunk chunk, Stream stream) {
+            _chunk = chunk;
+            _stream = stream;
+        }
+
+        auto front() @property { init(); return _range.front; }
+        void popFront() { init(); _range.popFront(); }
+        bool empty() @property { init(); return _range.empty; }
+
+        private void init() {
+            if (!_init) {
+                _stream.seekSet(cast(size_t)_chunk.beg.coffset);
+                _range = until!offsetTooBig(BgzfRange(_stream), 
+                                            _chunk.end.coffset);
+                _init = true;
+            }
+        }
     }
 
     // (2) : Chunk[] -> [BgzfBlock]
     auto getJoinedBgzfRange(Chunk[] bai_chunks) {
-        ReturnType!chunkToBgzfRange[] bgzf_ranges;
+        Stream file = new bio.core.utils.stream.File(_filename);
+        Stream stream = new BufferedStream(file, _buffer_size);
+
+        ChunkToBgzfRange[] bgzf_ranges;
         bgzf_ranges.length = bai_chunks.length;
         foreach (i, ref range; bgzf_ranges) {
-            range = chunkToBgzfRange(bai_chunks[i]);
+            range = ChunkToBgzfRange(bai_chunks[i], stream);
         }
         auto bgzf_blocks = joiner(bgzf_ranges);
         return bgzf_blocks;

@@ -49,6 +49,7 @@ public import bio.bam.tagvalue;
 public import bio.bam.readrange;
 import bio.bam.randomaccessmanager;
 import bio.bam.baifile;
+import bio.bam.bai.indexing;
 import bio.core.utils.range;
 import bio.core.utils.stream;
 public import bio.core.bgzf.blockrange;
@@ -58,11 +59,11 @@ public import bio.core.bgzf.virtualoffset;
 import std.system;
 import std.stdio;
 import std.algorithm;
-import std.range : zip;
-import std.conv : to;
-import std.exception : enforce;
+import std.range;
+import std.conv;
+import std.exception;
 import std.parallelism;
-import std.array : uninitializedArray;
+import std.array;
 import core.stdc.stdio;
 import std.string;
 
@@ -140,6 +141,19 @@ class BamReader : IBamSamReader {
      */
     bool has_index() @property {
         return _random_access_manager.found_index_file;
+    }
+
+    /**
+      Creates BAI file. If $(I overwrite) is false, it won't touch
+      existing index if it is already found.
+     */
+    void createIndex(bool overwrite = false) {
+        if (has_index && !overwrite)
+            return;
+        Stream stream = new BufferedFile(filename ~ ".bai", FileMode.OutNew);
+        scope(exit) stream.close();
+        bio.bam.bai.indexing.createIndex(this, stream);
+        _bai_status = BaiStatus.notInitialized;
     }
 
     /** Filename, if the object was created via file name constructor,
@@ -357,13 +371,15 @@ class BamReader : IBamSamReader {
     }
 
     /**
-      Set buffer size for I/O operations. 
+      Set buffer size for I/O operations. Values less than 4096 are disallowed.
       $(BR)
       This can help in multithreaded applications when several files are read 
       simultaneously (e.g. merging).
      */
     void setBufferSize(size_t buffer_size) {
-        this.buffer_size = buffer_size;
+        enforce(buffer_size >= 4096, "Buffer size must be >= 4096 bytes");
+        _buffer_size = buffer_size;
+        _random_access_manager.setBufferSize(buffer_size);
     }
 
 private:
@@ -415,6 +431,7 @@ private:
                 }
 
                 _rndaccssmgr.setTaskPool(_task_pool);
+                _rndaccssmgr.setBufferSize(_buffer_size);
             }
         }
         return _rndaccssmgr;
@@ -426,11 +443,12 @@ private:
     int[string] _reference_sequence_dict; /// name -> index mapping
 
     TaskPool _task_pool;
-    size_t buffer_size = 8192; // buffer size to be used for I/O
+    size_t _buffer_size = 8192; // buffer size to be used for I/O
 
     Stream getNativeEndianSourceStream() {
         assert(_filename !is null);
-        return new bio.core.utils.stream.File(_filename);
+        Stream file = new bio.core.utils.stream.File(_filename);
+        return new BufferedStream(file, _buffer_size);
     }
 
     Stream getSeekableCompressedStream() {

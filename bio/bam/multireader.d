@@ -79,14 +79,20 @@ auto readRanges(BamReader[] readers, SamHeaderMerger merger,
 }
 
 // tweaks RG and PG tags, and reference sequence ID
-// [(BamRead, SamHeaderMerger, size_t)] -> [BamRead]
 // [[(BamRead, SamHeaderMerger, size_t)]] -> [[BamRead]]
-auto adjustTags(R)(R reads_with_aux_info) if (isInputRange!R) {
-    return map!adjustTags1(reads_with_aux_info).array();
+auto adjustTags(R)(R reads_with_aux_info, TaskPool pool, size_t bufsize) 
+    if (isInputRange!R) 
+{
+    static auto adj(U)(U tpl) { return adjustTags1(tpl[0], tpl[1], tpl[2]); }
+    return reads_with_aux_info.zip(repeat(pool), repeat(bufsize))
+                              .map!adj().array();
 }
 
-auto adjustTags1(R)(R reads_with_aux_info) if (isInputRange!R) {
-    return map!adjustTags(reads_with_aux_info);
+// [(BamRead, SamHeaderMerger, size_t)] -> [BamRead]
+auto adjustTags1(R)(R reads_with_aux_info, TaskPool pool, size_t bufsize) 
+    if (isInputRange!R) 
+{
+    return pool.map!adjustTags(reads_with_aux_info, bufsize);
 }
 
 // (BamRead, SamHeaderMerger, size_t) -> (BamRead, SamHeaderMerger)
@@ -143,6 +149,9 @@ class MultiBamReader {
             _reference_sequences[i] = ReferenceSequenceInfo(line.name, line.length);
             _reference_sequence_dict[line.name] = i++;
         } 
+
+        // TODO: maybe try to guess optimal size, based on the number of files?
+        setBufferSize(1_048_576);
     }
 
     ///
@@ -152,7 +161,8 @@ class MultiBamReader {
 
     ///
     this(string[] filenames, std.parallelism.TaskPool task_pool = taskPool) {
-        this(filenames.map!(fn => new BamReader(fn, task_pool)).array());
+        this(filenames.zip(repeat(task_pool))
+                      .map!(fn => new BamReader(fn[0], fn[1])).array());
     }
 
     ///
@@ -167,7 +177,8 @@ class MultiBamReader {
 
     ///
     auto reads() @property {
-        return readRanges(_readers, _merger).adjustTags().nWayUnion!compare();
+        return readRanges(_readers, _merger).adjustTags(task_pool, _adj_bufsz)
+                                            .nWayUnion!compare().map!"a[0]"();
     }
 
     ///
@@ -188,7 +199,7 @@ class MultiBamReader {
     MultiBamReference reference(int ref_id) {
         enforce(ref_id >= 0, "Invalid reference index");
         enforce(ref_id < _reference_sequences.length, "Invalid reference index");
-        return MultiBamReference(_readers, _merger, 
+        return MultiBamReference(_readers, _merger, task_pool, _adj_bufsz,
                                  _reference_sequences[ref_id], ref_id);
     }
 
@@ -202,11 +213,25 @@ class MultiBamReader {
         return reference(ref_id);
     }
 
+    /// Sets buffer size for all readers (default is 1MB)
+    void setBufferSize(size_t bytes) {
+        foreach (reader; _readers)
+            reader.setBufferSize(bytes);
+    }
+
     private {
         BamReader[] _readers;
         SamHeaderMerger _merger;
         ReferenceSequenceInfo[] _reference_sequences;
         size_t[string] _reference_sequence_dict;
+        TaskPool _task_pool;
+        TaskPool task_pool() @property {
+            if (_task_pool is null)
+                _task_pool = taskPool;
+            return _task_pool;
+        }
+
+        size_t _adj_bufsz = 512;
     }
 }
 
@@ -217,13 +242,18 @@ struct MultiBamReference {
         SamHeaderMerger _merger;
         int _ref_id;
         ReferenceSequenceInfo _info;
+        TaskPool _pool;
+        size_t _adj_bufsz;
     }
 
     this(BamReader[] readers, SamHeaderMerger merger, 
+         TaskPool task_pool, size_t adj_bufsize,
          ReferenceSequenceInfo info, int ref_id) 
     {
         _readers = readers;
         _merger = merger;
+        _pool = task_pool;
+        _adj_bufsz = adj_bufsize;
         _ref_id = ref_id;
         _info = info;
     }
@@ -243,7 +273,8 @@ struct MultiBamReference {
     auto opSlice(uint start, uint end) {
         enforce(start < end, "start must be less than end");
         auto ranges = readRanges(_readers, _merger, ref_id, start, end);
-        return ranges.adjustTags().nWayUnion!compare();
+        return ranges.adjustTags(_pool, _adj_bufsz)
+                     .nWayUnion!compare().map!"a[0]"();
     }
 
     ///
