@@ -127,7 +127,7 @@ final class BamWriter {
 
     /// Writes BAM read. Throws exception if read reference ID is out of range.
     void writeRecord(R)(R read) {
-        enforce(read.ref_id < _reference_sequences.length,
+        enforce(read.ref_id == -1 || read.ref_id < _reference_sequences.length,
                 "Read reference ID is out of range");
 
         auto read_size = read.size_in_bytes;
