@@ -221,6 +221,43 @@ class BamReader : IBamSamReader {
         return bamReadRange!IteratePolicy(_decompressed_stream, this);
     }
 
+    static struct ReadsWithProgressResult(alias IteratePolicy, R, S) {
+        this(R range, S stream, void delegate(lazy float p) progressBarFunc) {
+            _range = range;
+            _stream = stream;
+            _progress_bar_func = progressBarFunc;
+        }
+
+        static if (__traits(identifier, IteratePolicy) == "withOffsets") {
+            auto front() @property {
+                return _range.front;
+            } 
+        } else static if (__traits(identifier, IteratePolicy) == "withoutOffsets") {
+            auto front() @property {
+                return _range.front.read;
+            }
+        } else static assert(0, __traits(identifier, IteratePolicy));
+
+        bool empty() @property {
+            return _range.empty;
+        }
+
+        void popFront() {
+            _bytes_read += _range.front.read.size_in_bytes;
+            _range.popFront();
+            if (_progress_bar_func !is null) {
+                _progress_bar_func(min(1.0, 
+                    cast(float)_bytes_read / (_stream.compressed_file_size * 
+                                              _stream.average_compression_ratio)));
+            }
+        }
+
+        private R _range;
+        private S _stream;
+        private size_t _bytes_read;
+        private void delegate(lazy float p) _progress_bar_func;
+    }
+
     /**
         Returns: range of all reads in the file, calling $(I progressBarFunc)
                  for each read. 
@@ -251,49 +288,11 @@ class BamReader : IBamSamReader {
     {
         auto _decompressed_stream = getDecompressedBamReadStream();
         auto reads_with_offsets = bamReadRange!withOffsets(_decompressed_stream, this);
-
-        static struct Result(alias IteratePolicy, R, S) {
-            this(R range, S stream, void delegate(lazy float p) progressBarFunc) {
-                _range = range;
-                _stream = stream;
-                _progress_bar_func = progressBarFunc;
-            }
-
-            static if (__traits(identifier, IteratePolicy) == "withOffsets") {
-                auto front() @property {
-                    return _range.front;
-                } 
-            } else static if (__traits(identifier, IteratePolicy) == "withoutOffsets") {
-                auto front() @property {
-                    return _range.front.read;
-                }
-            } else static assert(0, __traits(identifier, IteratePolicy));
-
-            bool empty() @property {
-                return _range.empty;
-            }
-
-            void popFront() {
-                _bytes_read += _range.front.read.size_in_bytes;
-                _range.popFront();
-                if (_progress_bar_func !is null) {
-                    _progress_bar_func(min(1.0, 
-                        cast(float)_bytes_read / (_stream.compressed_file_size * 
-                                                  _stream.average_compression_ratio)));
-                }
-            }
-
-            private R _range;
-            private S _stream;
-            private size_t _bytes_read;
-            private void delegate(lazy float p) _progress_bar_func;
-        }
-
-        return Result!(IteratePolicy, 
-                       typeof(reads_with_offsets),
-                       typeof(_decompressed_stream))(reads_with_offsets, 
-                                                     _decompressed_stream,
-                                                     progressBarFunc);
+       
+        alias ReadsWithProgressResult!(IteratePolicy, 
+                       typeof(reads_with_offsets), IChunkInputStream) Result;
+        
+        return Result(reads_with_offsets, _decompressed_stream, progressBarFunc);
     }
 
     /// Part of IBamSamReader interface
