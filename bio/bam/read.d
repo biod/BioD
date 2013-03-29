@@ -297,6 +297,7 @@ struct BamRead {
 
     /// ditto
     @property void cigar(const(CigarOperation)[] c) {
+        enforce(c.length < 65536, "Too many CIGAR operations, must be <= 65535");
         _dup();
         bio.bam.utils.array.replaceSlice(_chunk,
              _chunk[_cigar_offset .. _cigar_offset + _n_cigar_op * CigarOperation.sizeof],
@@ -568,6 +569,7 @@ struct BamRead {
          in CigarOperation[] cigar)                 // to calculate size of _chunk
     {
         enforce(read_name.length < 256, "Too long read name, length must be <= 255");
+        enforce(cigar.length < 65536, "Too many CIGAR operations, must be <= 65535");
 
         if (this._chunk is null) {
             this._chunk = new ubyte[calculateChunkSize(read_name, sequence, cigar)];
