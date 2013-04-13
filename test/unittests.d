@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2013    Artem Tarasov <lomereiter@gmail.com>
 
     BioD is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@ import bio.bam.reader;
 import bio.bam.writer;
 import bio.sam.reader;
 import bio.sam.header;
+import bio.bam.md.core;
 import bio.bam.md.reconstruct;
 import bio.bam.pileup;
 import bio.bam.baseinfo;
@@ -49,6 +50,7 @@ import std.conv;
 import std.exception;
 import std.math;
 import std.typetuple;
+import std.regex;
 
 unittest {
 
@@ -412,6 +414,44 @@ unittest {
             }
         }
     }
+
+    writeln("Testing extended CIGAR conversion...");
+    CigarOperation[] cigarFromString(string cigar) {
+        return match(cigar, regex(`(\d+)([A-Z=])`, "g")).map!(m => CigarOperation(m[1].to!uint, m[2].to!char)).array;
+    }
+
+    auto cigars = ["2M1D7M1D6M1D13M1D5M1D12M2D7M1D10M1D17M1D12M3D23M",
+                   "12M2D9M1D14M1D16M2D7M1D4M1D12M1D9M1D15M1D6M1D14M1S",
+                   "8S13M2I20M2D6M1D11M1D16M2D10M2D4M1D15M1D4M1D4M",
+                   "5M1D3M1D14M1D9M2D15M1D18M1D10M2D22M1I6M1D11M4S",
+                   "1S24M1D8M1D11M2D7M2D8M2D14M1D6M1D28M",
+                   "1S20M1D7M2D8M1D9M1D11M2D12M1D10M1D10M1D5M1D6M1D3M",
+                   "19M1D12M1D8M1D6M1I3M1D28M1D11M1D4M1D9M2D9M1I2M",
+                   "11S9M2D23M1D10M1I4M1D17M2D11M2D11M1D3M1D10M",
+                   "76M8D14M"].map!cigarFromString.array;
+
+    auto md_ops = ["2^G7^G6^T13^C5^G12^AC1T5^G10^T17^A12^TAA0T22",
+                   "6T1A3^TA9^T14^G10A0G4^AT0A6^T4^A12^C9^T15^T6^C14",
+                   "19C1T11^TC1T4^C11^T16^TG0A0C8^CT4^G15^T4^T4",
+                   "5^T3^G8G0T4^T9^AT1A13^T18^A10^AT0G10T1A14^A11",
+                   "24^T8^A11^AT0A6^TA0T7^AG0C13^C6^T9G0C0A16",
+                   "20^G4G2^GC0T7^G9^T11^AT5A6^G10^T10^A5^A6^C3",
+                   "13C0A4^A9A2^T8^C9^C10A0T16^T11^C4^C9^CA0G10",
+                   "9^TT8C0T13^T5A8^C2T14^CA11^TA0T10^T3^A9T0",
+                   "60T14A0^TATGTGTG14"].map!mdOperations.array;
+
+    auto expected = ["2=1D7=1D6=1D13=1D5=1D12=2D1=1X5=1D10=1D17=1D12=3D1X22=",
+                     "6=1X1=1X3=2D9=1D14=1D10=2X4=2D1X6=1D4=1D12=1D9=1D15=1D6=1D14=1S",
+                     "8S13=2I6=1X1=1X11=2D1=1X4=1D11=1D16=2D2X8=2D4=1D15=1D4=1D4=",
+                     "5=1D3=1D8=2X4=1D9=2D1=1X13=1D18=1D10=2D1X10=1X1=1X8=1I6=1D11=4S",
+                     "1S24=1D8=1D11=2D1X6=2D1X7=2D1X13=1D6=1D9=3X16=",
+                     "1S20=1D4=1X2=2D1X7=1D9=1D11=2D5=1X6=1D10=1D10=1D5=1D6=1D3=",
+                     "13=2X4=1D9=1X2=1D8=1D6=1I3=1D10=2X16=1D11=1D4=1D9=2D1X8=1I2=",
+                     "11S9=2D8=2X13=1D5=1X4=1I4=1D2=1X14=2D11=2D1X10=1D3=1D9=1X",
+                     "60=1X14=1X8D14="].map!cigarFromString.array;
+
+    foreach (cigar, md, expected_cigar; zip(cigars, md_ops, expected))
+        assert(makeExtendedCigar(cigar, md).equal(expected_cigar));
 }
 
 void main() {

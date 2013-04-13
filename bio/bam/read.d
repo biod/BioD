@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2013    Artem Tarasov <lomereiter@gmail.com>
 
     BioD is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -50,6 +50,8 @@ import bio.bam.abstractreader;
 import bio.bam.writer;
 import bio.bam.tagvalue;
 import bio.bam.bai.bin;
+
+import bio.bam.md.core;
 
 import bio.bam.utils.array;
 import bio.bam.utils.value;
@@ -151,6 +153,142 @@ struct CigarOperation {
     void toString(scope void delegate(const(char)[]) sink) const {
         toSam(sink);
     }
+}
+
+/// Forward range of extended CIGAR operations, with =/X instead of M
+/// Useful for, e.g., detecting positions of mismatches.
+struct ExtendedCigarRange(CigarOpRange, MdOpRange) {
+    static assert(isInputRange!CigarOpRange && is(Unqual!(ElementType!CigarOpRange) == CigarOperation));
+    static assert(isInputRange!MdOpRange && is(Unqual!(ElementType!MdOpRange) == MdOperation));
+  
+    private {
+        CigarOpRange _cigar;
+        MdOpRange _md_ops;
+        CigarOperation _front_cigar_op;
+        MdOperation _front_md_op;
+        uint _n_mismatches;
+        bool _empty;
+    }
+
+    ///
+    this(CigarOpRange cigar, MdOpRange md_ops) {
+        _cigar = cigar;
+        _md_ops = md_ops;
+        fetchNextCigarOp();
+        fetchNextMdOp();
+    }
+
+    /// Forward range primitives
+    bool empty() @property const {
+        return _empty;
+    }
+
+    /// ditto
+    CigarOperation front() @property {
+        debug {
+            import std.stdio;
+            writeln(_front_cigar_op, " - ", _front_md_op);
+        }
+        
+        if (_front_cigar_op.type != 'M')
+            return _front_cigar_op;
+
+        if (_n_mismatches == 0) {
+            assert(_front_md_op.is_match);
+            uint len = min(_front_md_op.match, _front_cigar_op.length);
+            return CigarOperation(len, '=');
+        }
+    
+        assert(_front_md_op.is_mismatch);
+        return CigarOperation(min(_n_mismatches, _front_cigar_op.length), 'X');
+    }
+
+    /// ditto
+    ExtendedCigarRange save() @property {
+        typeof(return) r = void;
+        r._cigar = _cigar.save;
+        r._md_ops = _md_ops.save;
+        r._front_cigar_op = _front_cigar_op;
+        r._front_md_op = _front_md_op;
+        r._n_mismatches = _n_mismatches;
+        r._empty = _empty;
+        return r;
+    }
+
+    /// ditto
+    void popFront() {
+        if (!_front_cigar_op.is_match_or_mismatch) {
+            if (_front_cigar_op.is_reference_consuming)
+                fetchNextMdOp();
+            fetchNextCigarOp();
+            return;
+        }
+
+        auto len = _front_cigar_op.length;
+        if (_n_mismatches > 0) {
+            enforce(_front_md_op.is_mismatch);
+      
+            if (len > _n_mismatches) {
+                _front_cigar_op = CigarOperation(len - _n_mismatches, 'M');
+                _n_mismatches = 0;
+                fetchNextMdOp();
+            } else if (len < _n_mismatches) {
+                _n_mismatches -= len;
+                fetchNextCigarOp();
+            } else {
+                fetchNextCigarOp();
+                fetchNextMdOp();
+            }
+        } else {
+            enforce(_front_md_op.is_match);
+            auto n_matches = _front_md_op.match;
+      
+            if (len > n_matches) {
+                _front_cigar_op = CigarOperation(len - n_matches, 'M');
+                fetchNextMdOp();
+            } else if (len < n_matches) {
+                _front_md_op.match -= len;
+                fetchNextCigarOp();
+            } else {
+                fetchNextCigarOp();
+                fetchNextMdOp();
+            }
+        }
+    }
+  
+    private {
+        void fetchNextCigarOp() {
+            if (_cigar.empty) {
+                _empty = true;
+                return;
+            }
+        
+            _front_cigar_op = _cigar.front;
+            _cigar.popFront();
+        }
+
+        void fetchNextMdOp() {
+            if (_md_ops.empty)
+                return;
+
+            _n_mismatches = 0;
+      
+            _front_md_op = _md_ops.front;
+            _md_ops.popFront();
+
+            if (_front_md_op.is_mismatch) {
+                _n_mismatches = 1;
+                while (!_md_ops.empty && _md_ops.front.is_mismatch) {
+                    _md_ops.popFront();
+                    _n_mismatches += 1;
+                }
+            }
+        }
+    }
+}
+
+auto makeExtendedCigar(CigarOpRange, MdOpRange)(CigarOpRange cigar, MdOpRange md_ops) {
+    return ExtendedCigarRange!(CigarOpRange, MdOpRange)(cigar, md_ops);
 }
 
 /** 
@@ -306,6 +444,15 @@ struct BamRead {
         _n_cigar_op = cast(ushort)(c.length);
 
         _recalculate_bin();
+    }
+
+    /// Extended CIGAR where M operators are replaced with =/X based
+    /// on information from MD tag. Throws if the read doesn't have MD
+    /// tag.
+    auto extended_cigar() @property const {
+        Value md = this["MD"];
+        enforce(md.is_string);
+        return makeExtendedCigar(cigar, mdOperations(*cast(string*)(&md)));
     }
 
     /// The number of reference bases covered by this read.
