@@ -439,7 +439,7 @@ alias HeaderLineDictionary!PgLine PgLineDictionary;
 class SamHeader {
 
     ///
-    immutable DEFAULT_FORMAT_VERSION = "1.3";
+    enum DEFAULT_FORMAT_VERSION = "1.3";
 
     /// Construct empty SAM header
     this() {

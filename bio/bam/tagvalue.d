@@ -160,24 +160,24 @@ alias TypeTuple!(TypeId!(char,     0b001_00_1_00),
                  TypeId!(short,    0b010_1_0000), 
                  TypeId!(int,      0b100_1_0000), 
 
-                 TypeId!(float,    0b100_0_1_000),
+                 TypeId!(float,    0b100_01_000),
 
                  TypeId!(ubyte[],  0b001_000_01),
                  TypeId!(ushort[], 0b010_000_01),
                  TypeId!(uint[],   0b100_000_01),
 
-                 TypeId!(byte[],   0b001_010_01),
-                 TypeId!(short[],  0b010_010_01),
-                 TypeId!(int[],    0b100_010_01),
+                 TypeId!(byte[],   0b001_100_01),
+                 TypeId!(short[],  0b010_100_01),
+                 TypeId!(int[],    0b100_100_01),
 
-                 TypeId!(float[],  0b100_00_1_01),
+                 TypeId!(float[],  0b100_01_001),
 
-                 TypeId!(string,   0b001_00_0_11),
-                 TypeId!(string,   0b001_00_1_11),
+                 TypeId!(string,   0b001_00_101),
+                 TypeId!(string,   0b001_01_101),
                  TypeId!(typeof(null), 0b0000_0010))
     TypeIdMap;
 
-private immutable hexStringTag = 0b001_00_1_11;
+private immutable hexStringTag = 0b001_01_101;
 
 private template GetType(U) {
     alias U.Type GetType;
@@ -402,13 +402,13 @@ struct Value {
     bool is_float() @property const { return _tag == GetTypeId!float; }
 
     /// ubyte[]/byte[]/ushort[]/short[]/uint[]/int[]/float[]
-    bool is_numeric_array() @property const { return (_tag & 0b11) == 0b01; }
+    bool is_numeric_array() @property const { return (_tag & 0b111) == 0b001; }
 
     /// ubyte[]/byte[]/ushort[]/short[]/uint[]/int[]
-    bool is_array_of_integers() @property const { return (_tag & 0b111) == 0b001; }
+    bool is_array_of_integers() @property const { return (_tag & 0b1111) == 0b0001; }
 
     /// float[]
-    bool is_array_of_floats() @property const { return (_tag & 0b111) == 0b101; }
+    bool is_array_of_floats() @property const { return (_tag & 0b1111) == 0b1001; }
 
     /// ubyte/byte/ushort/short/uint/int
     bool is_integer() @property const { return (_tag & 0b1111) == 0; }
@@ -420,10 +420,10 @@ struct Value {
     bool is_signed() @property const { return (_tag & 0b11111) == 0b10000; }
 
     /// 'Z' or 'H' tag
-    bool is_string() @property const { return (_tag & 0b11) == 0b11; }
+    bool is_string() @property const { return (_tag & 0b111) == 0b101; }
 
     /// 'H' tag
-    bool is_hexadecimal_string() @property const { return (_tag & 0b111) == 0b111; }
+    bool is_hexadecimal_string() @property const { return (_tag & 0b1101) == 0b1101; }
 
     /// Serializes value in MessagePack format
     public void toMsgpack(Packer)(ref Packer packer) const {

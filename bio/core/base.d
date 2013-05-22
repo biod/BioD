@@ -35,7 +35,7 @@ mixin template CommonBaseOperations() {
 struct Base {
     mixin TinyMapInterface!16; 
 
-    private immutable ubyte[256] _char2code = [
+    private enum ubyte[256] _char2code = [
                 15,15,15,15, 15,15,15,15, 15,15,15,15, 15,15,15,15,
                 15,15,15,15, 15,15,15,15, 15,15,15,15, 15,15,15,15,
                 15,15,15,15, 15,15,15,15, 15,15,15,15, 15,15,15,15,
@@ -78,9 +78,9 @@ struct Base {
     // V 0111 (not T)
     //
     // N 1111 (aNy base)
-    private immutable _code2char = "=ACMGRSVTWYHKDBN";
+    private enum _code2char = "=ACMGRSVTWYHKDBN";
 
-    private immutable ubyte[16] _complement_table = [0x0, 0x8, 0x4, 0xC, 
+    private enum ubyte[16] _complement_table = [0x0, 0x8, 0x4, 0xC, 
                                                      0x2, 0xA, 0x6, 0xE,
                                                      0x1, 0x9, 0x5, 0xD,
                                                      0x3, 0xB, 0x7, 0xF];
@@ -120,7 +120,7 @@ struct Base {
         _code = _char2code[cast(ubyte)c];
     }
 
-    private immutable ubyte[5] nt5_to_nt16 = [1, 2, 4, 8, 15];
+    private enum ubyte[5] nt5_to_nt16 = [1, 2, 4, 8, 15];
     private static Base fromBase5(Base5 base) {
         Base b = void;
         b._code = nt5_to_nt16[base.internal_code];
@@ -156,7 +156,7 @@ alias Base Base16;
 struct Base5 {
     mixin TinyMapInterface!5;
 
-    private immutable ubyte[256] _char2code = [
+    private enum ubyte[256] _char2code = [
                 4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
                 4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
                 4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
@@ -178,8 +178,8 @@ struct Base5 {
                 4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4
                 ];
 
-    private immutable _code2char = "ACGTN";
-    private immutable ubyte[16] nt16_to_nt5 = [4, 0, 1, 4, 2, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4];
+    private enum _code2char = "ACGTN";
+    private enum ubyte[16] nt16_to_nt5 = [4, 0, 1, 4, 2, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4];
 
     mixin CommonBaseOperations;
 

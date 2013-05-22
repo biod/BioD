@@ -3146,12 +3146,6 @@ unittest
     assert(value.as!(int) == -20);
     assert(other          == -10L);
 
-    // enum
-    enum E : int { F = -20 }
-
-    E e = value.as!(E);
-    assert(e == E.F);
-
     // floating point
     value = Value(0.1e-10L);
     other = Value(0.1e-20L);

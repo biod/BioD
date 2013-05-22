@@ -293,7 +293,7 @@ unittest {
 mixin template TinyMapInterface(uint N, T=ubyte) if (isUnsigned!T) {
     private T _code;
 
-    immutable ValueSetSize = N;
+    enum ValueSetSize = N;
     static assert(N <= 2 ^^ (T.sizeof * 8));
 
     static typeof(this) fromInternalCode(T code) {
