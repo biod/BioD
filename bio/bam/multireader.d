@@ -140,7 +140,7 @@ class MultiBamReader {
     ///
     this(BamReader[] readers) {
         _readers = readers;
-        _merger = new SamHeaderMerger(readers.map!(r => r.header).array());
+        _merger = new SamHeaderMerger(readers.map!(r => r.header)().array());
 
         auto n_references = _merger.merged_header.sequences.length;
         _reference_sequences = new ReferenceSequenceInfo[n_references];
@@ -156,13 +156,13 @@ class MultiBamReader {
 
     ///
     this(string[] filenames) {
-        this(filenames.map!(fn => new BamReader(fn)).array());
+        this(filenames.map!(fn => new BamReader(fn))().array());
     }
 
     ///
     this(string[] filenames, std.parallelism.TaskPool task_pool = taskPool) {
         this(filenames.zip(repeat(task_pool))
-                      .map!(fn => new BamReader(fn[0], fn[1])).array());
+                      .map!(fn => new BamReader(fn[0], fn[1]))().array());
     }
 
     ///

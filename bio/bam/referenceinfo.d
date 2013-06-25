@@ -33,8 +33,9 @@ struct ReferenceSequenceInfo {
     }
 
     /// Reference sequence name
+	/// (null byte is guaranteed to follow the returned slice)
     string name() @property const {
-        return _name;
+        return _name[0 .. $ - 1];
     }
    
     /// Reference sequence length
@@ -44,7 +45,7 @@ struct ReferenceSequenceInfo {
 
     ///
     this(string name, int length) {
-        _name = name;
+        _name = name ~ '\0';
         _length = length;
     }
 
@@ -52,7 +53,7 @@ struct ReferenceSequenceInfo {
     this(ref Stream stream) {
         int l_name; // length of the reference name plus one
         stream.read(l_name);
-        _name = stream.readString(l_name)[0..$-1].idup; // strip '\0' at the end
+        _name = stream.readString(l_name).idup; // keep '\0' at the end
         stream.read(_length);
     }
 }

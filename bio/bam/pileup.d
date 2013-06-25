@@ -26,7 +26,8 @@
 /// as the first base of the first read.
 /// $(BR)
 /// Each $(D popFront) operation advances current position on the
-/// reference. Currently, there's no option to skip non-covered regions.)
+/// reference. The default behaviour is to exclude sites with zero coverage
+/// from the iteration.) 
 /// $(P Each column keeps set of reads that overlap corresponding position
 /// on the reference.
 /// If reads contain MD tags, and makePileup was asked
@@ -297,6 +298,7 @@ class PileupRange(R, alias TColumn=PileupColumn) {
         R _reads;
         Column _column;
         Appender!ReadArray _read_buf;
+        bool _skip_zero_coverage;
     }
 
     protected {
@@ -313,9 +315,10 @@ class PileupRange(R, alias TColumn=PileupColumn) {
     /**
      * Create new pileup iterator from a range of reads.
      */
-    this(R reads) {
+    this(R reads, bool skip_zero_coverage) {
         _reads = reads;
         _read_buf = appender!ReadArray();
+        _skip_zero_coverage = skip_zero_coverage;
 
         if (!_reads.empty) {
             initNewReference(); // C++ programmers, don't worry! Virtual tables in D
@@ -376,6 +379,12 @@ class PileupRange(R, alias TColumn=PileupColumn) {
                     ++n;
                 }
                 _column._n_starting_here = n;
+
+                // handle option of skipping sites with zero coverage
+                if (survived == 0 && n == 0 && _skip_zero_coverage) {
+                    // the name might be misleading but it does the trick
+                    initNewReference(); 
+                }
             }
         }
 
@@ -436,7 +445,27 @@ struct AbstractPileup(S) {
     }
 }
 
-auto pileupInstance(alias P, R)(R reads, ulong start_from, ulong end_at) {
+struct TakeUntil(alias pred, Range, Sentinel) if (isInputRange!Range)
+{
+    private Range _input;
+    private Sentinel _sentinel;
+    bool _done;
+
+    this(Range input, Sentinel sentinel) {
+        _input = input; _sentinel = sentinel; _done = _input.empty || predSatisfied();
+    }
+
+    @property bool empty() { return _done; }
+    @property auto ref front() { return _input.front; }
+    private bool predSatisfied() { return startsWith!pred(_input, _sentinel); }
+    void popFront() { _input.popFront(); _done = _input.empty || predSatisfied(); }
+}
+
+auto takeUntil(alias pred, Range, Sentinel)(Range range, Sentinel sentinel) {
+    return TakeUntil!(pred, Range, Sentinel)(range, sentinel);
+}
+
+auto pileupInstance(alias P, R)(R reads, ulong start_from, ulong end_at, bool skip_zero_coverage) {
     auto rs = filter!"!a.is_unmapped"(reads);
     while (!rs.empty) {
         auto r = rs.front;
@@ -450,9 +479,9 @@ auto pileupInstance(alias P, R)(R reads, ulong start_from, ulong end_at) {
     if (!rs.empty) {
         ref_id = rs.front.ref_id;
     }
-    auto sameref_rs = until!"a.ref_id != b"(rs, ref_id);
+    auto sameref_rs = takeUntil!"a.ref_id != b"(rs, ref_id);
     alias typeof(sameref_rs) ReadRange;
-    PileupRange!ReadRange columns = new P!ReadRange(sameref_rs);
+    PileupRange!ReadRange columns = new P!ReadRange(sameref_rs, skip_zero_coverage);
     while (!columns.empty) {
         auto c = columns.front;
         if (c.position < start_from) {
@@ -461,18 +490,18 @@ auto pileupInstance(alias P, R)(R reads, ulong start_from, ulong end_at) {
             break;
         }
     }
-    auto chopped = until!"a.position >= b"(columns, end_at);
+    auto chopped = takeUntil!"a.position >= b"(columns, end_at);
     return AbstractPileup!(typeof(chopped))(chopped, start_from, end_at, ref_id);
 }
 
-auto pileupColumns(R)(R reads, bool use_md_tag=false) {
+auto pileupColumns(R)(R reads, bool use_md_tag=false, bool skip_zero_coverage=true) {
     auto rs = filter!"!a.is_unmapped"(reads);
     alias typeof(rs) ReadRange;
     PileupRange!ReadRange columns;
     if (use_md_tag) {
-        columns = new PileupRangeUsingMdTag!ReadRange(rs);
+        columns = new PileupRangeUsingMdTag!ReadRange(rs, skip_zero_coverage);
     } else {
-        columns = new PileupRange!ReadRange(rs);
+        columns = new PileupRange!ReadRange(rs, skip_zero_coverage);
     }
     return columns;
 }
@@ -507,8 +536,8 @@ final static class PileupRangeUsingMdTag(R) :
     private int _curr_ref_id = -1;
 
     ///
-    this(R reads) {
-        super(reads);
+    this(R reads, bool skip_zero_coverage) {
+        super(reads, skip_zero_coverage);
     }
 
     //  Checks length of the newly added read and tracks the read which
@@ -530,7 +559,6 @@ final static class PileupRangeUsingMdTag(R) :
         if (_read.ref_id != _curr_ref_id) {
             _curr_ref_id = _read.ref_id;
 
-            _prev_coverage = 0;
             _has_next_chunk_provider = true;
             _next_chunk_provider = _read;
             return;
@@ -554,6 +582,7 @@ final static class PileupRangeUsingMdTag(R) :
     }
 
     protected override void initNewReference() {
+        _prev_coverage = 0;
         super.initNewReference();
         if (_has_next_chunk_provider) {
             // prepare first chunk
@@ -634,15 +663,19 @@ final static class PileupRangeUsingMdTag(R) :
 /// [max(start_from, first mapped read start position), 
 /// $(BR)
 ///  min(end_at, last mapped end position among all reads))
+///
+///     skip_zero_coverage = if true, skip sites with zero coverage
+///
 auto makePileup(R)(R reads, 
                    bool use_md_tag=false,
                    ulong start_from=0, 
-                   ulong end_at=ulong.max) 
+                   ulong end_at=ulong.max,
+                   bool skip_zero_coverage=true) 
 {
     if (use_md_tag) {
-        return pileupInstance!PileupRangeUsingMdTag(reads, start_from, end_at);
+        return pileupInstance!PileupRangeUsingMdTag(reads, start_from, end_at, skip_zero_coverage);
     } else {
-        return pileupInstance!PileupRange(reads, start_from, end_at);
+        return pileupInstance!PileupRange(reads, start_from, end_at, skip_zero_coverage);
     }
 }
 
@@ -713,8 +746,8 @@ unittest {
     import std.stdio;
     writeln("Testing pileup (low-level aspects)...");
 
-    auto pileup = makePileup(reads, true, 796, 849);
-    auto pileup2 = makePileup(reads, true);
+    auto pileup = makePileup(reads, true, 796, 849, false);
+    auto pileup2 = makePileup(reads, true, 0, ulong.max, false);
     assert(pileup.front.position == 796);
     assert(pileup.start_position == 796);
     assert(pileup.end_position == 849);
@@ -803,7 +836,7 @@ unittest {
     reads[3].ref_id = 0;
 
     assert(equal(dna(reads), 
-                 map!(c => c.reference_base)(makePileup(reads, true))));
+                 map!(c => c.reference_base)(makePileup(reads, true, 0, ulong.max, false))));
 }
 
 static struct PileupChunkRange(C) {

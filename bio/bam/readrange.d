@@ -75,7 +75,7 @@ mixin template withoutOffsets() {
 }
 
 /// $(D front) return type is determined by $(I IteratePolicy)
-class BamReadRange(alias IteratePolicy) 
+struct BamReadRange(alias IteratePolicy) 
 { 
 
     /// Create new range from IChunkInputStream.
@@ -154,5 +154,5 @@ private:
 
 /// Returns: lazy range of BamRead/BamReadBlock structs constructed from a given stream.
 auto bamReadRange(alias IteratePolicy=withoutOffsets)(ref IChunkInputStream stream, BamReader reader) {
-    return new BamReadRange!IteratePolicy(stream, reader);
+    return BamReadRange!IteratePolicy(stream, reader);
 }
