@@ -400,8 +400,7 @@ private:
     }
     BaiStatus _bai_status = BaiStatus.notInitialized;
 
-    // provides access to index file
-    @property ref BaiFile _bai_file() { // initialized lazily
+    void initBai() {
         if (_bai_status == BaiStatus.notInitialized) {
             synchronized {
                 try {
@@ -412,6 +411,11 @@ private:
                 }
             }
         }
+    }
+
+    // provides access to index file
+    @property ref BaiFile _bai_file() { // initialized lazily
+        initBai();
         return _dont_access_me_directly_use_bai_file_for_that;
     }; 
 
@@ -419,12 +423,10 @@ private:
     @property RandomAccessManager _random_access_manager() {
         if (_rndaccssmgr is null) {
             synchronized {
-                auto bai = _bai_file; 
-                // remember that it's lazily initialized,
-                // so we need to do that to get the right BAI status
+                initBai();
 
                 if (_bai_status == BaiStatus.initialized) {
-                    _rndaccssmgr = new RandomAccessManager(this, bai);
+                    _rndaccssmgr = new RandomAccessManager(this, _bai_file);
                 } else {
                     _rndaccssmgr = new RandomAccessManager(this);
                 }
