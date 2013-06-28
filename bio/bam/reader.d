@@ -154,6 +154,7 @@ class BamReader : IBamSamReader {
         scope(exit) stream.close();
         bio.bam.bai.indexing.createIndex(this, stream);
         _bai_status = BaiStatus.notInitialized;
+        _rndaccssmgr = null;
     }
 
     /** Filename, if the object was created via file name constructor,
