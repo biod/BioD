@@ -59,7 +59,7 @@
 /// import bio.bam.reader, bio.bam.pileup, std.stdio, std.algorithm : count;
 /// void main() {
 ///     auto bam = new BamReader("file.bam");       // assume single reference and MD tags
-///     auto pileup = bam.reads().makePileup(true); // use MD tags
+///     auto pileup = bam.reads().makePileup(useMD);
 ///     foreach (column; pileup) {
 ///         auto matches = column.bases.count(column.reference_base);
 ///         if (matches < column.coverage * 2 / 3)
@@ -682,6 +682,9 @@ auto makePileup(R)(R reads,
         return pileupInstance!PileupRange(reads, start_from, end_at, skip_zero_coverage);
     }
 }
+
+/// Allows to express the intention clearer.
+enum useMD = true;
 
 unittest {
     import std.algorithm;
