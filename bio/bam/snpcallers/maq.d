@@ -421,15 +421,15 @@ final class MaqSnpCaller {
                 _reads = reads; minimum_base_quality = minbq; _findNextValid();
             }
 
-            ReadBase front() @property const { 
+            ReadBase front() @property { 
                 auto read = _reads.front;
                 return ReadBase(Base(read.current_base), 
                                 min(read.current_base_quality, read.mapping_quality),
                                 read.is_reverse_strand);
             }
-            bool empty() @property const { return _reads.empty; }
+            bool empty() @property { return _reads.empty; }
             void popFront() { _reads.popFront(); _findNextValid(); }
-            ReadBaseRange save() @property { return ReadBaseRange!R(_reads[], minimum_base_quality); }
+            ReadBaseRange save() @property { return ReadBaseRange!R(_reads, minimum_base_quality); }
 
             private void _findNextValid() {
                 while (!_reads.empty && 
@@ -505,11 +505,11 @@ final class MaqSnpCaller {
                 _fetchNextSNP();
             }
 
-            DiploidCall5 front() @property const {
+            DiploidCall5 front() @property {
                 return _front;
             }
            
-            bool empty() @property const {
+            bool empty() @property {
                 return _empty;
             }
 

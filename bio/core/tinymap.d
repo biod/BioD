@@ -56,7 +56,7 @@ struct TinyMap(K, V, alias TinyMapPolicy=useBitArray) {
 
     /// Indexed access
     auto ref V opIndex(Key)(auto ref Key key)
-        if(is(Key == K))
+        if(is(Unqual!Key == K))
     {
         assert(key in this);
         return _dict[key.internal_code];
@@ -64,7 +64,7 @@ struct TinyMap(K, V, alias TinyMapPolicy=useBitArray) {
 
     /// ditto
     auto ref const(V) opIndex(Key)(auto ref Key key) const
-        if(is(Key == K))
+        if(is(Unqual!Key == K))
     {
         assert(key in this);
         return _dict[key.internal_code];

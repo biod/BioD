@@ -177,8 +177,6 @@ struct PileupRead(Read=bio.bam.read.EagerBamRead) {
             // find first M/=/X/D operation
             auto cigar = _read.cigar;
             for (_cur_op_index = 0; _cur_op_index < cigar.length; ++_cur_op_index) {
-                assertCigarIndexIsValid();
-
                 _cur_op = cigar[_cur_op_index];
                 if (_cur_op.is_reference_consuming) {
                     if (_cur_op.type != 'N') {     
@@ -470,7 +468,7 @@ auto takeUntil(alias pred, Range, Sentinel)(Range range, Sentinel sentinel) {
 }
 
 auto pileupInstance(alias P, R)(R reads, ulong start_from, ulong end_at, bool skip_zero_coverage) {
-    auto rs = filter!"!a.is_unmapped"(reads);
+    auto rs = filter!"a.basesCovered() > 0"(reads);
     while (!rs.empty) {
         auto r = rs.front;
         if (r.position + r.basesCovered() < start_from) {
@@ -499,7 +497,7 @@ auto pileupInstance(alias P, R)(R reads, ulong start_from, ulong end_at, bool sk
 }
 
 auto pileupColumns(R)(R reads, bool use_md_tag=false, bool skip_zero_coverage=true) {
-    auto rs = filter!"!a.is_unmapped"(reads);
+    auto rs = filter!"a.basesCovered() > 0"(reads);
     alias typeof(rs) ReadRange;
     PileupRange!ReadRange columns;
     if (use_md_tag) {
