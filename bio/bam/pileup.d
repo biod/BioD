@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2013    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -848,8 +848,8 @@ unittest {
 
 static struct PileupChunkRange(C) {
     private C _chunks;
-    private BamRead[] _prev_chunk;
-    private BamRead[] _current_chunk;
+    private ElementType!C _prev_chunk;
+    private ElementType!C _current_chunk;
     private bool _empty;
     private ulong _beg = 0;
     private bool _use_md_tag;
