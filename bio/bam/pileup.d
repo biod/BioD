@@ -420,7 +420,12 @@ class PileupRange(R, alias TColumn=PileupColumn) {
 }
 
 /// Abstract pileup structure. S is type of column range.
-struct AbstractPileup(S) {
+struct AbstractPileup(R, S) {
+    private R reads_;
+    R reads() @property {
+        return reads_;
+    }
+
     S columns;
     /// Pileup columns
     alias columns this;
@@ -493,7 +498,7 @@ auto pileupInstance(alias P, R)(R reads, ulong start_from, ulong end_at, bool sk
         }
     }
     auto chopped = takeUntil!"a.position >= b"(columns, end_at);
-    return AbstractPileup!(typeof(chopped))(chopped, start_from, end_at, ref_id);
+    return AbstractPileup!(R, typeof(chopped))(reads, chopped, start_from, end_at, ref_id);
 }
 
 auto pileupColumns(R)(R reads, bool use_md_tag=false, bool skip_zero_coverage=true) {
@@ -844,7 +849,7 @@ unittest {
                  map!(c => c.reference_base)(makePileup(reads, true, 0, ulong.max, false))));
 }
 
-static struct PileupChunkRange(C) {
+struct PileupChunkRange(C) {
     private C _chunks;
     private ElementType!C _prev_chunk;
     private ElementType!C _current_chunk;
@@ -906,18 +911,21 @@ static struct PileupChunkRange(C) {
         // keep only those reads in _prev_chunk that have overlap with the last one
         
         // 1) estimate read length
-        int[15] buf = void;
+        enum sampleSize = 15;
+        int[sampleSize] buf = void;
         int read_length = void;
-        if (_prev_chunk.length <= 15) {
+        if (_prev_chunk.length <= sampleSize) {
             for (size_t k = 0; k < _prev_chunk.length; ++k) {
                 buf[k] = _prev_chunk[k].sequence_length;
             }
             topN(buf[0.._prev_chunk.length], _prev_chunk.length / 2);
             read_length = buf[_prev_chunk.length / 2];
         } else {
-            copy(map!"a.sequence_length"(randomSample(_prev_chunk, 15)), buf[]);
-            topN(buf[], 7);
-            read_length = buf[7];
+            size_t i = 0;
+            foreach (read; randomSample(_prev_chunk, sampleSize))
+                buf[i++] = read.sequence_length;
+            topN(buf[], sampleSize / 2);
+            read_length = buf[sampleSize / 2];
             debug {
                 import std.stdio;
                 stderr.writeln("[pileupChunks] read_length=", read_length);

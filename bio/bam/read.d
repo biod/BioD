@@ -607,6 +607,8 @@ struct BamRead {
         @property size_t length() const {
             return _len - _index;
         }
+
+        alias length opDollar;
     }
 
     /// Random-access range of characters
