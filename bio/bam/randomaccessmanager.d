@@ -246,10 +246,7 @@ class RandomAccessManager {
         auto min_offset = _bai.indices[ref_id].getMinimumOffset(beg);
 
         Chunk[] bai_chunks;
-        foreach (b; _bai.indices[ref_id].bins) {
-            if (!b.canOverlapWith(beg, end)) {
-                continue;
-            }
+        foreach (b; _bai.indices[ref_id].getBins(beg, end)) {
 
             foreach (chunk; b.chunks) {
                 if (chunk.end > min_offset) {
