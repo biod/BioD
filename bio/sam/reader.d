@@ -39,7 +39,19 @@ import std.array;
 import std.string;
 
 private {
-    extern(C) size_t lseek(int, size_t, int);
+    version(Posix) {
+        extern(C) size_t lseek(int, size_t, int);
+        bool isSeekable(ref File file) {
+            return lseek(file.fileno(), 0, 0) != ~0;
+        }
+    }
+
+    version(Windows) {
+        private import std.file;
+        bool isSeekable(ref File file) {
+            return GetFileType(file.handle, 0, 0) == 1;
+        }
+    }
 }
 
 ///
@@ -49,7 +61,7 @@ class SamReader : IBamSamReader {
     this(string filename) {
         _file = File(filename);
         _filename = filename;
-        _seekable = lseek(_file.fileno(), 0, 0) != ~0;
+        _seekable = _file.isSeekable();
         _initializeStream();
     }
 
