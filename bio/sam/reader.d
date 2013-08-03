@@ -39,18 +39,9 @@ import std.array;
 import std.string;
 
 private {
-    version(Posix) {
-        extern(C) size_t lseek(int, size_t, int);
-        bool isSeekable(ref File file) {
-            return lseek(file.fileno(), 0, 0) != ~0;
-        }
-    }
-
-    version(Windows) {
-        private import std.file;
-        bool isSeekable(ref File file) {
-            return GetFileType(file.handle, 0, 0) == 1;
-        }
+    extern(C) size_t lseek(int, size_t, int);
+    bool isSeekable(ref File file) {
+        return lseek(file.fileno(), 0, 0) != ~0;
     }
 }
 
@@ -162,7 +153,7 @@ private:
     ReferenceSequenceInfo[] _reference_sequences;
 
     void _initializeStream() {
-        auto header = appender!(char[])(); 
+        auto header = Appender!(char[])(); 
 
         _lines = _file.byLine();
 
