@@ -30,7 +30,7 @@ import bio.bam.constants;
 struct Bin {
 
     /// Construct a bin with an id
-    this(ushort id) nothrow {
+    this(uint id) nothrow {
         this.id = id;
     }
 
@@ -50,30 +50,6 @@ struct Bin {
     /// Returns whether the bin is a leaf in the B-tree
     bool is_leaf() @property const nothrow {
         return id > BAI_MAX_NONLEAF_BIN_ID;
-    }
-
-    /// Check if bin can overlap with a region
-    bool canOverlapWith(int begin, int end) const nothrow {
-        if (id == 0) return true;
-        if (id > BAI_MAX_BIN_ID) return false;
-
-        /// The following code is based on reg2bins() function
-        if (begin < 0) begin = 0;
-        auto magic_number = 4681;
-        auto b = begin >> 14;
-        auto e = end   >> 14;
-    
-        while (true) {
-            auto delta = id - magic_number;
-            if (b <= delta && delta <= e) return true;
-
-            magic_number >>= 3;
-
-            if (magic_number == 0) return false;
-
-            b >>= 3;
-            e >>= 3;
-        }
     }
 }
 

@@ -11,6 +11,15 @@ version(Posix){
     private import core.sys.posix.unistd;
 }
 
+version(Windows) {
+    private import std.file;
+    private import std.utf;
+    private import std.c.windows.windows;
+    extern (Windows) {
+        DWORD GetFileType(HANDLE hFile);
+    }
+}
+
 FileMode toFileMode(string mode) {
     FileMode result = FileMode.In;
     switch (mode) {
@@ -40,13 +49,41 @@ FileMode toFileMode(string mode) {
 
 final class File: std.stream.File {
     this(string filename, string mode="rb") {
-        // Issue 8528 workaround
-        auto file = fopen(toStringz(filename), toStringz(mode));
-        if (file == null) {
-            throw new OpenException(cast(string) ("Cannot open or create file '"
-                                            ~ filename ~ "'"));
+        version (Posix) {
+            // Issue 8528 workaround
+            auto file = fopen(toStringz(filename), toStringz(mode));
+            if (file == null) {
+                throw new OpenException(cast(string) ("Cannot open or create file '"
+                                                      ~ filename ~ "'"));
+            }
+            super(core.stdc.stdio.fileno(file), toFileMode(mode));
         }
-        super(core.stdc.stdio.fileno(file), toFileMode(mode));
+        version (Windows) {
+            int access, share, createMode;
+            auto mode_flags = toFileMode(mode);
+
+            share |= FILE_SHARE_READ | FILE_SHARE_WRITE;
+            if (mode_flags & FileMode.In) {
+                access |= GENERIC_READ;
+                createMode = OPEN_EXISTING;
+            }
+            if (mode_flags & FileMode.Out) {
+                access |= GENERIC_WRITE;
+                createMode = OPEN_ALWAYS;
+            }
+            if ((mode_flags & FileMode.OutNew) == FileMode.OutNew) {
+                createMode = CREATE_ALWAYS;
+            }
+
+            auto handle = CreateFileW(std.utf.toUTF16z(filename), access, share,
+                                      null, createMode, 0, null);
+            isopen = handle != INVALID_HANDLE_VALUE;
+            if (!isopen) {
+                throw new OpenException(cast(string) ("Cannot open or create file '"
+                                                      ~ filename ~ "'"));
+            }
+            super(handle, toFileMode(mode));
+        }
     }
 
     override ulong seek(long offset, SeekPos rel) {
@@ -59,12 +96,12 @@ final class File: std.stream.File {
             throw new SeekException("unable to move file pointer");
           ulong result = (cast(ulong)hi << 32) + low; 
         } else version (Posix) {
-            // Phobos casts offset to int, leading to throwing an exception
-            // on large files
-            auto result = lseek(hFile, cast(off_t)offset, rel);
-        }    
-        if (result == cast(typeof(result))-1)
-          throw new SeekException("unable to move file pointer");
+          // Phobos casts offset to int, leading to throwing an exception
+          // on large files
+          auto result = lseek(hFile, cast(off_t)offset, rel);
+          if (result == cast(typeof(result))-1)
+            throw new SeekException("unable to move file pointer");
+        }
         readEOF = false;
         return cast(ulong)result;
       }
