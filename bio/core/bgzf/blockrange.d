@@ -25,8 +25,8 @@ module bio.core.bgzf.blockrange;
 
 public import bio.core.bgzf.block;
 import bio.bam.constants;
-
-import std.stream;
+import bio.core.utils.file;
+import std.stdio;
 import std.array : uninitializedArray;
 import std.conv;
 import std.algorithm : max;
@@ -37,7 +37,7 @@ class BgzfException : Exception {
 }
 
 /**
-  Range for iterating over BGZF blocks coming from any Stream
+  Range for iterating over BGZF blocks coming from a File
  */
 struct BgzfRange {
 
@@ -94,7 +94,7 @@ struct BgzfRange {
     // -----------------------------------------------------------------------
     //            Picture summarizing the above description:                  
     //                                                                        
-    //     Stream      BgzfRange          range of        input     range of  
+    //      File       BgzfRange          range of        input     range of  
     //                                  decompressed     stream    alignment  
     //                 each block       BGZF blocks,                records   
     //                  is ~20kB         each ~65kB                           
@@ -121,9 +121,9 @@ struct BgzfRange {
     /**
       Constructs range from stream
      */
-    this(Stream stream) {
-        _stream = stream;
-        _seekable = stream.seekable;
+    this(File file) {
+        _file = file;
+        _seekable = file.isSeekable;
         loadNextBlock();
     }
 
@@ -147,7 +147,7 @@ struct BgzfRange {
     }
 
 private:
-    Stream _stream;
+    File _file;
     ulong _start_offset;
 
     bool _empty = false;
@@ -162,52 +162,48 @@ private:
 
     void loadNextBlock() {
         if (_seekable) {
-            _start_offset = _stream.position;
+            _start_offset = _file.tell;
+            // debug { stderr.writeln("[debug][BgzfRange] current offset is ", _start_offset); }
         }
 
-        if (_stream.eof()) {
+        if (_file.eof()) {
             _empty = true; // indicate that range is now empty
-            version(development) {
-                import std.stdio;
-                stderr.writeln("[info][BGZF range] EOF, current offset is ", _stream.position);
-            }
+            // debug {
+            //     stderr.writeln("[debug][BgzfRange] EOF, current offset is ", _file.tell);
+            // }
             return;
         }
 
         try {
-            uint bgzf_magic = void;
+            ubyte[BGZF_MAX_BLOCK_SIZE] buf = void;
            
-            // TODO: fix byte order if needed
-            auto bytes_read = _stream.read((cast(ubyte*)&bgzf_magic)[0 .. 4]);
+            auto ret = _file.rawRead(buf[0 .. 4]);
 
-            if (bytes_read == 0) {
+            if (ret.length == 0) {
                 _empty = true;
                 version(development) {
                     import std.stdio;
-                    stderr.writeln("[info][BGZF range] end of stream, current offset is ", _stream.position);
+                    stderr.writeln("[info][BGZF range] end of stream, current offset is ", _file.tell);
                 }
                 return;
                 // TODO: check if last BGZF block was empty, and if not throw a warning
             }
 
-            if (bgzf_magic != BGZF_MAGIC) { 
+            assert(ret.length == 4);
+
+            if (buf[].peekLE!uint() != BGZF_MAGIC) { 
                 throwBgzfException("wrong BGZF magic");
             }
         
-            ushort gzip_extra_length = void;
-
+            // skip gzip_mod_time, gzip_extra_flags, and gzip_os
             if (_seekable) {
-                _stream.seekCur(uint.sizeof + 2 * ubyte.sizeof);
+                _file.seekCur(uint.sizeof + 2 * ubyte.sizeof);
             } else {
-                uint gzip_mod_time = void;
-                ubyte gzip_extra_flags = void;
-                ubyte gzip_os = void;
-                _stream.read(gzip_mod_time);
-                _stream.read(gzip_extra_flags);
-                _stream.read(gzip_os);
+                _file.rawRead(buf[0 .. 6]);
             }
 
-            _stream.read(gzip_extra_length);
+            _file.rawRead(buf[0 .. 2]);
+            auto gzip_extra_length = buf[].peekLE!ushort();
           
             ushort bsize = void; // total Block SIZE minus 1
             bool found_block_size = false;
@@ -215,14 +211,11 @@ private:
             // read extra subfields
             size_t len = 0;
             while (len < gzip_extra_length) {
-                ubyte si1 = void;    // Subfield Identifier1
-                ubyte si2 = void;    // Subfield Identifier2
-                ushort slen = void;  // Subfield LENgth
+                _file.rawRead(buf[0 .. 4]);
+                auto si1 = buf[0];    // Subfield Identifier1
+                auto si2 = buf[1];    // Subfield Identifier2
+                auto slen = buf[2 .. 4].peekLE!ushort();  // Subfield LENgth
                 
-                _stream.read(si1);    
-                _stream.read(si2);    
-                _stream.read(slen);   
-
                 if (si1 == BAM_SI1 && si2 == BAM_SI2) { 
                     // found 'BC' as subfield identifier
                     
@@ -236,22 +229,23 @@ private:
                     }
 
                     // read block size
-                    _stream.read(bsize); 
+                    _file.rawRead(buf[0 .. 2]);
+                    bsize = buf[].peekLE!ushort();
                     found_block_size = true;
 
                     // skip the rest
                     if (_seekable) {
-                        _stream.seekCur(slen - bsize.sizeof);
+                        _file.seekCur(slen - bsize.sizeof);
                     } else {
-                        _stream.readString(slen - bsize.sizeof);
+                        _file.rawRead(buf[0 .. slen - bsize.sizeof]);
                     }
                 } else {
                     // this subfield has nothing to do with block size, 
                     // just skip
                     if (_seekable) {
-                        _stream.seekCur(slen);
+                        _file.seekCur(slen);
                     } else {
-                        _stream.readString(slen);
+                        _file.rawRead(buf[0 .. slen]);
                     }
                 }
 
@@ -281,26 +275,17 @@ private:
             _current_block.bsize = bsize;
             _current_block.cdata_size = cast(ushort)cdata_size;
 
-            ubyte[BGZF_MAX_BLOCK_SIZE] _buffer = void;
-            _stream.readExact(_buffer.ptr, cdata_size);
-            
-            _stream.read(_current_block.crc32);
-            _stream.read(_current_block.input_size);
-           
-            // now, this is a feature: allocate max(input_size, cdata_size).
-            // this way, only 1 allocation is done per block instead of 2.
-            // (see comments in bio.bam.bgzf.block about reusing this memory)
-            auto _buf_size = max(_current_block.input_size, cdata_size);
-            _current_block._buffer = uninitializedArray!(ubyte[])(_buf_size);
-
-            // copy compressed data at the start of the block
-            _current_block._buffer[0 .. cdata_size] = _buffer[0 .. cdata_size];
+            _current_block._buffer = uninitializedArray!(ubyte[])(BGZF_MAX_BLOCK_SIZE);
+            _file.rawRead(_current_block._buffer[0 .. cdata_size]);
+            _file.rawRead(buf[0 .. 8]);
+            _current_block.crc32 = buf[0 .. 4].peekLE!uint();
+            _current_block.input_size = buf[4 .. 8].peekLE!uint();
 
             _current_block.start_offset = start_offset;
 
             return;
 
-        } catch (ReadException e) {
+        } catch (Exception e) {
             throwBgzfException("stream error: " ~ e.msg);
         }
 

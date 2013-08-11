@@ -278,11 +278,9 @@ unittest {
     foreach (read; bf.reads)
         writer.writeRecord(read);
     
-    writer.flush();
+    writer.finish();
 
-    stream.seekSet(0);
-    assert(walkLength((new BamReader(stream)).reads) == 3270);
-    stream.close();
+    assert(walkLength((new BamReader(tmp)).reads) == 3270);
     }
 
     writeln("Testing SAM reading...");

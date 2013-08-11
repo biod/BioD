@@ -38,12 +38,13 @@ import bio.core.bgzf.virtualoffset;
 import bio.core.bgzf.inputstream;
 import bio.core.utils.memoize;
 import bio.core.utils.range;
-import bio.core.utils.stream;
+import bio.core.utils.file;
 
 import std.system;
 import std.algorithm;
 import std.array;
 import std.range;
+import std.stdio;
 import std.traits;
 import std.exception;
 
@@ -174,13 +175,11 @@ class RandomAccessManager {
 
     /// Get new IChunkInputStream starting from specified virtual offset.
     IChunkInputStream createStreamStartingFrom(VirtualOffset offset, bool parallel=true) {
-
-        auto _stream = new bio.core.utils.stream.File(_filename);
-        auto _compressed_stream = new EndianStream(_stream, Endian.littleEndian);
-        _compressed_stream.seekSet(cast(size_t)(offset.coffset));
+        auto file = File(_filename);
+        file.seek(offset.coffset);
 
         auto n_threads = parallel ? max(task_pool.size, 1) : 1;
-        auto blocks = BgzfRange(_compressed_stream).parallelUnpack(task_pool, n_threads);
+        auto blocks = BgzfRange(file).parallelUnpack(task_pool, n_threads);
 
         static auto helper(R)(R decompressed_range, VirtualOffset offset) {
 
@@ -205,9 +204,9 @@ class RandomAccessManager {
 
     /// Get BGZF block at a given offset.
     BgzfBlock getBgzfBlockAt(ulong offset) {
-        auto stream = new bio.core.utils.stream.File(_filename);
-        stream.seekSet(offset);
-        return BgzfRange(stream).front;
+        auto f = File(_filename);
+        f.seek(offset);
+        return BgzfRange(f).front;
     }
 
     /// Get reads between two virtual offsets. First virtual offset must point
@@ -332,14 +331,14 @@ public:
 
         private {
             Chunk _chunk;
-            Stream _stream;
+            File _file;
             bool _init = false;
             Until!(offsetTooBig, BgzfRange, ulong) _range;
         }
 
-        this(Chunk chunk, Stream stream) {
+        this(Chunk chunk, File file) {
             _chunk = chunk;
-            _stream = stream;
+            _file = file;
         }
 
         auto front() @property { init(); return _range.front; }
@@ -348,8 +347,8 @@ public:
 
         private void init() {
             if (!_init) {
-                _stream.seekSet(cast(size_t)_chunk.beg.coffset);
-                _range = until!offsetTooBig(BgzfRange(_stream), 
+                _file.seek(_chunk.beg.coffset);
+                _range = until!offsetTooBig(BgzfRange(_file), 
                                             _chunk.end.coffset);
                 _init = true;
             }
@@ -358,13 +357,13 @@ public:
 
     // (2) : Chunk[] -> [BgzfBlock]
     auto getJoinedBgzfRange(Chunk[] bai_chunks) {
-        Stream file = new bio.core.utils.stream.File(_filename);
-        Stream stream = new BufferedStream(file, _buffer_size);
+        auto file = File(_filename);
+        file.setvbuf(_buffer_size);
 
         ChunkToBgzfRange[] bgzf_ranges;
         bgzf_ranges.length = bai_chunks.length;
         foreach (i, ref range; bgzf_ranges) {
-            range = ChunkToBgzfRange(bai_chunks[i], stream);
+            range = ChunkToBgzfRange(bai_chunks[i], file);
         }
         auto bgzf_blocks = joiner(bgzf_ranges);
         return bgzf_blocks;

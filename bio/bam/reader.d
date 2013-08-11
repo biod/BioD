@@ -55,20 +55,20 @@ import bio.bam.randomaccessmanager;
 import bio.bam.baifile;
 import bio.bam.bai.indexing;
 import bio.core.utils.range;
-import bio.core.utils.stream;
+import bio.core.utils.file;
 public import bio.core.bgzf.blockrange;
 public import bio.core.bgzf.inputstream;
 public import bio.core.bgzf.virtualoffset;
 
 import std.system;
 import std.stdio;
+import std.stream : Stream, BufferedFile, FileMode, EndianStream;
 import std.algorithm;
 import std.range;
 import std.conv;
 import std.exception;
 import std.parallelism;
 import std.array;
-import core.stdc.stdio;
 import std.string;
 
 /**
@@ -94,13 +94,13 @@ class BamReader : IBamSamReader {
       }
       -------------------------------------------
      */
-    this(std.stream.Stream stream, 
+    this(File file, 
          std.parallelism.TaskPool task_pool = std.parallelism.taskPool) {
-        _source_stream = new EndianStream(stream, Endian.littleEndian);
+        _source_file = file;
         _task_pool = task_pool;
 
-        if (stream.seekable) {
-            _stream_is_seekable = true;
+        if (file.isSeekable) {
+            _file_is_seekable = true;
         }
 
         initializeStreams();
@@ -115,7 +115,7 @@ class BamReader : IBamSamReader {
         // right after construction, we are at the beginning
         //                           of the list of reads
 
-        if (_stream_is_seekable) {
+        if (_file_is_seekable) {
             _reads_start_voffset = _decompressed_stream.virtualTell();
         }
     }
@@ -124,8 +124,9 @@ class BamReader : IBamSamReader {
     this(string filename, std.parallelism.TaskPool task_pool) {
 
         _filename = filename;
-        _source_stream = getNativeEndianSourceStream();
-        this(_source_stream, task_pool);
+        _source_file = File(filename);
+        _source_file.setvbuf(_buffer_size);
+        this(_source_file, task_pool);
     }
 
     /// ditto
@@ -222,8 +223,7 @@ class BamReader : IBamSamReader {
         ----------------------------------
      */
     auto reads(alias IteratePolicy=bio.bam.readrange.withoutOffsets)() @property {
-        auto _decompressed_stream = getDecompressedBamReadStream();
-        return bamReadRange!IteratePolicy(_decompressed_stream, this);
+        return bamReadRange!IteratePolicy(getDecompressedBamReadStream(), this);
     }
 
     static struct ReadsWithProgressResult(alias IteratePolicy, R, S) {
@@ -291,13 +291,13 @@ class BamReader : IBamSamReader {
     auto readsWithProgress(alias IteratePolicy=bio.bam.readrange.withoutOffsets)
         (void delegate(lazy float p) progressBarFunc) 
     {
-        auto _decompressed_stream = getDecompressedBamReadStream();
-        auto reads_with_offsets = bamReadRange!withOffsets(_decompressed_stream, this);
+        auto decompressed_stream = getDecompressedBamReadStream();
+        auto reads_with_offsets = bamReadRange!withOffsets(decompressed_stream, this);
        
         alias ReadsWithProgressResult!(IteratePolicy, 
                        typeof(reads_with_offsets), IChunkInputStream) Result;
         
-        return Result(reads_with_offsets, _decompressed_stream, progressBarFunc);
+        return Result(reads_with_offsets, decompressed_stream, progressBarFunc);
     }
 
     /// Part of IBamSamReader interface
@@ -325,7 +325,7 @@ class BamReader : IBamSamReader {
     auto getReadsBetween(bio.core.bgzf.virtualoffset.VirtualOffset from, 
                          bio.core.bgzf.virtualoffset.VirtualOffset to) {
         enforce(from < to, "First offset must be strictly less than second");
-        enforce(_stream_is_seekable, "Stream is not seekable");
+        enforce(_file_is_seekable, "Stream is not seekable");
         
         return _random_access_manager.getReadsBetween(from, to);
     }
@@ -389,10 +389,10 @@ class BamReader : IBamSamReader {
 private:
     
     string _filename;                       // filename (if available)
-    Stream _source_stream;                  // compressed
+    File _source_file;                      // compressed
     IChunkInputStream _decompressed_stream; // decompressed
     Stream _bam;                            // decompressed + endian conversion
-    bool _stream_is_seekable;
+    bool _file_is_seekable;
 
     // Virtual offset at which alignment records start.
     VirtualOffset _reads_start_voffset;
@@ -451,60 +451,54 @@ private:
     TaskPool _task_pool;
     size_t _buffer_size = 8192; // buffer size to be used for I/O
 
-    Stream getNativeEndianSourceStream() {
-        assert(_filename !is null);
-        Stream file = new bio.core.utils.stream.File(_filename);
-        return new BufferedStream(file, _buffer_size);
-    }
+    File openFile() {
+        if (!_file_is_seekable)
+            return _source_file;
 
-    Stream getSeekableCompressedStream() {
-        if (_stream_is_seekable) {
-            if (_filename !is null) {
-                auto file = getNativeEndianSourceStream();
-                version(development)
-                {
-                    std.stdio.stderr.writeln("[info] file size: ", file.size);
-                }
-                return new EndianStream(file, Endian.littleEndian);
-            } else {
-                _source_stream.seekSet(0);
-                return _source_stream;
-            } 
-        } else {
-            return null;
+        if (_filename !is null) {
+            auto f = File(_filename);
+            f.setvbuf(_buffer_size);
+            return f;
         }
+
+        _source_file.seek(0);
+        return _source_file;
     }
 
     // get decompressed stream out of compressed BAM file
     IChunkInputStream getDecompressedStream() {
 
-        auto compressed_stream = getSeekableCompressedStream();
+        auto compressed_file = openFile();
 
-        auto bgzf_range = (compressed_stream is null) ? BgzfRange(_source_stream) :
-                                                        BgzfRange(compressed_stream);
+        auto bgzf_range = BgzfRange(compressed_file);
         version(serial) {
             auto chunk_range = map!decompressBgzfBlock(bgzf_range);
         } else {
             auto chunk_range = _task_pool.map!decompressBgzfBlock(bgzf_range, 24);
         }
 
-        if (compressed_stream !is null) {
-            return makeChunkInputStream(chunk_range, cast(size_t)compressed_stream.size);
+        if (compressed_file.isSeekable) {
+            return makeChunkInputStream(chunk_range, compressed_file.size);
         } else {
             return makeChunkInputStream(chunk_range);
         }
     }
 
-
     // get decompressed stream starting from the first alignment record
     IChunkInputStream getDecompressedBamReadStream() {
-        auto compressed_stream = getSeekableCompressedStream();
+        if (_file_is_seekable) {
+            auto compressed_file = openFile();
+            auto sz = compressed_file.size;
 
-        if (compressed_stream !is null) {
             enforce(_reads_start_voffset != 0UL);
 
-            compressed_stream.seekCur(_reads_start_voffset.coffset);
-            auto bgzf_range = BgzfRange(compressed_stream);
+            debug { stderr.writeln("[debug][BamReader] seeking to start of reads"); }
+            debug { stderr.writeln("[debug][BamReader] setting offset to ",
+                                   _reads_start_voffset.coffset); }
+            compressed_file.seekCur(_reads_start_voffset.coffset);
+            debug { assert(compressed_file.tell == _reads_start_voffset.coffset); }
+
+            auto bgzf_range = BgzfRange(compressed_file);
 
             version(serial) {
                 auto chunk_range = map!decompressBgzfBlock(bgzf_range);
@@ -512,8 +506,7 @@ private:
                 auto chunk_range = _task_pool.map!decompressBgzfBlock(bgzf_range, 24);
             }
         
-            auto sz = compressed_stream.size;
-            auto stream = makeChunkInputStream(chunk_range, cast(size_t)sz);
+            auto stream = makeChunkInputStream(chunk_range, sz);
             stream.readString(_reads_start_voffset.uoffset);
             return stream;
         } else {
@@ -524,7 +517,6 @@ private:
 
     // sets up the streams and ranges
     void initializeStreams() {
-        
         _decompressed_stream = getDecompressedStream();
         _bam = new EndianStream(_decompressed_stream, Endian.littleEndian); 
     }

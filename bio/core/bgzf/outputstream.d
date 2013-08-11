@@ -157,25 +157,3 @@ class BgzfOutputStream : Stream {
         _stream.writeExact(BGZF_EOF.ptr, BGZF_EOF.length);    
     }
 }
-
-unittest {
-    import bio.core.bgzf.inputstream;
-    import bio.core.bgzf.blockrange;
-
-    import std.array, std.range, std.stdio;
-
-    char[] data = "my very l" ~ array(repeat('o', 1000000)) ~ "ng string";
-
-    auto output_stream = new MemoryStream();
-    auto bgzf_output_stream = new BgzfOutputStream(output_stream);
-    bgzf_output_stream.writeExact(data.ptr, data.length);
-    bgzf_output_stream.close();
-
-    auto input_stream = new MemoryStream(output_stream.data);
-    input_stream.seekSet(0);
-
-    auto bgzf_input_stream = new BgzfInputStream(input_stream);
-    char[] uncompressed_data = new char[data.length];
-    bgzf_input_stream.readExact(uncompressed_data.ptr, data.length);
-    assert(uncompressed_data == data);
-}

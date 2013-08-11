@@ -26,8 +26,10 @@ module bio.core.bgzf.inputstream;
 import bio.core.bgzf.block;
 import bio.core.bgzf.blockrange;
 import bio.core.bgzf.virtualoffset;
+import bio.core.utils.file;
 
-import std.stream;
+import std.stdio;
+import std.stream : Stream, ReadException, WriteException, SeekException, SeekPos;
 import std.range;
 import std.array;
 import std.traits;
@@ -98,7 +100,7 @@ final class ChunkInputStream(ChunkRange) : IChunkInputStream
     static assert(is(ElementType!ChunkRange == AugmentedDecompressedBgzfBlock));
 
     /// Construct class instance from range of chunks.
-    this(ChunkRange range, size_t compressed_file_size=0) 
+    this(ChunkRange range, ulong compressed_file_size=0) 
     {
         _range = range;
         readable = true;
@@ -120,6 +122,7 @@ final class ChunkInputStream(ChunkRange) : IChunkInputStream
     ///            a chunk slice is returned. 
     ///            Otherwise, memory copying occurs.
     override ubyte[] readSlice(size_t n) {
+        debug { stderr.writeln("[debug][ChunkInputStream] reading chunk of ", n, " bytes"); }
         if (_range.empty()) {
             _start_offset = _end_offset;
             _cur = 0;
@@ -159,6 +162,7 @@ final class ChunkInputStream(ChunkRange) : IChunkInputStream
             _start_offset = _end_offset;
             _cur = 0;
             setEOF();
+            debug { stderr.writeln("[debug][ChunkInputStream] read ", 0, " bytes"); }
             return 0;
         }
 
@@ -182,6 +186,7 @@ final class ChunkInputStream(ChunkRange) : IChunkInputStream
             _its_time_to_get_next_chunk = true;
         }
 
+        debug { stderr.writeln("[debug][ChunkInputStream] read ", read, " bytes"); }
         return read;
     }
 
@@ -207,7 +212,7 @@ final class ChunkInputStream(ChunkRange) : IChunkInputStream
         return cast(float)_total_uncompressed/_total_compressed;
     }
 
-    override size_t compressed_file_size() @property const {
+    override ulong compressed_file_size() @property const {
         return _compressed_file_size;
     }
 
@@ -217,13 +222,13 @@ private:
     typeof(_range.front.end_offset) _end_offset;
     typeof(_range.front.decompressed_data) _buf;
 
-    size_t _compressed_file_size;
+    ulong _compressed_file_size;
 
-    size_t _len;  // current data length
-    size_t _cur;  // current position
+    ulong _len;  // current data length
+    ulong _cur;  // current position
 
-    size_t _total_compressed; // compressed bytes read so far
-    size_t _total_uncompressed; // uncompressed size of blocks read so far
+    ulong _total_compressed; // compressed bytes read so far
+    ulong _total_uncompressed; // uncompressed size of blocks read so far
 
     bool _its_time_to_get_next_chunk;
 
@@ -301,6 +306,7 @@ private:
     } else {
         final void setEOF() { readEOF = true; }
     }
+    
     size_t readBlockHelper(void* buffer, size_t size) {
         ubyte* cbuf = cast(ubyte*) buffer;
         if (size + _cur > _len)
@@ -310,20 +316,19 @@ private:
         _cur += size;
         return size;
     }
-
 }
 
 /**
    Returns: input stream wrapping given range of memory chunks
  */
-auto makeChunkInputStream(R)(R range, size_t compressed_file_size=0) 
+auto makeChunkInputStream(R)(R range, ulong compressed_file_size=0) 
     if (is(Unqual!(ElementType!R) == AugmentedDecompressedBgzfBlock))
 {
     return new ChunkInputStream!R(range, compressed_file_size);
 }
 
 /// ditto
-auto makeChunkInputStream(R)(R range, size_t compressed_file_size=0)
+auto makeChunkInputStream(R)(R range, ulong compressed_file_size=0)
     if (is(Unqual!(ElementType!R) == DecompressedBgzfBlock))
 {
     return makeChunkInputStream(map!makeAugmentedBlock(range), compressed_file_size);
@@ -372,12 +377,12 @@ final class BgzfInputStream : IChunkInputStream {
 
     /// Read BGZF blocks from supplied $(D stream) using $(D task_pool)
     /// to do parallel decompression
-    this(Stream stream, TaskPool task_pool=taskPool) {
-        auto stream_size = stream.seekable ? stream.size : 0;
-        auto bgzf_range = BgzfRange(stream);
+    this(File file, TaskPool task_pool=taskPool) {
+        auto file_size = file.isSeekable ? file.size : 0;
+        auto bgzf_range = BgzfRange(file);
 
         auto decompressed_blocks = task_pool.map!decompressBgzfBlock(bgzf_range, 24);
-        _stream = makeChunkInputStream(decompressed_blocks, cast(size_t)stream_size);
+        _stream = makeChunkInputStream(decompressed_blocks, file_size);
 
         readable = true;
         writeable = false;
