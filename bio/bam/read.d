@@ -147,6 +147,11 @@ struct CigarOperation {
         return ((CIGAR_TYPE >> ((raw & 0xF) * 2)) & 3) == 3;
     }
 
+    /// True iff operation is one of 'S', 'H'
+    bool is_clipping() @property const {
+        return ((raw & 0xF) >> 1) == 2; // 4 or 5
+    }
+
     private void toSam(Sink)(auto ref Sink sink) const 
         if (isSomeSink!Sink)
     {
@@ -779,6 +784,7 @@ struct BamRead {
         BamRead result;
         result._chunk = this._chunk.dup;
         result._is_slice = false;
+        result._modify_in_place = false;
         result._reader = cast()_reader;
         return result;
     }
@@ -1041,7 +1047,17 @@ struct BamRead {
     bio.bam.abstractreader.IBamSamReader reader() @property {
         return _reader;
     }
-   
+
+    ///
+    bool is_slice_backed() @property const {
+        return _is_slice;
+    }
+
+    /// Raw representation of the read. Occasionally useful for dirty hacks!
+    inout(ubyte)[] raw_data() @property inout {
+        return _chunk;
+    }
+    
     package ubyte[] _chunk; // holds all the data, 
                     // the access is organized via properties
                     // (see below)
@@ -1054,11 +1070,22 @@ private:
     // (Of course this places some restrictions on usage,
     //  but allows to reduce size of record.)
     bool _is_slice() @property const {
-        return cast(bool)_chunk[_cigar_offset - 1];
+        return cast(bool)(_chunk[_cigar_offset - 1] & 1);
     }
 
     void _is_slice(bool is_slice) @property {
-        _chunk[_cigar_offset - 1] = is_slice ? 1 : 0;
+        _chunk[_cigar_offset - 1] &= 0b11111110;
+        _chunk[_cigar_offset - 1] |= (is_slice ? 1 : 0);
+    }
+
+    // don't call _dup() if the record is modified
+    bool _modify_in_place() @property const {
+        return cast(bool)(_chunk[_cigar_offset - 1] & 2);
+    }
+
+    void _modify_in_place(bool in_place) @property {
+        _chunk[_cigar_offset - 1] &= 0b11111101;
+        _chunk[_cigar_offset - 1] |= (in_place ? 2 : 0);
     }
 
     IBamSamReader _reader;
@@ -1178,7 +1205,7 @@ private:
     // may point to the same location, but every modified one allocates its
     // own chunk of memory.
     void _dup() {
-        if (_is_slice) {
+        if (_is_slice && !_modify_in_place) {
             _chunk = _chunk.dup;
             _is_slice = false;
         }
@@ -1690,3 +1717,23 @@ bool compareCoordinates(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
 
 static assert(isTwoWayCompatible!(compareReadNames, BamRead, string));
 static assert(isTwoWayCompatible!(compareCoordinates, BamRead, int));
+
+/// Allows modification of the read in-place even if it's slice-backed.
+struct UniqueRead(R) {
+    R read;
+    alias read this;
+
+    this(R read) {
+        this.read = read;
+        this.read._modify_in_place = true;
+    }
+
+    ~this() {
+        this.read._modify_in_place = false;
+    }
+}
+
+/// ditto
+auto assumeUnique(R)(auto ref R read) if (isBamRead!R) {
+    return UniqueRead!R(read);
+}
