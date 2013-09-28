@@ -40,8 +40,8 @@ import std.path;
 /// Represents index for a single reference
 struct Index {
     /// Information about bins
-    Bin[uint] bins;
-    
+    Bin[] bins;
+
     /// Virtual file offsets of first alignments overlapping 16384-byte windows
     /// on the reference sequence. This linear index is used to reduce amount
     /// of file seeks for region queries, since with its help one can reduce the
@@ -78,22 +78,6 @@ struct Index {
         int _i = min(pos / BAI_LINEAR_INDEX_WINDOW_SIZE, cast(int)ioffsets.length - 1);
         auto min_offset = (_i == -1) ? VirtualOffset(0) : ioffsets[_i];
         return min_offset;
-    }
-
-    /// Range of bins that overlap interval [beg, end)
-    auto getBins(uint beg, uint end) {
-        assert(beg < end);
-        if (end >= 1u<<29) end = 1u<<29;
-        --end;
-        return chain(repeat(0).takeOne(),
-                     iota(1 + (beg >> 26), 2 + (end >> 26)),
-                     iota(9 + (beg >> 23), 10 + (end >> 23)),
-                     iota(73 + (beg >> 20), 74 + (end >> 20)),
-                     iota(585 + (beg >> 17), 586 + (end >> 17)),
-                     iota(4681 + (beg >> 14), 4682 + (end >> 14)))
-            .zip(bins.repeat())
-            .map!"a[0] in a[1]"()
-            .filter!"a !is null"();
     }
 }
 
@@ -144,38 +128,39 @@ private:
 
         int n_ref;
         _stream.read(n_ref);
-        indices.length = n_ref;
+        indices = uninitializedArray!(Index[])(n_ref);
 
         foreach (i; 0 .. n_ref) {
-            int n_bin;
+            int n_bin = void;
             _stream.read(n_bin);
+            indices[i].bins = uninitializedArray!(Bin[])(n_bin);
             
             foreach (j; 0 .. n_bin) {
-                uint id;
+                uint id = void;
                 _stream.read(id);
                 auto bin = Bin(id);
 
-                int n_chunk;
+                int n_chunk = void;
                 _stream.read(n_chunk);
-                bin.chunks.length = n_chunk;
+                bin.chunks = uninitializedArray!(Chunk[])(n_chunk);
                 
                 foreach (k; 0 .. n_chunk) {
-                    ulong tmp;
+                    ulong tmp = void;
                     _stream.read(tmp);
                     bin.chunks[k].beg = VirtualOffset(tmp);
                     _stream.read(tmp);
                     bin.chunks[k].end = VirtualOffset(tmp);
                 }
                 
-                indices[i].bins[id] = bin;
+                indices[i].bins[j] = bin;
             }
 
-            int n_intv;
+            int n_intv = void;
             _stream.read(n_intv);
-            indices[i].ioffsets.length = n_intv;
+            indices[i].ioffsets = uninitializedArray!(VirtualOffset[])(n_intv);
 
             foreach (j; 0 .. n_intv) {
-                ulong tmp;
+                ulong tmp = void;
                 _stream.read(tmp);
                 indices[i].ioffsets[j] = VirtualOffset(tmp);
             }
