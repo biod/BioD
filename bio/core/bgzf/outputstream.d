@@ -33,6 +33,8 @@ import std.exception;
 import std.parallelism;
 import std.array;
 import std.algorithm : max;
+import std.typecons;
+import std.c.stdlib;
 
 /// Class for BGZF compression
 class BgzfOutputStream : Stream {
@@ -41,13 +43,14 @@ class BgzfOutputStream : Stream {
         Stream _stream = void;
         TaskPool _task_pool = void;
 
-        ubyte[] _buffer = void;
+        ubyte[] _buffer; // a slice into _compression_buffer
         size_t _current_size;
 
         int _compression_level = void;
 
         alias Task!(bgzfCompress, ubyte[], int) CompressionTask;
         RoundBuf!(CompressionTask*) _compression_tasks = void;
+        ubyte[] _compression_buffer;
     }
 
     /// Create new BGZF output stream which will use
@@ -62,9 +65,15 @@ class BgzfOutputStream : Stream {
         _stream = output_stream;
         _task_pool = task_pool;
         _compression_level = compression_level;
-        _buffer = uninitializedArray!(ubyte[])(max_block_size);
 
-        _compression_tasks = RoundBuf!(CompressionTask*)(max(task_pool.size, 1));
+        size_t n_tasks = max(task_pool.size, 1) * 16;
+        _compression_tasks = RoundBuf!(CompressionTask*)(n_tasks);
+
+        // 1 extra block to which we can write while n_tasks are executed
+        auto comp_buf_size = (n_tasks + 1) * max_block_size;
+        auto p = cast(ubyte*)std.c.stdlib.malloc(comp_buf_size);
+        _compression_buffer = p[0 .. comp_buf_size];
+        _buffer = _compression_buffer[0 .. max_block_size];
 
         readable = false;
         writeable = true;
@@ -111,10 +120,9 @@ class BgzfOutputStream : Stream {
         if (_current_size == 0)
             return;
 
+        ubyte[] front_block = null;
         if (_compression_tasks.full) {
-            auto block = _compression_tasks.front.yieldForce();
-            _stream.writeExact(block.ptr, block.length);
-
+            front_block = _compression_tasks.front.workForce();
             _compression_tasks.popFront();
         }
 
@@ -123,8 +131,24 @@ class BgzfOutputStream : Stream {
         _compression_tasks.put(compression_task);
         _task_pool.put(compression_task);
 
-        _buffer = uninitializedArray!(ubyte[])(_buffer.length);
+        size_t offset = _buffer.ptr - _compression_buffer.ptr;
+        offset += _buffer.length;
+        if (offset == _compression_buffer.length)
+            offset = 0;
+        _buffer = _compression_buffer[offset .. offset + _buffer.length];
         _current_size = 0;
+
+        if (front_block !is null)
+            _stream.writeExact(front_block.ptr, front_block.length);
+
+        while (!_compression_tasks.empty) {
+            auto task = _compression_tasks.front;
+            if (!task.done())
+                break;
+            auto block = task.yieldForce();
+            _stream.writeExact(block.ptr, block.length);
+            _compression_tasks.popFront();
+        }
     }
 
     /// Flush all remaining BGZF blocks and underlying stream.
@@ -150,6 +174,7 @@ class BgzfOutputStream : Stream {
         _stream.close();
 
         writeable = false;
+        std.c.stdlib.free(_compression_buffer.ptr);
     }
 
     /// Adds EOF block. This function is called in close() method.
