@@ -227,10 +227,14 @@ class BamReader : IBamSamReader {
     }
 
     static struct ReadsWithProgressResult(alias IteratePolicy, R, S) {
-        this(R range, S stream, void delegate(lazy float p) progressBarFunc) {
+        this(R range, S stream,
+             void delegate(lazy float p) progressBarFunc,
+             void delegate() finishFunc)
+        {
             _range = range;
             _stream = stream;
             _progress_bar_func = progressBarFunc;
+            _finish_func = finishFunc;
         }
 
         static if (__traits(identifier, IteratePolicy) == "withOffsets") {
@@ -244,7 +248,10 @@ class BamReader : IBamSamReader {
         } else static assert(0, __traits(identifier, IteratePolicy));
 
         bool empty() @property {
-            return _range.empty;
+            auto result = _range.empty;
+            if (_finish_func !is null && result)
+                _finish_func();
+            return result;
         }
 
         void popFront() {
@@ -261,6 +268,7 @@ class BamReader : IBamSamReader {
         private S _stream;
         private size_t _bytes_read;
         private void delegate(lazy float p) _progress_bar_func;
+        private void delegate() _finish_func;
     }
 
     /**
@@ -274,6 +282,9 @@ class BamReader : IBamSamReader {
         Notice that $(I progressBarFunc) takes $(D lazy) argument, 
         so that the number of relatively expensive float division operations
         can be controlled by user.
+
+        Once the iteration is finished (call to $(D empty) returned true),
+        $(I finishFunc) will be called if provided.
 
         Example:
         ------------------------------------
@@ -289,7 +300,8 @@ class BamReader : IBamSamReader {
         ------------------------------------
     */
     auto readsWithProgress(alias IteratePolicy=bio.bam.readrange.withoutOffsets)
-        (void delegate(lazy float p) progressBarFunc) 
+        (void delegate(lazy float p) progressBarFunc,
+         void delegate() finishFunc=null) 
     {
         auto _decompressed_stream = getDecompressedBamReadStream();
         auto reads_with_offsets = bamReadRange!withOffsets(_decompressed_stream, this);
@@ -297,7 +309,8 @@ class BamReader : IBamSamReader {
         alias ReadsWithProgressResult!(IteratePolicy, 
                        typeof(reads_with_offsets), IChunkInputStream) Result;
         
-        return Result(reads_with_offsets, _decompressed_stream, progressBarFunc);
+        return Result(reads_with_offsets, _decompressed_stream,
+                      progressBarFunc, finishFunc);
     }
 
     /// Part of IBamSamReader interface
