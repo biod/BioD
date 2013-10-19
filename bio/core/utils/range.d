@@ -89,6 +89,37 @@ auto prefetch(Range)(Range r, size_t amount) {
     return Result(r, amount);
 }
 
+///
+struct Cached(R) {
+    private {
+        alias ElementType!R E;
+        R _range;
+        E _front;
+        bool _empty;
+    }
+
+    this(R range) {
+        _range = range;
+        popFront();
+    }
+
+    auto front() { return _front; }
+    bool empty() { return _empty; }
+    void popFront() {
+        if (_range.empty) {
+            _empty = true;
+        } else {
+            _front = _range.front;
+            _range.popFront();
+        }
+    }
+}
+
+/// Caches front element.
+auto cached(R)(R range) {
+    return Cached!R(range);
+}
+
 unittest {
     import std.algorithm;
 
@@ -100,6 +131,8 @@ unittest {
     assert(equal(range, prefetch(range, 3)));
     assert(equal(range, prefetch(range, 5)));
     assert(equal(range, prefetch(range, 7)));
+
+    assert(equal(range, cached(range)));
 }
 
 /// Takes arbitrary input range as an input and returns

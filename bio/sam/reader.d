@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2013    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -28,6 +28,7 @@ import bio.sam.header;
 import bio.bam.read;
 import bio.bam.referenceinfo;
 import bio.core.utils.outbuffer;
+import bio.core.utils.range;
 
 version(DigitalMars) {
     import bio.sam.utils.recordparser;
@@ -38,6 +39,16 @@ version(DigitalMars) {
 import std.stdio;
 import std.array;
 import std.string;
+import std.range;
+import std.algorithm;
+import std.typecons;
+
+alias File.ByLine!(char, char) _LineRange;
+BamRead _parseSamRecord(Tuple!(char[], SamReader, OutBuffer) t) {
+    auto r = parseAlignmentLine(cast(string)t[0], t[1]._header, t[2]);
+    r.associateWithReader(t[1]);
+    return r;
+}
 
 private {
     extern(C) size_t lseek(int, size_t, int);
@@ -69,49 +80,6 @@ class SamReader : IBamSamReader {
 
     private alias File.ByLine!(char, char) LineRange;
 
-    static struct SamRecordRange {
-        this(LineRange lines, ref SamHeader header, SamReader reader) {
-            _header = header;
-            _reader = reader;
-            _buffer = new OutBuffer(8192); // should be plenty even for PacBio reads
-            _line_range = lines;
-
-            _parseNextLine();
-        }
-        
-        bool empty() @property {
-            return _empty;
-        }
-        
-        void popFront() @property {
-            _line_range.popFront();
-            _parseNextLine();
-        }
-
-        BamRead front() @property {
-            return _current_alignment;
-        }
-
-        private {
-            void _parseNextLine() {
-                if (_line_range.empty) {
-                    _empty = true;
-                } else {
-                    _current_alignment = parseAlignmentLine(cast(string)_line_range.front,
-                                                            _header, _buffer);
-                    _current_alignment.associateWithReader(cast(IBamSamReader)_reader);
-                }
-            }
-
-            LineRange _line_range;
-            BamRead _current_alignment;
-            OutBuffer _buffer;
-            bool _empty;
-            SamHeader _header;
-            SamReader _reader;
-        }
-    }
-
     /// Reads in SAM file.
     auto reads() @property {
         
@@ -129,7 +97,9 @@ class SamReader : IBamSamReader {
                 lines.popFront();
         }
 
-        return SamRecordRange(lines, _header, this);
+        auto buffer = new OutBuffer(8192);
+        return lines.zip(repeat(this), repeat(buffer))
+                    .map!_parseSamRecord().cached();
     }
 
     ///
