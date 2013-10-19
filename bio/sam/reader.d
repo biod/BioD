@@ -27,6 +27,7 @@ import bio.bam.abstractreader;
 import bio.sam.header;
 import bio.bam.read;
 import bio.bam.referenceinfo;
+import bio.core.utils.outbuffer;
 
 version(DigitalMars) {
     import bio.sam.utils.recordparser;
@@ -72,9 +73,9 @@ class SamReader : IBamSamReader {
         this(LineRange lines, ref SamHeader header, SamReader reader) {
             _header = header;
             _reader = reader;
+            _buffer = new OutBuffer(8192); // should be plenty even for PacBio reads
             _line_range = lines;
 
-            _build_storage = new AlignmentBuildStorage();
             _parseNextLine();
         }
         
@@ -96,19 +97,18 @@ class SamReader : IBamSamReader {
                 if (_line_range.empty) {
                     _empty = true;
                 } else {
-                    _current_alignment = parseAlignmentLine(cast(string)_line_range.front.dup,
-                                                            _header,
-                                                            _build_storage);
+                    _current_alignment = parseAlignmentLine(cast(string)_line_range.front,
+                                                            _header, _buffer);
                     _current_alignment.associateWithReader(cast(IBamSamReader)_reader);
                 }
             }
 
             LineRange _line_range;
             BamRead _current_alignment;
+            OutBuffer _buffer;
             bool _empty;
             SamHeader _header;
             SamReader _reader;
-            AlignmentBuildStorage _build_storage;
         }
     }
 

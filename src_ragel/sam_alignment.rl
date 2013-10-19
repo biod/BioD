@@ -44,108 +44,257 @@
 
     invalid_field = [^\t]* ; # TODO: make class with onError methods and pass it to parseAlignmentLine
 
+    ### 1. STORE READ NAME ###
     action qname_start { read_name_beg = p - line.ptr; }
-    action qname_end { read_name_end = p - line.ptr; }
+    action qname_end { read_name = line[read_name_beg .. p - line.ptr]; }
+    action handle_invalid_qname { fhold; fgoto recover_from_invalid_qname; }
+    recover_from_invalid_qname := invalid_field '\t' @{ fhold; fgoto flag_parsing; } ;
 
     qname =  '*' | (([!-?A-~]{1,255})** > qname_start % qname_end) ;
 
+    ### 2. STORE FLAG ###
     action set_flag { flag = to!ushort(int_value); }
-    action set_pos { pos = to!uint(int_value); }
-    action set_mapping_quality { mapping_quality = to!ubyte(int_value); }
-
     flag = uint % set_flag;
+    action handle_invalid_flag { fhold; fgoto recover_from_invalid_flag; }
+    recover_from_invalid_flag := invalid_field '\t' @{ fhold; fgoto rname_parsing; } ;
 
+    ### 3. STORE RNAME ###
     action rname_start { rname_beg = p - line.ptr; }
     action rname_end {
         ref_id = header.getSequenceIndex(line[rname_beg .. p - line.ptr]); 
     }
 
+    action handle_invalid_rname { fhold; fgoto recover_from_invalid_rname; }
+    recover_from_invalid_rname := invalid_field '\t' @{ fhold; fgoto pos_parsing; } ;
+
     rname = '*' | (([!-()+-<>-~] [!-~]*) > rname_start % rname_end);
 
+    ### 4. STORE POS ###
+    action set_pos { end_pos = pos = to!uint(int_value); }
     pos = uint % set_pos;
-    mapq = uint % set_mapping_quality;
+    action handle_invalid_pos { fhold; fgoto recover_from_invalid_pos; }
+    recover_from_invalid_pos := invalid_field '\t' @{ fhold; fgoto mapq_parsing; } ;
 
+    ### 5. STORE MAPPING QUALITY ###
+    action set_mapping_quality { mapping_quality = to!ubyte(int_value); }
+    mapq = uint % set_mapping_quality;
+    action handle_invalid_mapq { fhold; fgoto recover_from_invalid_mapq; }
+    recover_from_invalid_mapq := invalid_field '\t' @{ fhold; fgoto cigar_parsing; } ;
+
+    ### 6. INITIALIZE OUTPUT BUFFER ###
+    action init_output_buffer {
+        buffer.capacity = 32 + read_name.length + 1;
+        buffer.putUnsafe!int(ref_id);
+        buffer.putUnsafe!int(pos - 1);
+
+        enforce(read_name.length + 1 <= 255, "Read name " ~ read_name ~ " is too long!");
+
+        // bin will be set later
+        auto bin_mq_nl = ((cast(uint)mapping_quality) << 8) | (read_name.length + 1);
+        buffer.putUnsafe(cast(uint)bin_mq_nl);
+
+        // number of CIGAR operations will be set later
+        buffer.putUnsafe!uint(flag << 16);
+
+        buffer.putUnsafe!int(0);
+        buffer.putUnsafe!int(-1); // mate ref. id
+        buffer.putUnsafe!int(-1); // mate pos
+        buffer.putUnsafe!int(0);  // tlen
+
+        buffer.putUnsafe(cast(ubyte[])read_name);
+        buffer.putUnsafe!ubyte(0);
+
+        rollback_size = buffer.data.length;
+    }
+
+    ### 7. STORE CIGAR OPERATIONS ###
     action cigar_set_op_length { cigar_op_len = to!uint(int_value); }
     action cigar_set_op_chr { cigar_op_chr = fc; }
     action cigar_put_operation { 
-        cigar.put(CigarOperation(cigar_op_len, cigar_op_chr)); 
+        auto op = CigarOperation(cigar_op_len, cigar_op_chr);
+        if (op.is_reference_consuming)
+            end_pos += op.length;
+        buffer.put!CigarOperation(op); 
+        {
+        auto ptr = cast(uint*)(buffer.data.ptr + 3 * uint.sizeof);
+        *ptr = (*ptr) + 1;
+        }
     }
+
+    action handle_invalid_cigar {
+        auto ptr = cast(uint*)(buffer.data.ptr + 3 * uint.sizeof);
+        *ptr = (*ptr) & 0xFFFF0000;
+        buffer.shrink(rollback_size);
+        end_pos = pos + 1;
+        fhold; fgoto recover_from_invalid_cigar;
+    }
+    recover_from_invalid_cigar := invalid_field '\t' @{ fhold; fgoto rnext_parsing; } ;
 
     cigar = '*' | (uint % cigar_set_op_length
                   [MIDNSHPX=] > cigar_set_op_chr % cigar_put_operation)+ ;
 
+    ### 8. SET BIN ###
+    action set_bin {
+        if (end_pos == pos)
+            ++end_pos;
+        {
+        auto bin = reg2bin(pos, end_pos);
+        auto ptr = cast(uint*)(buffer.data.ptr + 2 * uint.sizeof);
+        *ptr = (*ptr) | ((cast(uint)bin) << 16);
+        }
+    }
+
+    ### 9. SET MATE REF. ID ###
     action set_same_mate_ref_id {
-        mate_ref_id = ref_id;
+        {
+        auto ptr = cast(int*)(buffer.data.ptr + 5 * int.sizeof);
+        *ptr = ref_id;
+        }
     }
    
     action rnext_start { rnext_beg = p - line.ptr; }
     action rnext_end {
-        mate_ref_id = header.getSequenceIndex(line[rnext_beg .. p - line.ptr]);
+        { 
+        auto ptr = cast(int*)(buffer.data.ptr + 5 * int.sizeof);
+        *ptr = header.getSequenceIndex(line[rnext_beg .. p - line.ptr]);
+        }
     }
+    action handle_invalid_rnext { fhold; fgoto recover_from_invalid_rnext; }
+    recover_from_invalid_rnext := invalid_field '\t' @{ fhold; fgoto pnext_parsing; } ;
 
     rnext = '*' | ('=' % set_same_mate_ref_id) | 
                   (([!-()+-<>-~][!-~]*) > rnext_start % rnext_end) ;
 
-    action set_mate_pos { mate_pos = to!uint(int_value); }
-    action set_template_length { template_length = to!int(int_value); }
+    ### 10. SET MATE POSITION ###
+    action set_mate_pos { 
+        {
+        auto ptr = cast(int*)(buffer.data.ptr + 6 * int.sizeof);
+        *ptr = to!int(int_value) - 1;
+        }
+    }
+    action handle_invalid_pnext { fhold; fgoto recover_from_invalid_pnext; }
+    recover_from_invalid_pnext := invalid_field '\t' @{ fhold; fgoto tlen_parsing; } ;
 
     pnext = uint % set_mate_pos;
+
+    ### 11. SET TEMPLATE LENGTH ###
+    action set_template_length { 
+        {
+        auto ptr = cast(int*)(buffer.data.ptr + 7 * int.sizeof);
+        *ptr = to!int(int_value);
+        }
+    }
+    action handle_invalid_tlen { fhold; fgoto recover_from_invalid_tlen; }
+    recover_from_invalid_tlen := invalid_field '\t' @{ fhold; fgoto seq_parsing; } ;
+
     tlen = int % set_template_length;
 
+    ### 12. SET SEQUENCE ###
     action sequence_start { sequence_beg = p - line.ptr; }
-    action sequence_end { sequence = line[sequence_beg .. p - line.ptr]; }
+    action sequence_end { 
+        auto data = cast(ubyte[])line[sequence_beg .. p - line.ptr];
+        l_seq = cast(int)data.length;
+        auto raw_len = (l_seq + 1) / 2;
+
+        // reserve space for base qualities, too
+        buffer.capacity = buffer.data.length + raw_len + l_seq;
+
+        for (size_t i = 0; i < raw_len; ++i) {
+            auto b = cast(ubyte)(Base(data[2 * i]).internal_code << 4);
+            if (2 * i + 1 < l_seq)
+                b |= cast(ubyte)(Base(data[2 * i + 1]).internal_code);
+            buffer.putUnsafe!ubyte(b);
+        }
+
+        // set l_seq
+        {
+        auto ptr = cast(int*)(buffer.data.ptr + 4 * int.sizeof);
+        *ptr = l_seq;
+        }
+
+        rollback_size = buffer.data.length;
+    }
+    action handle_invalid_seq {
+        rollback_size = buffer.data.length;
+        fhold; fgoto recover_from_invalid_seq;
+    }
+    recover_from_invalid_seq := invalid_field '\t' @{ fhold; fgoto qual_parsing; } ;
 
     seq = '*' | ([A-Za-z=.]+ > sequence_start % sequence_end) ;
-    qual = [!-~]+ ;
 
-    action allocate_quality_array {
-        if (sequence.length > 1024) {
-            qual_ptr = (new ubyte[sequence.length]).ptr;
-        } else {
-            qual_ptr = cast(ubyte*)alloca(sequence.length);
-            if (!qual_ptr) {
-                qual_ptr = (new ubyte[sequence.length]).ptr;
-            }
-        }
-        qual_index = 0;
-    }
-
+    ### 13. SET BASE QUALITIES ###
     action convert_next_character_to_prob {
-        qual_ptr[qual_index++] = cast(ubyte)(fc - 33);
+        buffer.putUnsafe!ubyte(cast(ubyte)(fc - 33));
     }
 
-    mandatoryfields = (qname | invalid_field) '\t'
-                      (flag  | invalid_field) '\t'
-                      (rname | invalid_field) '\t'
-                      (pos   | invalid_field) '\t'
-                      (mapq  | invalid_field) '\t'
-                      (cigar | invalid_field) '\t'
-                      (rnext | invalid_field) '\t'
-                      (pnext | invalid_field) '\t'
-                      (tlen  | invalid_field) '\t'
-                      (seq   | invalid_field) '\t'
-                      ((qual > allocate_quality_array
-                             $ convert_next_character_to_prob) | invalid_field) ;
+    action handle_invalid_qual {
+        buffer.shrink(rollback_size);
+        for (size_t i = 0; i < l_seq; ++i)
+            buffer.putUnsafe!ubyte(0xFF);
+        rollback_size = buffer.data.length;
+        fhold; fgoto recover_from_invalid_qual;
+    }
+    # FIXME
+    recover_from_invalid_qual := invalid_field '\t' @{ fhold; fgoto tag_parsing; } ;
 
-    action set_charvalue { current_tagvalue = Value(fc); }
+    action check_qual_length {
+        if (buffer.data.length - rollback_size != l_seq) {
+            buffer.shrink(rollback_size);
+            for (size_t i = 0; i < l_seq; ++i)
+                buffer.putUnsafe!ubyte(0xFF);
+        }
+        rollback_size = buffer.data.length;
+    }
+    qual = [!-~]+ $ convert_next_character_to_prob ;
+
+    ###### PARSE MANDATORY FIELDS #######
+    mandatoryfields = qname_parsing: (qname $!handle_invalid_qname)
+                      flag_parsing: '\t' (flag $!handle_invalid_flag)
+                      rname_parsing: '\t' (rname $!handle_invalid_rname)
+                      pos_parsing: '\t' (pos $!handle_invalid_pos)
+                      mapq_parsing: '\t' (mapq $!handle_invalid_mapq)
+                      cigar_parsing: '\t' > init_output_buffer (cigar $!handle_invalid_cigar)
+                      rnext_parsing: '\t' > set_bin (rnext $!handle_invalid_rnext)
+                      pnext_parsing: '\t' (pnext $!handle_invalid_pnext)
+                      tlen_parsing: '\t' (tlen $!handle_invalid_tlen)
+                      seq_parsing: '\t' (seq $!handle_invalid_seq)
+                      qual_parsing: '\t' (qual % check_qual_length $!handle_invalid_qual) ;
+
+    ############ TAG PARSING ######
+
+    action set_charvalue { 
+        buffer.capacity = buffer.data.length + 4;
+        buffer.putUnsafe(tag_key);
+        buffer.putUnsafe!char('A');
+        buffer.putUnsafe!char(fc); 
+    }
+
     action set_integervalue { 
+        buffer.capacity = buffer.data.length + 7;
+        buffer.putUnsafe(tag_key);
         if (int_value < 0) {
             if (int_value >= byte.min) {
-                current_tagvalue = Value(to!byte(int_value));
+                buffer.putUnsafe!char('c');
+                buffer.putUnsafe(cast(byte)int_value);
             } else if (int_value >= short.min) {
-                current_tagvalue = Value(to!short(int_value));
+                buffer.putUnsafe!char('s');
+                buffer.putUnsafe(cast(short)int_value);
             } else if (int_value >= int.min) {
-                current_tagvalue = Value(to!int(int_value));
+                buffer.putUnsafe!char('i');
+                buffer.putUnsafe(cast(int)int_value);
             } else {
                 throw new Exception("integer out of range");
             }
         } else {
             if (int_value <= ubyte.max) {
-                current_tagvalue = Value(to!ubyte(int_value));
+                buffer.putUnsafe!char('C');
+                buffer.putUnsafe(cast(ubyte)int_value);
             } else if (int_value <= ushort.max) {
-                current_tagvalue = Value(to!ushort(int_value));
+                buffer.putUnsafe!char('S');
+                buffer.putUnsafe(cast(ushort)int_value);
             } else if (int_value <= uint.max) {
-                current_tagvalue = Value(to!uint(int_value));
+                buffer.putUnsafe!char('I');
+                buffer.putUnsafe(cast(uint)int_value);
             } else {
                 throw new Exception("integer out of range");
             }
@@ -155,16 +304,32 @@
     action start_tagvalue { tagvalue_beg = p - line.ptr; }
 
     action set_floatvalue { 
-        current_tagvalue = Value(float_value);
+        buffer.capacity = buffer.data.length + 7;
+        buffer.putUnsafe(tag_key);
+        buffer.putUnsafe!char('f');
+        buffer.putUnsafe!float(float_value);
     }
 
     action set_stringvalue { 
-        current_tagvalue = Value(line[tagvalue_beg .. p - line.ptr]); 
+        {
+        auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
+        buffer.capacity = buffer.data.length + 4 + data.length;
+        buffer.putUnsafe(tag_key);
+        buffer.putUnsafe!char('Z');
+        buffer.putUnsafe(data);
+        buffer.putUnsafe!ubyte(0);
+        }
     }
 
     action set_hexstringvalue {
-        current_tagvalue = Value(line[tagvalue_beg .. p - line.ptr]);
-        current_tagvalue.setHexadecimalFlag();
+        {
+        auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
+        buffer.capacity = buffer.data.length + 4 + data.length;
+        buffer.putUnsafe(tag_key);
+        buffer.putUnsafe!char('H');
+        buffer.putUnsafe(data);
+        buffer.putUnsafe!ubyte(0);
+        }
     }
 
     charvalue =  [!-~] > set_charvalue ;
@@ -172,49 +337,44 @@
     floatvalue = float % set_floatvalue ;
 
     action start_arrayvalue {
-        // it might be not the best idea to use outbuffer;
-        // the better idea might be two-pass approach
-        // when first pass is for counting commas, and
-        // the second is for filling allocated array
-        outbuffer.data.length = 0;
-        outbuffer.offset = 0;
         arraytype = fc;
+        buffer.capacity = buffer.data.length + 8;
+        buffer.putUnsafe(tag_key);
+        buffer.putUnsafe!char('B');
+        buffer.putUnsafe!char(arraytype);
+        buffer.putUnsafe!uint(0);
+        tag_array_length_offset = buffer.data.length - uint.sizeof;
     }
 
     action put_integer_to_array {
         // here, we assume that compiler is smart enough to move switch out of loop.
         switch (arraytype) {
-            case 'c': outbuffer.write(to!byte(int_value)); break;
-            case 'C': outbuffer.write(to!ubyte(int_value)); break;
-            case 's': outbuffer.write(to!short(int_value)); break;
-            case 'S': outbuffer.write(to!ushort(int_value)); break;
-            case 'i': outbuffer.write(to!int(int_value)); break;
-            case 'I': outbuffer.write(to!uint(int_value)); break;
+            case 'c': buffer.put(to!byte(int_value)); break;
+            case 'C': buffer.put(to!ubyte(int_value)); break;
+            case 's': buffer.put(to!short(int_value)); break;
+            case 'S': buffer.put(to!ushort(int_value)); break;
+            case 'i': buffer.put(to!int(int_value)); break;
+            case 'I': buffer.put(to!uint(int_value)); break;
             default: assert(0);
+        }
+        {
+            auto ptr = cast(uint*)(buffer.data.ptr + tag_array_length_offset);
+            ++*ptr;
         }
     }
 
     action put_float_to_array { 
-        outbuffer.write(float_value); 
-    }
-
-    action set_arrayvalue {
-        switch (arraytype) {
-            case 'c': current_tagvalue = Value(cast(byte[])(outbuffer.toBytes())); break;
-            case 'C': current_tagvalue = Value(cast(ubyte[])(outbuffer.toBytes())); break;
-            case 's': current_tagvalue = Value(cast(short[])(outbuffer.toBytes())); break;
-            case 'S': current_tagvalue = Value(cast(ushort[])(outbuffer.toBytes())); break;
-            case 'i': current_tagvalue = Value(cast(int[])(outbuffer.toBytes())); break;
-            case 'I': current_tagvalue = Value(cast(uint[])(outbuffer.toBytes())); break;
-            case 'f': current_tagvalue = Value(cast(float[])(outbuffer.toBytes())); break;
-            default: assert(0);
+        buffer.put!float(float_value);
+        {
+            auto ptr = cast(uint*)(buffer.data.ptr + tag_array_length_offset);
+            ++*ptr;
         }
     }
 
     stringvalue = [ !-~]+ > start_tagvalue % set_stringvalue ;
     hexstringvalue = xdigit+ > start_tagvalue % set_hexstringvalue ;
-    integerarrayvalue = [cCsSiI] > start_arrayvalue (',' int % put_integer_to_array)+ % set_arrayvalue;
-    floatarrayvalue = [f] > start_arrayvalue (',' float % put_float_to_array)+ % set_arrayvalue;
+    integerarrayvalue = [cCsSiI] > start_arrayvalue (',' int % put_integer_to_array)+ ;
+    floatarrayvalue = [f] > start_arrayvalue (',' float % put_float_to_array)+ ;
     arrayvalue = integerarrayvalue | floatarrayvalue ;
 
     tagvalue = ("A:" charvalue) | 
@@ -225,121 +385,87 @@
                ("B:" arrayvalue) ;
 
     action tag_key_start { tag_key_beg = p - line.ptr; }
-    action tag_key_end   { current_tag = line[tag_key_beg .. p - line.ptr]; }
-    action append_tag_value { builder.put(current_tag, current_tagvalue); }
+    action tag_key_end   { tag_key = cast(ubyte[])(line[tag_key_beg .. p - line.ptr]); }
 
+    action handle_invalid_tag {
+        buffer.shrink(rollback_size); 
+        fhold; fgoto recover_from_invalid_tag;
+    }
+    # FIXME: what if the tag is last?
+    recover_from_invalid_tag := invalid_field '\t' @{ fhold; fgoto tag_parsing; } ;
+
+    action update_rollback_size { rollback_size = buffer.data.length; }
     tag = (alpha alnum) > tag_key_start % tag_key_end ;
-    optionalfield = (tag ':' tagvalue % append_tag_value) | invalid_field ;
+    optionalfield = tag ':' tagvalue % update_rollback_size $!handle_invalid_tag ;
     optionalfields = optionalfield ('\t' optionalfield)* ;
 
-    alignment := mandatoryfields ('\t' optionalfields)? ;
+    alignment := field_parsing: mandatoryfields 
+                 tag_parsing: ('\t' optionalfields)? ;
 
     write data; 
 }%%
 
 import bio.sam.header;
 import bio.bam.read;
-import bio.bam.tagvalue;
-import bio.bam.utils.tagstoragebuilder;
-
-import std.array;
+import bio.bam.bai.bin;
+import bio.core.utils.outbuffer;
+import bio.core.base;
 import std.conv;
-import std.typecons;
-import std.outbuffer;
-import std.c.stdlib;
+import std.array;
+import std.exception;
 
-class AlignmentBuildStorage {
-    Appender!(CigarOperation[]) cigar_appender;
-    OutBuffer outbuffer;
-    TagStorageBuilder tag_storage_builder;
-
-    this() {
-        cigar_appender = appender!(CigarOperation[])();
-        outbuffer = new OutBuffer();
-        tag_storage_builder = TagStorageBuilder.create();
-    }
-
-    void clear() {
-        cigar_appender.clear();
-        tag_storage_builder.clear();
-        outbuffer.data.length = 0;
-        outbuffer.offset = 0;
-    }
-}
-
-BamRead parseAlignmentLine(string line, SamHeader header, 
-                             AlignmentBuildStorage b=null) {
+BamRead parseAlignmentLine(string line, SamHeader header, OutBuffer buffer=null) {
     char* p = cast(char*)line.ptr;
     char* pe = p + line.length;
     char* eof = pe;
     int cs;
 
-    if (b is null) {
-        b = new AlignmentBuildStorage();
-    } else {
-        b.clear();
-    }
+    if (buffer is null)
+        buffer = new OutBuffer(8192);
+    else
+        buffer.clear();
 
+    size_t rollback_size; // needed in case of invalid data
+    
     byte current_sign = 1;
 
     size_t read_name_beg; // position of beginning of QNAME
-    size_t read_name_end; // position past the end of QNAME
 
     size_t sequence_beg; // position of SEQ start
-    string sequence;     // SEQ
+    int l_seq;           // sequence length
 
     uint cigar_op_len;   // length of CIGAR operation
     char cigar_op_chr;   // CIGAR operation
 
     size_t cigar_op_len_start; // position of start of CIGAR operation
     
-    auto cigar = b.cigar_appender;
-
     long int_value;                      // for storing temporary integers
     float float_value;                   // for storing temporary floats
     size_t float_beg;                    // position of start of current float
-    auto outbuffer = b.outbuffer;        // used to build tag values which hold arrays
     char arraytype;                      // type of last array tag value
+    size_t tag_array_length_offset;      // where the length is stored in the buffer
 
+    string read_name;
     ushort flag;
-    uint pos;
-    uint mate_pos;
-    ubyte mapping_quality; 
-    int template_length;
-    ubyte* qual_ptr = null;
-    size_t qual_index; 
-
-    string current_tag;
-    Value current_tagvalue;
+    int pos = -1;
+    int end_pos; // for bin calculation
+    int mate_pos = -1;
+    ubyte mapping_quality = 255;
+    int template_length = 0;
 
     size_t tag_key_beg, tagvalue_beg;
+    ubyte[] tag_key;
     size_t rname_beg, rnext_beg;
 
     int ref_id = -1;
-    int mate_ref_id = -1;
-    
-    auto builder = b.tag_storage_builder;
 
     %%write init;
     %%write exec;
 
-    auto read = BamRead(line[read_name_beg .. read_name_end], 
-                        sequence,
-                        cigar.data,
-                        builder.data);
-
-    if (qual_ptr !is null && qual_index == sequence.length) {
-        read.base_qualities = qual_ptr[0 .. sequence.length];
-    }
-
-    read.flag = flag;
-    read.mapping_quality = mapping_quality;
-    read.position = pos - 1; // we use 0-based coordinates, not 1-based
-    read.template_length = template_length;
-    read.mate_position = mate_pos - 1; // also 0-based
-    read.ref_id = ref_id;
-    read.mate_ref_id = mate_ref_id;
-
+    BamRead read;
+    auto gc_managed_chunk = uninitializedArray!(ubyte[])(buffer.data.length);
+    gc_managed_chunk[] = buffer.data[];
+    read.raw_data = gc_managed_chunk;
     return read;
 }
 
@@ -367,7 +493,6 @@ unittest {
     assert(equal!approxEqual(to!(float[])(alignment["Y1"]), [13.263, -3.1415, 52.63461]));
     assert(to!char(alignment["XT"]) == 'U');
 
-    import std.stdio;
     import bio.bam.reference;
 
     auto info = ReferenceSequenceInfo("20", 1234567);
@@ -382,5 +507,4 @@ unittest {
     assert(to!ubyte(alignment["X1"]) == 7);
     assert(alignment["X3"].is_nothing);
     assert(to!ubyte(alignment["X4"]) == 5);
-
 }

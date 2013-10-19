@@ -27,6 +27,7 @@ import bio.bam.bai.chunk;
 
 import std.range;
 import std.algorithm;
+import std.array;
 
 struct NonOverlappingChunks(R) {
 
@@ -84,7 +85,7 @@ private:
 /// Returns:
 ///      range of non-overlapping chunks, covering the same subset
 ///      as original chunks
-auto nonOverlappingChunks(R)(R r) 
+NonOverlappingChunks!R nonOverlappingChunks(R)(R r) 
     if (is(ElementType!R == Chunk)) 
 {
     return NonOverlappingChunks!R(r);

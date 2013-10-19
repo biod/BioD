@@ -246,8 +246,12 @@ unittest {
     foreach (read; bf.reads) {
         auto line = read.to!string();
         auto read2 = parseAlignmentLine(line, bf.header);
+        read2.associateWithReader(bf);
         if (read != read2) {
-            writeln(read.name);
+            writeln(read);
+            writeln(read2);
+            writeln(read.raw_data);
+            writeln(read2.raw_data);
         }
         assert(read == read2);
     }

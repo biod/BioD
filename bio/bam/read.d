@@ -763,22 +763,6 @@ struct BamRead {
         this.sequence = sequence;
     }
 
-    // Low-level constructor for setting tag data on construction.
-    // This allows to use less reallocations when creating an alignment
-    // from scratch, by reusing memory for collecting tags.
-    // Typically, you would use this constructor in conjunction with
-    // bio.bam.utils.tagstoragebuilder module.
-    this(string read_name, 
-         string sequence, 
-         in CigarOperation[] cigar, 
-         in ubyte[] tag_data)
-    {
-        _chunk = new ubyte[calculateChunkSize(read_name, sequence, cigar) 
-                           + tag_data.length];
-        this(read_name, sequence, cigar);
-        _chunk[_tags_offset .. $] = tag_data;
-    }
-
     /// Deep copy of the record.
     BamRead dup() @property const {
         BamRead result;
@@ -1056,6 +1040,11 @@ struct BamRead {
     /// Raw representation of the read. Occasionally useful for dirty hacks!
     inout(ubyte)[] raw_data() @property inout {
         return _chunk;
+    }
+
+    /// ditto
+    void raw_data(ubyte[] data) @property {
+        _chunk = data;
     }
     
     package ubyte[] _chunk; // holds all the data, 
@@ -1511,7 +1500,6 @@ mixin template TagStorage() {
 
 unittest {
 
-    import bio.bam.utils.tagstoragebuilder;
     import std.algorithm;
     import std.stdio;
     import std.math;
@@ -1575,22 +1563,6 @@ unittest {
     read["RG"] = null;
     assert(read.tagCount() == 0);
 
-    // Test tagstoragebuilder
-
-    auto builder = new TagStorageBuilder();
-    builder.put("X0", Value(24));
-    builder.put("X1", Value("abcd"));
-    builder.put("X2", Value([1,2,3]));
-
-    read = BamRead("readname", 
-                   "AGCTGACTACGTAATAGCCCTA", 
-                   [CigarOperation(22, 'M')],
-                   builder.data);
-    assert(read["X0"] == 24);
-    assert(read["X1"] == "abcd");
-    assert(read["X2"] == [1,2,3]);
-    assert(read.tagCount() == 3);
-
     // Test MsgPack serialization/deserialization
 
     {
@@ -1599,8 +1571,8 @@ unittest {
     read.toMsgpack(packer);
     auto data = packer.stream.data;
     auto rec = unpack(data).via.array;
-    assert(rec[0] == "readname");
-    assert(rec[5].as!(int[]) == [22]);
+    assert(rec[0].as!(ubyte[]) == "anothername");
+    assert(rec[5].as!(int[]) == [21]);
     assert(rec[6].as!(ubyte[]) == ['M']);
     assert(rec[10].as!(ubyte[]) == to!string(read.sequence));
     }
