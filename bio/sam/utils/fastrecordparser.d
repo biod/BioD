@@ -181,7 +181,7 @@ tr34:
 tr39:
 #line 217 "sam_alignment.rl"
 	{
-        rollback_size = buffer.data.length;
+        rollback_size = buffer.length;
         p--; {if (true) goto st178;}
     }
 	goto st0;
@@ -191,7 +191,7 @@ tr43:
         buffer.shrink(rollback_size);
         for (size_t i = 0; i < l_seq; ++i)
             buffer.putUnsafe!ubyte(0xFF);
-        rollback_size = buffer.data.length;
+        rollback_size = buffer.length;
         p--; {if (true) goto st179;}
     }
 	goto st0;
@@ -355,7 +355,7 @@ tr18:
         buffer.putUnsafe(cast(ubyte[])read_name);
         buffer.putUnsafe!ubyte(0);
 
-        rollback_size = buffer.data.length;
+        rollback_size = buffer.length;
     }
 	goto st10;
 tr235:
@@ -382,7 +382,7 @@ tr235:
         buffer.putUnsafe(cast(ubyte[])read_name);
         buffer.putUnsafe!ubyte(0);
 
-        rollback_size = buffer.data.length;
+        rollback_size = buffer.length;
     }
 	goto st10;
 st10:
@@ -599,7 +599,7 @@ tr101:
         auto raw_len = (l_seq + 1) / 2;
 
         // reserve space for base qualities, too
-        buffer.capacity = buffer.data.length + raw_len + l_seq;
+        buffer.capacity = buffer.length + raw_len + l_seq;
 
         for (size_t i = 0; i < raw_len; ++i) {
             auto b = cast(ubyte)(Base(data[2 * i]).internal_code << 4);
@@ -614,7 +614,7 @@ tr101:
         *ptr = l_seq;
         }
 
-        rollback_size = buffer.data.length;
+        rollback_size = buffer.length;
     }
 	goto st21;
 st21:
@@ -644,17 +644,17 @@ goto case; case 191:
 tr238:
 #line 240 "sam_alignment.rl"
 	{
-        if (buffer.data.length - rollback_size != l_seq) {
+        if (buffer.length - rollback_size != l_seq) {
             buffer.shrink(rollback_size);
             for (size_t i = 0; i < l_seq; ++i)
                 buffer.putUnsafe!ubyte(0xFF);
         }
-        rollback_size = buffer.data.length;
+        rollback_size = buffer.length;
     }
 	goto st22;
 tr239:
 #line 397 "sam_alignment.rl"
-	{ rollback_size = buffer.data.length; }
+	{ rollback_size = buffer.length; }
 	goto st22;
 tr240:
 #line 30 "sam_alignment.rl"
@@ -677,7 +677,7 @@ tr240:
         }
     }
 #line 397 "sam_alignment.rl"
-	{ rollback_size = buffer.data.length; }
+	{ rollback_size = buffer.length; }
 	goto st22;
 tr259:
 #line 38 "sam_alignment.rl"
@@ -693,14 +693,14 @@ tr259:
         }
     }
 #line 397 "sam_alignment.rl"
-	{ rollback_size = buffer.data.length; }
+	{ rollback_size = buffer.length; }
 	goto st22;
 tr262:
 #line 324 "sam_alignment.rl"
 	{
         {
         auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
-        buffer.capacity = buffer.data.length + 4 + data.length;
+        buffer.capacity = buffer.length + 4 + data.length;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('H');
         buffer.putUnsafe(data);
@@ -708,14 +708,14 @@ tr262:
         }
     }
 #line 397 "sam_alignment.rl"
-	{ rollback_size = buffer.data.length; }
+	{ rollback_size = buffer.length; }
 	goto st22;
 tr264:
 #line 313 "sam_alignment.rl"
 	{ 
         {
         auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
-        buffer.capacity = buffer.data.length + 4 + data.length;
+        buffer.capacity = buffer.length + 4 + data.length;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('Z');
         buffer.putUnsafe(data);
@@ -723,7 +723,7 @@ tr264:
         }
     }
 #line 397 "sam_alignment.rl"
-	{ rollback_size = buffer.data.length; }
+	{ rollback_size = buffer.length; }
 	goto st22;
 tr266:
 #line 38 "sam_alignment.rl"
@@ -732,20 +732,20 @@ tr266:
     }
 #line 306 "sam_alignment.rl"
 	{ 
-        buffer.capacity = buffer.data.length + 7;
+        buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('f');
         buffer.putUnsafe!float(float_value);
     }
 #line 397 "sam_alignment.rl"
-	{ rollback_size = buffer.data.length; }
+	{ rollback_size = buffer.length; }
 	goto st22;
 tr268:
 #line 30 "sam_alignment.rl"
 	{ int_value *= current_sign; current_sign = 1; }
 #line 272 "sam_alignment.rl"
 	{ 
-        buffer.capacity = buffer.data.length + 7;
+        buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
         if (int_value < 0) {
             if (int_value >= byte.min) {
@@ -776,7 +776,7 @@ tr268:
         }
     }
 #line 397 "sam_alignment.rl"
-	{ rollback_size = buffer.data.length; }
+	{ rollback_size = buffer.length; }
 	goto st22;
 st22:
 	if ( ++p == pe )
@@ -850,7 +850,7 @@ goto case; case 27:
 tr57:
 #line 265 "sam_alignment.rl"
 	{ 
-        buffer.capacity = buffer.data.length + 4;
+        buffer.capacity = buffer.length + 4;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('A');
         buffer.putUnsafe!char((*p)); 
@@ -890,12 +890,12 @@ tr59:
 #line 339 "sam_alignment.rl"
 	{
         arraytype = (*p);
-        buffer.capacity = buffer.data.length + 8;
+        buffer.capacity = buffer.length + 8;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('B');
         buffer.putUnsafe!char(arraytype);
         buffer.putUnsafe!uint(0);
-        tag_array_length_offset = buffer.data.length - uint.sizeof;
+        tag_array_length_offset = buffer.length - uint.sizeof;
     }
 	goto st30;
 st30:
@@ -1262,12 +1262,12 @@ tr60:
 #line 339 "sam_alignment.rl"
 	{
         arraytype = (*p);
-        buffer.capacity = buffer.data.length + 8;
+        buffer.capacity = buffer.length + 8;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('B');
         buffer.putUnsafe!char(arraytype);
         buffer.putUnsafe!uint(0);
-        tag_array_length_offset = buffer.data.length - uint.sizeof;
+        tag_array_length_offset = buffer.length - uint.sizeof;
     }
 	goto st33;
 st33:
@@ -4398,7 +4398,7 @@ goto case; case 251:
 	case 60: 
 #line 217 "sam_alignment.rl"
 	{
-        rollback_size = buffer.data.length;
+        rollback_size = buffer.length;
         p--; {if (true) goto st178;}
     }
 	break;
@@ -4408,19 +4408,19 @@ goto case; case 251:
         buffer.shrink(rollback_size);
         for (size_t i = 0; i < l_seq; ++i)
             buffer.putUnsafe!ubyte(0xFF);
-        rollback_size = buffer.data.length;
+        rollback_size = buffer.length;
         p--; {if (true) goto st179;}
     }
 	break;
 	case 191: 
 #line 240 "sam_alignment.rl"
 	{
-        if (buffer.data.length - rollback_size != l_seq) {
+        if (buffer.length - rollback_size != l_seq) {
             buffer.shrink(rollback_size);
             for (size_t i = 0; i < l_seq; ++i)
                 buffer.putUnsafe!ubyte(0xFF);
         }
-        rollback_size = buffer.data.length;
+        rollback_size = buffer.length;
     }
 	break;
 	case 25: 
@@ -4466,14 +4466,14 @@ goto case; case 251:
 	break;
 	case 192: 
 #line 397 "sam_alignment.rl"
-	{ rollback_size = buffer.data.length; }
+	{ rollback_size = buffer.length; }
 	break;
 	case 216: 
 #line 313 "sam_alignment.rl"
 	{ 
         {
         auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
-        buffer.capacity = buffer.data.length + 4 + data.length;
+        buffer.capacity = buffer.length + 4 + data.length;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('Z');
         buffer.putUnsafe(data);
@@ -4481,14 +4481,14 @@ goto case; case 251:
         }
     }
 #line 397 "sam_alignment.rl"
-	{ rollback_size = buffer.data.length; }
+	{ rollback_size = buffer.length; }
 	break;
 	case 215: 
 #line 324 "sam_alignment.rl"
 	{
         {
         auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
-        buffer.capacity = buffer.data.length + 4 + data.length;
+        buffer.capacity = buffer.length + 4 + data.length;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('H');
         buffer.putUnsafe(data);
@@ -4496,7 +4496,7 @@ goto case; case 251:
         }
     }
 #line 397 "sam_alignment.rl"
-	{ rollback_size = buffer.data.length; }
+	{ rollback_size = buffer.length; }
 	break;
 	case 221: 
 	case 222: 
@@ -4520,7 +4520,7 @@ goto case; case 251:
 	{ int_value *= current_sign; current_sign = 1; }
 #line 272 "sam_alignment.rl"
 	{ 
-        buffer.capacity = buffer.data.length + 7;
+        buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
         if (int_value < 0) {
             if (int_value >= byte.min) {
@@ -4551,7 +4551,7 @@ goto case; case 251:
         }
     }
 #line 397 "sam_alignment.rl"
-	{ rollback_size = buffer.data.length; }
+	{ rollback_size = buffer.length; }
 	break;
 	case 193: 
 	case 194: 
@@ -4591,7 +4591,7 @@ goto case; case 251:
         }
     }
 #line 397 "sam_alignment.rl"
-	{ rollback_size = buffer.data.length; }
+	{ rollback_size = buffer.length; }
 	break;
 	case 217: 
 	case 218: 
@@ -4603,13 +4603,13 @@ goto case; case 251:
     }
 #line 306 "sam_alignment.rl"
 	{ 
-        buffer.capacity = buffer.data.length + 7;
+        buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('f');
         buffer.putUnsafe!float(float_value);
     }
 #line 397 "sam_alignment.rl"
-	{ rollback_size = buffer.data.length; }
+	{ rollback_size = buffer.length; }
 	break;
 	case 211: 
 	case 212: 
@@ -4628,7 +4628,7 @@ goto case; case 251:
         }
     }
 #line 397 "sam_alignment.rl"
-	{ rollback_size = buffer.data.length; }
+	{ rollback_size = buffer.length; }
 	break;
 #line 4633 "sam_alignment.d"
 		default: break;
@@ -4641,9 +4641,7 @@ goto case; case 251:
 #line 464 "sam_alignment.rl"
 
     BamRead read;
-    auto gc_managed_chunk = uninitializedArray!(ubyte[])(buffer.data.length);
-    gc_managed_chunk[] = buffer.data[];
-    read.raw_data = gc_managed_chunk;
+    read.raw_data = buffer.data[];
     return read;
 }
 

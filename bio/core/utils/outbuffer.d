@@ -32,8 +32,8 @@ class OutBuffer {
         ubyte[] _heap;
 
         ubyte* _heap_ptr() @property { return _heap.ptr; }
-        size_t _heap_capacity;
         size_t _heap_used;
+        size_t _heap_capacity;
     }
 
     ///
@@ -47,9 +47,14 @@ class OutBuffer {
         return _heap_ptr[0 .. _heap_used];
     }
 
+    ///
+    size_t length() @property const {
+        return _heap_used;
+    }
+
     /// Remove last elements such that new size is equal to $(D size).
     void shrink(size_t size) {
-        enforce(size <= data.length);
+        enforce(size <= length);
         _heap_used = size;
     }
 

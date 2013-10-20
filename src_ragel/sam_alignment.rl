@@ -104,7 +104,7 @@
         buffer.putUnsafe(cast(ubyte[])read_name);
         buffer.putUnsafe!ubyte(0);
 
-        rollback_size = buffer.data.length;
+        rollback_size = buffer.length;
     }
 
     ### 7. STORE CIGAR OPERATIONS ###
@@ -197,7 +197,7 @@
         auto raw_len = (l_seq + 1) / 2;
 
         // reserve space for base qualities, too
-        buffer.capacity = buffer.data.length + raw_len + l_seq;
+        buffer.capacity = buffer.length + raw_len + l_seq;
 
         for (size_t i = 0; i < raw_len; ++i) {
             auto b = cast(ubyte)(Base(data[2 * i]).internal_code << 4);
@@ -212,10 +212,10 @@
         *ptr = l_seq;
         }
 
-        rollback_size = buffer.data.length;
+        rollback_size = buffer.length;
     }
     action handle_invalid_seq {
-        rollback_size = buffer.data.length;
+        rollback_size = buffer.length;
         fhold; fgoto recover_from_invalid_seq;
     }
     recover_from_invalid_seq := invalid_field '\t' @{ fhold; fgoto qual_parsing; } ;
@@ -231,19 +231,19 @@
         buffer.shrink(rollback_size);
         for (size_t i = 0; i < l_seq; ++i)
             buffer.putUnsafe!ubyte(0xFF);
-        rollback_size = buffer.data.length;
+        rollback_size = buffer.length;
         fhold; fgoto recover_from_invalid_qual;
     }
     # FIXME
     recover_from_invalid_qual := invalid_field '\t' @{ fhold; fgoto tag_parsing; } ;
 
     action check_qual_length {
-        if (buffer.data.length - rollback_size != l_seq) {
+        if (buffer.length - rollback_size != l_seq) {
             buffer.shrink(rollback_size);
             for (size_t i = 0; i < l_seq; ++i)
                 buffer.putUnsafe!ubyte(0xFF);
         }
-        rollback_size = buffer.data.length;
+        rollback_size = buffer.length;
     }
     qual = [!-~]+ $ convert_next_character_to_prob ;
 
@@ -263,14 +263,14 @@
     ############ TAG PARSING ######
 
     action set_charvalue { 
-        buffer.capacity = buffer.data.length + 4;
+        buffer.capacity = buffer.length + 4;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('A');
         buffer.putUnsafe!char(fc); 
     }
 
     action set_integervalue { 
-        buffer.capacity = buffer.data.length + 7;
+        buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
         if (int_value < 0) {
             if (int_value >= byte.min) {
@@ -304,7 +304,7 @@
     action start_tagvalue { tagvalue_beg = p - line.ptr; }
 
     action set_floatvalue { 
-        buffer.capacity = buffer.data.length + 7;
+        buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('f');
         buffer.putUnsafe!float(float_value);
@@ -313,7 +313,7 @@
     action set_stringvalue { 
         {
         auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
-        buffer.capacity = buffer.data.length + 4 + data.length;
+        buffer.capacity = buffer.length + 4 + data.length;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('Z');
         buffer.putUnsafe(data);
@@ -324,7 +324,7 @@
     action set_hexstringvalue {
         {
         auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
-        buffer.capacity = buffer.data.length + 4 + data.length;
+        buffer.capacity = buffer.length + 4 + data.length;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('H');
         buffer.putUnsafe(data);
@@ -338,12 +338,12 @@
 
     action start_arrayvalue {
         arraytype = fc;
-        buffer.capacity = buffer.data.length + 8;
+        buffer.capacity = buffer.length + 8;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('B');
         buffer.putUnsafe!char(arraytype);
         buffer.putUnsafe!uint(0);
-        tag_array_length_offset = buffer.data.length - uint.sizeof;
+        tag_array_length_offset = buffer.length - uint.sizeof;
     }
 
     action put_integer_to_array {
@@ -394,7 +394,7 @@
     # FIXME: what if the tag is last?
     recover_from_invalid_tag := invalid_field '\t' @{ fhold; fgoto tag_parsing; } ;
 
-    action update_rollback_size { rollback_size = buffer.data.length; }
+    action update_rollback_size { rollback_size = buffer.length; }
     tag = (alpha alnum) > tag_key_start % tag_key_end ;
     optionalfield = tag ':' tagvalue % update_rollback_size $!handle_invalid_tag ;
     optionalfields = optionalfield ('\t' optionalfield)* ;
@@ -463,9 +463,7 @@ BamRead parseAlignmentLine(string line, SamHeader header, OutBuffer buffer=null)
     %%write exec;
 
     BamRead read;
-    auto gc_managed_chunk = uninitializedArray!(ubyte[])(buffer.data.length);
-    gc_managed_chunk[] = buffer.data[];
-    read.raw_data = gc_managed_chunk;
+    read.raw_data = buffer.data[];
     return read;
 }
 
