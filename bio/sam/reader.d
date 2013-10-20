@@ -58,96 +58,10 @@ BamRead _parseSamRecord(Tuple!(char[], SamReader, OutBuffer) t) {
     return result;
 }
 
-BamRead[] _parseSamRecords(Tuple!(string[], SamReader) t) {
-    auto lines = t[0];
-    auto reader = t[1];
-
-    BamRead[] reads;
-    reads.reserve(lines.length);
-
-    enum chunk_size = 65536;
-    auto b = new OutBuffer(chunk_size);
-    ubyte[] buffer = uninitializedArray!(ubyte[])(chunk_size);
-    size_t used;
-    
-    foreach (line; lines) {
-        auto r = parseAlignmentLine(line, reader.header, b);
-        auto len = r.raw_data.length;
-        if (len + used > buffer.length) {
-            used = 0;
-            buffer = uninitializedArray!(ubyte[])(max(len, chunk_size));
-        }
-        buffer[used .. used + len] = r.raw_data[];
-        BamRead read;
-        ubyte[] raw = buffer[used .. used + len];
-        read.raw_data = raw;
-        used += len;
-        read.associateWithReader(reader);
-        reads ~= read;
-    }
-    return reads;
-}
-
 private {
     extern(C) size_t lseek(int, size_t, int);
     bool isSeekable(ref File file) {
         return lseek(file.fileno(), 0, 0) != ~0;
-    }
-
-    struct SamChunks {
-        private {
-            _LineRange _lines;
-            size_t _max_sz;
-            ubyte[] _data;
-            size_t _used;
-            string[] _front;
-            bool _empty;
-
-            void getNextChunk() {
-                if (_lines.empty) {
-                    _empty = true;
-                    return;
-                }
-
-                assert(_used == 0);
-                auto result = Appender!(string[])();
-                result.reserve(_max_sz / 128);
-
-                while (!_lines.empty) {
-                    auto _line = _lines.front;
-                    auto len = _line.length;
-                    if (_line.length + _used > _data.length) {
-                        _data = uninitializedArray!(ubyte[])(max(_line.length, _max_sz));
-                        _used = 0;
-                        break; // this line goes to the next chunk
-                    }
-
-                    std.c.string.memcpy(_data.ptr + _used, _line.ptr, _line.length);
-                    result.put(cast(string)(_data[_used .. _used + len]));
-                    _used += len;
-                               
-                    _lines.popFront();
-                }
-
-                _front = result.data;
-            }
-        }
-
-        bool empty() @property { return _empty; }
-        string[] front() @property { return _front; }
-        void popFront() { getNextChunk(); }
-
-        this(_LineRange lines, size_t max_size) {
-            assert(max_size > 2^^16);
-            _lines = lines;
-            _max_sz = max_size;
-            if (_lines.empty) {
-                _empty = true;
-            } else {
-                _data = uninitializedArray!(ubyte[])(max(_lines.front.length, _max_sz));
-                getNextChunk();
-            }
-        }
     }
 }
 
@@ -191,8 +105,6 @@ class SamReader : IBamSamReader {
 
         auto b = new OutBuffer(262144);
         return lines.zip(repeat(this), repeat(b)).map!_parseSamRecord();
-        //   return SamChunks(lines, 1_024_576).zip(repeat(this))
-        //    .map!_parseSamRecords().joiner();
     }
 
     ///
