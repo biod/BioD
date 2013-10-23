@@ -46,6 +46,7 @@ import std.range;
 import std.algorithm;
 import std.typecons;
 import std.parallelism;
+import std.process;
 import std.c.string;
 
 BamRead _parseSamRecord(Tuple!(char[], SamReader, OutBuffer) t) {
@@ -72,9 +73,31 @@ private {
 ///
 class SamReader : IBamSamReader {
 
+    private {
+        void checkGunzip() {
+            auto gunzip = executeShell("gunzip -V");
+            if (gunzip.status != 0)
+                throw new Exception("gunzip is not installed on this system, can't read gzipped SAM");
+        }
+
+        File openSamFile(string filename) {
+            if (filename.length < 4)
+                throw new Exception("invalid name for SAM file: " ~ filename);
+            if (filename[$ - 3 .. $] == ".gz") {
+                checkGunzip();
+                auto pipe = pipeShell("gunzip -c " ~ filename);
+                return pipe.stdout;
+            } else if (filename[$ - 4 .. $] == ".bam") {
+                throw new Exception("SAM reader can't read BAM file " ~ filename);
+            } else {
+                return File(filename);
+            }
+        }
+    }
+
     ///
     this(string filename) {
-        _file = File(filename);
+        _file = openSamFile(filename);
         _filename = filename;
         _seekable = _file.isSeekable();
         _initializeStream();
@@ -96,7 +119,7 @@ class SamReader : IBamSamReader {
         _LineRange lines = _lines;
         if (_seekable) {
             if (_filename !is null) {
-                File file = File(_filename);
+                auto file = openSamFile(_filename);
                 lines = ByLineFast(file);
             } else {
                 _file.seek(0);
