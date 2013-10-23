@@ -23,7 +23,7 @@
 */
 module bio.bam.bai.bin;
 
-import bio.bam.bai.chunk;
+import bio.core.bgzf.chunk;
 import bio.bam.constants;
 
 /// Distinct bin

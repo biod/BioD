@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2013    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -81,9 +81,8 @@ mixin template withoutOffsets() {
 /// $(D front) return type is determined by $(I IteratePolicy)
 struct BamReadRange(alias IteratePolicy) 
 { 
-
-    /// Create new range from IChunkInputStream.
-    this(ref IChunkInputStream stream, BamReader reader=null) {
+    /// Create new range from BgzfInputStream.
+    this(BgzfInputStream stream, BamReader reader=null) {
         _stream = stream;
         _reader = reader;
         _endian_stream = new EndianStream(_stream, Endian.littleEndian);
@@ -103,13 +102,15 @@ struct BamReadRange(alias IteratePolicy)
     }
 
 private:
-    IChunkInputStream _stream;
+    BgzfInputStream _stream;
     EndianStream _endian_stream;
 
     BamReader _reader;
 
     BamRead _current_record;
     bool _empty = false;
+
+    ubyte[] _buffer;
 
     /*
       Reads next bamRead block from stream.
@@ -129,6 +130,8 @@ private:
         // In order to get the right virtual offset, we need to do it here.
         beforeNextBamReadLoad();
 
+        // (FIXME: that won't work on Big Endian systems!)
+        
         // Here's where _empty is really set!
         int block_size = void;
         ubyte* ptr = cast(ubyte*)(&block_size);
@@ -151,12 +154,24 @@ private:
             switchEndianness(&block_size, int.sizeof);
         }
 
-        _current_record = BamRead(_stream.readSlice(block_size));
-        _current_record.associateWithReader(cast(IBamSamReader)_reader);
+        ubyte[] data = void;
+        if (_reader !is null && _reader._seqprocmode) {
+            if (block_size > _buffer.length)
+                _buffer.length = block_size;
+
+            data = _buffer[0 .. block_size];
+        } else {
+            data = uninitializedArray!(ubyte[])(block_size);
+        }
+
+        _stream.readExact(data.ptr, block_size);
+
+        _current_record = BamRead(data);
+        _current_record.associateWithReader(_reader);
     }
 }
 
 /// Returns: lazy range of BamRead/BamReadBlock structs constructed from a given stream.
-auto bamReadRange(alias IteratePolicy=withoutOffsets)(ref IChunkInputStream stream, BamReader reader) {
+auto bamReadRange(alias IteratePolicy=withoutOffsets)(BgzfInputStream stream, BamReader reader) {
     return BamReadRange!IteratePolicy(stream, reader);
 }

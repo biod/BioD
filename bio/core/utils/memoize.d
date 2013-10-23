@@ -30,8 +30,17 @@ debug {
     import std.stdio;
 }
 
+///
+interface Cache(K, V) {
+    ///
+    V* lookup(K key);
+
+    ///
+    void put(K key, V value);
+}
+
 /// Elements are not removed from the cache.
-class BasicCache(uint maxItems, K, V) {
+class BasicCache(uint maxItems, K, V) : Cache!(K, V) {
     private V[K] cache; 
 
     V* lookup(K key) {
@@ -44,7 +53,7 @@ class BasicCache(uint maxItems, K, V) {
 }
 
 /// First-in first-out element removal.
-class FifoCache(uint maxItems, K, V) {
+class FifoCache(uint maxItems, K, V) : Cache!(K, V) {
     private V[K] cache; 
     private int items = 0;
     bool full = false;
@@ -78,7 +87,7 @@ class FifoCache(uint maxItems, K, V) {
 }
 
 /// Least used strategy
-class LuCache(uint maxItems, K, V) {
+class LuCache(uint maxItems, K, V) : Cache!(K, V) {
     private {
         V[K] cache;
         int[K] counter;

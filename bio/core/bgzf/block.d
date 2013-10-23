@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2013    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -24,9 +24,11 @@
 module bio.core.bgzf.block;
 
 import bio.bam.constants;
+import bio.core.utils.memoize;
 
-import std.array : uninitializedArray;
+import std.array;
 import std.conv;
+import std.algorithm;
 import std.zlib : crc32, ZlibException;
 import etc.c.zlib;
 import std.exception;
@@ -52,33 +54,39 @@ struct BgzfBlock {
 
     /// A buffer is used to reduce number of allocations.
     ///
-    /// Its size is max(bsize + 1, input_size)
+    /// Its size is max(cdata_size, input_size)
     /// Initially, it contains compressed data, but is rewritten
     /// during decompressBgzfBlock -- indeed, who cares about
     /// compressed data after it has been uncompressed?
     public ubyte[] _buffer = void;
 
     /// If block has been already decompressed, result is undefined.
-    public ubyte[] compressed_data() @property {
+    public inout(ubyte[]) compressed_data() @property inout pure @safe nothrow {
         return _buffer[0 .. cast(size_t)cdata_size];
     }
 
     public uint crc32;
     public uint input_size; /// size of uncompressed data
 
+    bool dirty;
+
     hash_t toHash() const pure @safe nothrow {
-        // since the block can be either compressed or decompressed,
-        // returning CRC sum is the easiest and safest thing to do
+        assert(!dirty);
         return crc32;
     }
 
     bool opEquals(const ref BgzfBlock other) pure @safe nothrow {
-        return crc32 == other.crc32;
+        assert(!dirty);
+        return opCmp(other) == 0;
     }
 
     int opCmp(const ref BgzfBlock other) const pure @safe nothrow {
-        return crc32 < other.crc32 ? -1 :
-               crc32 > other.crc32 ?  1 : 0;
+        assert(!dirty);
+        if (cdata_size < other.cdata_size)
+            return -1;
+        if (cdata_size > other.cdata_size)
+            return 1;
+        return std.algorithm.cmp(compressed_data, other.compressed_data);
     }
 }
 
@@ -94,17 +102,27 @@ struct DecompressedBgzfBlock {
     ubyte[] decompressed_data;
 }
 
+///
+alias Cache!(BgzfBlock, DecompressedBgzfBlock) BgzfBlockCache;
+
 /// Function for BGZF block decompression.
 /// Reuses buffer allocated for storing compressed data,
 /// i.e. after execution buffer of the passed $(D block)
 /// is overwritten with uncompressed data.
-DecompressedBgzfBlock decompressBgzfBlock(BgzfBlock block) {
-
+DecompressedBgzfBlock decompressBgzfBlock(BgzfBlock block,
+                                          BgzfBlockCache cache=null)
+{
     if (block.input_size == 0) {
         return DecompressedBgzfBlock(block.start_offset, 
                                      block.start_offset + block.bsize + 1,
                                      cast(ubyte[])[]); // EOF marker
         // TODO: add check for correctness of EOF marker
+    }
+
+    if (cache !is null) {
+        auto ptr = cache.lookup(block);
+        if (ptr !is null)
+            return *ptr;
     }
 
     int err = void;
@@ -152,12 +170,24 @@ DecompressedBgzfBlock decompressBgzfBlock(BgzfBlock block) {
 
     assert(block.crc32 == crc32(0, uncompressed[]));
 
+    if (cache !is null) {
+        BgzfBlock compressed_bgzf_block = block;
+        compressed_bgzf_block._buffer = block._buffer.dup;
+        DecompressedBgzfBlock decompressed_bgzf_block;
+        with (decompressed_bgzf_block) {
+            start_offset = block.start_offset;
+            end_offset = block.end_offset;
+            decompressed_data = uncompressed[].dup;
+        }
+        cache.put(compressed_bgzf_block, decompressed_bgzf_block);
+    }
+
     // Now copy back to block._buffer, overwriting existing data.
     // It should have enough bytes already allocated.
     assert(block._buffer.length >= block.input_size);
     block._buffer[0 .. block.input_size] = uncompressed[];
+    block.dirty = true;
 
-    return DecompressedBgzfBlock(block.start_offset, 
-                                 block.start_offset + block.bsize + 1,
+    return DecompressedBgzfBlock(block.start_offset, block.end_offset,
                                  block._buffer[0 .. block.input_size]);
 }

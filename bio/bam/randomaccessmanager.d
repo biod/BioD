@@ -33,10 +33,11 @@ import bio.bam.readrange;
 import bio.bam.baifile;
 import bio.bam.bai.utils.algo;
 
-import bio.core.bgzf.blockrange;
+import bio.core.bgzf.block;
 import bio.core.bgzf.virtualoffset;
 import bio.core.bgzf.inputstream;
-import bio.core.utils.memoize;
+import bio.core.bgzf.constants;
+import bio.core.bgzf.chunk;
 import bio.core.utils.range;
 import bio.core.utils.stream;
 
@@ -49,54 +50,6 @@ import std.exception;
 
 import std.parallelism;
 
-// keeps task pool together with block
-struct BgzfBlockAux {
-    TaskPool task_pool;
-    BgzfBlock block;
-    alias block this;
-
-    hash_t toHash() const pure @safe nothrow { return block.toHash(); }
-
-    bool opEquals(const ref BgzfBlockAux other) pure @safe nothrow {
-        return block == other.block;
-    }
-
-    int opCmp(const ref BgzfBlockAux other) const pure @safe nothrow {
-        return block.opCmp(other.block);
-    }
-}
-
-// BgzfBlockAux -> Task
-auto decompressTask(BgzfBlockAux b) {
-    auto t = task!decompressBgzfBlock(b.block);
-    b.task_pool.put(t);
-    return t;
-}
-
-// BgzfBlockAux -> Task
-private alias memoize!(decompressTask, 512, 
-                       FifoCache, BgzfBlockAux) memDecompressTask;
-
-// (BgzfBlock, TaskPool) -> DecompressedBgzfBlock
-auto decompressSerial(BT)(BT block_and_pool) {
-    return decompress(block_and_pool).yieldForce();
-}
-
-// (BgzfBlock, TaskPool) -> Task
-auto decompress(BT)(BT block_and_pool) { 
-    auto data = BgzfBlockAux(block_and_pool[1], block_and_pool[0]);
-    return memDecompressTask(data);
-}
-
-// ([BgzfBlock], TaskPool) -> [DecompressedBgzfBlock]
-auto parallelUnpack(BR)(BR bgzf_range, TaskPool pool, size_t n_threads = 0) {
-    if (n_threads == 0)
-        n_threads = max(pool.size(), 1);
-
-    auto tasks = bgzf_range.zip(repeat(pool)).map!decompress();
-    return tasks.prefetch(n_threads).map!"a.yieldForce()"();
-}
-
 debug {
     import std.stdio;
 }
@@ -104,6 +57,10 @@ debug {
 /// Class which random access tasks are delegated to.
 class RandomAccessManager {
 
+    void setCache(BgzfBlockCache cache) {
+        _cache = cache;
+    }
+    
     void setTaskPool(TaskPool task_pool) {
         _task_pool = task_pool;
     }
@@ -172,50 +129,45 @@ class RandomAccessManager {
         return true;
     }
 
-    /// Get new IChunkInputStream starting from specified virtual offset.
-    IChunkInputStream createStreamStartingFrom(VirtualOffset offset, bool parallel=true) {
-
+    /// Get new BgzfInputStream starting from specified virtual offset.
+    BgzfInputStream createStreamStartingFrom(VirtualOffset offset)
+    {
         auto _stream = new bio.core.utils.stream.File(_filename);
         auto _compressed_stream = new EndianStream(_stream, Endian.littleEndian);
         _compressed_stream.seekSet(cast(size_t)(offset.coffset));
-
-        auto n_threads = parallel ? max(task_pool.size, 1) : 1;
-        auto blocks = BgzfRange(_compressed_stream).parallelUnpack(task_pool, n_threads);
-
-        static auto helper(R)(R decompressed_range, VirtualOffset offset) {
-
-            auto adjusted_front = AugmentedDecompressedBgzfBlock(decompressed_range.front,
-                                                                 offset.uoffset, 0); 
-            decompressed_range.popFront();
-            auto adjusted_range = chain(repeat(adjusted_front, 1), 
-                                        map!makeAugmentedBlock(decompressed_range));
-
-            return cast(IChunkInputStream)makeChunkInputStream(adjusted_range);
-        }
-
-        return helper(blocks, offset);
+        auto supplier = new StreamSupplier(_compressed_stream, offset.uoffset);
+        auto bgzf_stream = new BgzfInputStream(supplier, _task_pool, _cache);
+        return bgzf_stream;
     }
 
     /// Get single read at a given virtual offset.
     /// Every time new stream is used.
     BamRead getReadAt(VirtualOffset offset) {
         auto stream = createStreamStartingFrom(offset);
-        return bamReadRange(stream, _reader).front.dup;
+        
+        bool old_mode = _reader._seqprocmode;
+        _reader._seqprocmode = true;
+        auto read = bamReadRange(stream, _reader).front.dup;
+        _reader._seqprocmode = old_mode;
+        return read;
     }
 
     /// Get BGZF block at a given offset.
     BgzfBlock getBgzfBlockAt(ulong offset) {
-        auto stream = new bio.core.utils.stream.File(_filename);
+        auto fstream = new bio.core.utils.stream.File(_filename);
+        auto stream = new EndianStream(fstream, Endian.littleEndian);
         stream.seekSet(offset);
-        return BgzfRange(stream).front;
+        BgzfBlock block = void;
+        ubyte[BGZF_MAX_BLOCK_SIZE] buf = void;
+        fillBgzfBufferFromStream(stream, true, &block, buf.ptr);
+        block._buffer = block._buffer.dup;
+        return block;
     }
 
     /// Get reads between two virtual offsets. First virtual offset must point
     /// to a start of an alignment record.
-    ///
-    /// If $(D task_pool) is not null, it is used for parallel decompression. Otherwise, decompression is serial.
     auto getReadsBetween(VirtualOffset from, VirtualOffset to) {
-        IChunkInputStream stream = createStreamStartingFrom(from);
+        auto stream = createStreamStartingFrom(from);
 
         static bool offsetTooBig(BamReadBlock record, VirtualOffset vo) {
             return record.end_virtual_offset > vo;
@@ -234,7 +186,7 @@ class RandomAccessManager {
         return _bai;
     }
 
-    /// Get BAI chunks containing all alignment records overlapping specified region
+    /// Get BAI chunks containing all alignment records overlapping the region
     Chunk[] getChunks(int ref_id, int beg, int end) {
         enforce(found_index_file, "BAM index file (.bai) must be provided");
         enforce(ref_id >= 0 && ref_id < _bai.indices.length, "Invalid reference sequence index");
@@ -268,44 +220,15 @@ class RandomAccessManager {
     }
 
     /// Fetch alignments with given reference sequence id, overlapping [beg..end)
-    auto getReads(alias IteratePolicy=withOffsets)(int ref_id, uint beg, uint end) {
+    auto getReads(alias IteratePolicy=withOffsets)(int ref_id, uint beg, uint end)
+    {
         auto chunks = array(nonOverlappingChunks(getChunks(ref_id, beg, end)));
-
-        debug {
-            /*
-            import std.stdio;
-            writeln("[random access] chunks:");
-            writeln("    ", chunks);
-            */
-        }
-
-        // General plan:
-        //
-        // chunk[0] -> bgzfRange[0] |
-        // chunk[1] -> bgzfRange[1] | (2)
-        //         ....             | -> (joiner(bgzfRange), [start/end v.o.])
-        // chunk[k] -> bgzfRange[k] |                      |
-        //         (1)                     /* parallel */  V                       (3)
-        //                                  (unpacked blocks, [start/end v.o.])
-        //                                                 |
-        //                                                 V                       (4)
-        //                                     (modified unpacked blocks)
-        //                                                 |
-        //                                                 V                       (5)
-        //                                          IChunkInputStream
-        //                                                 |
-        //                                                 V                       (6)
-        //                                 filter out non-overlapping records
-        //                                                 |
-        //                                                 V
-        //                                              that's it!
-
-        auto bgzf_range = getJoinedBgzfRange(chunks);                               // (2)
-        auto decompressed_blocks = getUnpackedBlocks(bgzf_range, task_pool);        // (3)
-        auto augmented_blocks = getAugmentedBlocks(decompressed_blocks, chunks);    // (4)
-        IChunkInputStream stream = makeChunkInputStream(augmented_blocks);          // (5)
+        auto fstream = new bio.core.utils.stream.File(_filename);
+        auto compressed_stream = new EndianStream(fstream, Endian.littleEndian);
+        auto supplier = new StreamChunksSupplier(compressed_stream, chunks);
+        auto stream = new BgzfInputStream(supplier, _task_pool, _cache);
         auto reads = bamReadRange!IteratePolicy(stream, _reader);
-        return filterBamReads(reads, ref_id, beg, end);                             // (6)
+        return filterBamReads(reads, ref_id, beg, end);
     }
 
 private:
@@ -316,6 +239,8 @@ private:
     TaskPool _task_pool;
     size_t _buffer_size;
 
+    BgzfBlockCache _cache;
+
     TaskPool task_pool() @property {
         if (_task_pool is null)
             _task_pool = taskPool;
@@ -323,142 +248,6 @@ private:
     }
         
 public:
-
-    // Let's implement the plan described above!
-
-    // (1) : (Chunk, Stream) -> [BgzfBlock]
-    static struct ChunkToBgzfRange {
-        static bool offsetTooBig(BgzfBlock block, ulong offset) {
-            return block.start_offset > offset;
-        }
-
-        private {
-            Chunk _chunk;
-            Stream _stream;
-            bool _init = false;
-            Until!(offsetTooBig, BgzfRange, ulong) _range;
-        }
-
-        this(Chunk chunk, Stream stream) {
-            _chunk = chunk;
-            _stream = stream;
-        }
-
-        auto front() @property { init(); return _range.front; }
-        void popFront() { init(); _range.popFront(); }
-        bool empty() @property { init(); return _range.empty; }
-
-        private void init() {
-            if (!_init) {
-                _stream.seekSet(cast(size_t)_chunk.beg.coffset);
-                _range = until!offsetTooBig(BgzfRange(_stream), 
-                                            _chunk.end.coffset);
-                _init = true;
-            }
-        }
-    }
-
-    // (2) : Chunk[] -> [BgzfBlock]
-    auto getJoinedBgzfRange(Chunk[] bai_chunks) {
-        Stream file = new bio.core.utils.stream.File(_filename);
-        Stream stream = new BufferedStream(file, _buffer_size);
-
-        ChunkToBgzfRange[] bgzf_ranges;
-        bgzf_ranges.length = bai_chunks.length;
-        foreach (i, ref range; bgzf_ranges) {
-            range = ChunkToBgzfRange(bai_chunks[i], stream);
-        }
-        auto bgzf_blocks = joiner(bgzf_ranges);
-        return bgzf_blocks;
-    }
-
-    // (3) : ([BgzfBlock], TaskPool) -> [DecompressedBgzfBlock]
-    static auto getUnpackedBlocks(R)(R bgzf_range, TaskPool pool) {
-        version(serial) {
-            return bgzf_range.parallelUnpack(pool, 1);
-        } else {
-            return bgzf_range.parallelUnpack(pool);
-        }
-    }
-
-    // (4) : ([DecompressedBgzfBlock], Chunk[]) -> [AugmentedDecompressedBgzfBlock]
-
-    // decompressed blocks:
-    // [.....][......][......][......][......][......][.....][....]
-    //
-    // what we need (chunks):
-    //   [.........]  [.........]        [...........]  [..]
-    //
-    // Solution: augment decompressed blocks with skip_start and skip_end members
-    //           and teach ChunkInputStream to deal with ranges of such blocks.
-    static struct AugmentedBlockRange(R) {
-        this(R blocks, Chunk[] bai_chunks) {
-            _blocks = blocks;
-            if (_blocks.empty) {
-                _empty = true;
-            } else {
-                _cur_block = _blocks.front;
-                _blocks.popFront();
-            }
-            _chunks = bai_chunks[];
-        }
-
-        bool empty() @property {
-            return _empty;
-        }
-
-        AugmentedDecompressedBgzfBlock front() @property {
-            AugmentedDecompressedBgzfBlock result;
-            result.block = _cur_block;
-
-            if (_chunks.empty) {
-                return result;
-            }
-
-            if (beg.coffset == result.start_offset) {
-                result.skip_start = beg.uoffset;
-            }
-
-            if (end.coffset == result.start_offset) {
-                auto to_skip = result.decompressed_data.length - end.uoffset;
-                assert(to_skip <= ushort.max);
-                result.skip_end = cast(ushort)to_skip;
-            }
-
-            return result;
-        }
-
-        void popFront() {
-            if (_cur_block.start_offset == end.coffset) {
-                _chunks = _chunks[1 .. $];
-            }
-            if (_blocks.empty) {
-                _empty = true;
-                return;
-            }
-            _cur_block = _blocks.front;
-            _blocks.popFront();
-        }
-
-        private {
-            R _blocks;
-            ElementType!R _cur_block;
-            bool _empty;
-            Chunk[] _chunks;
-
-            VirtualOffset beg() @property {
-                return _chunks[0].beg;
-            }
-
-            VirtualOffset end() @property {
-                return _chunks[0].end;
-            }
-        }
-    }
-
-    static auto getAugmentedBlocks(R)(R decompressed_blocks, Chunk[] bai_chunks) {
-        return AugmentedBlockRange!R(decompressed_blocks, bai_chunks);
-    }
 
     static struct BamReadFilter(R) {
         this(R r, int ref_id, uint beg, uint end) {

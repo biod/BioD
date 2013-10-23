@@ -24,10 +24,11 @@
 module bio.bam.bai.indexing;
 
 import bio.bam.reader;
+import bio.bam.readrange;
 import bio.bam.constants;
 
 import bio.bam.bai.bin;
-import bio.bam.bai.chunk;
+import bio.core.bgzf.chunk;
 
 import std.stream;
 import std.array;
@@ -55,8 +56,9 @@ void defaultProgressBarFunc(lazy float dummy) {}
 /// Writes BAM index to the $(D stream)
 ///
 /// Accepts optional $(D progressBarFunc)
-void createIndex(BamReader bam, ref Stream stream, void delegate(lazy float p) progressBarFunc=null) {
-
+void createIndex(BamReader bam, ref Stream stream,
+                 void delegate(lazy float p) progressBarFunc=null)
+{
     auto endian_stream = new EndianStream(stream, Endian.littleEndian);
 
     auto refs = bam.reference_sequences;

@@ -21,7 +21,7 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.bai.chunk;
+module bio.core.bgzf.chunk;
 
 import bio.core.bgzf.virtualoffset;
 

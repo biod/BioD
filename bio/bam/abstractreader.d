@@ -43,4 +43,7 @@ interface IBamSamReader {
 
     /// Filename
     string filename() @property const;
+
+    ///
+    void assumeSequentialProcessing();
 } 

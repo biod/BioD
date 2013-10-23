@@ -23,7 +23,7 @@
 */
 module bio.bam.baifile;
 
-public import bio.bam.bai.chunk;
+public import bio.core.bgzf.chunk;
 public import bio.bam.bai.bin;
 import bio.core.bgzf.virtualoffset;
 import bio.bam.constants;

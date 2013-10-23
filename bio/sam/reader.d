@@ -50,10 +50,14 @@ import std.c.string;
 
 BamRead _parseSamRecord(Tuple!(char[], SamReader, OutBuffer) t) {
     auto r = parseAlignmentLine(cast(string)t[0], t[1]._header, t[2]);
-    auto storage = uninitializedArray!(ubyte[])(r.raw_data.length);
-    storage[] = r.raw_data[];
     BamRead result;
-    result.raw_data = storage;
+    if (t[1]._seqprocmode) {
+        result = r;
+    } else {
+        auto storage = uninitializedArray!(ubyte[])(r.raw_data.length);
+        storage[] = r.raw_data[];
+        result.raw_data = storage;
+    }
     result.associateWithReader(t[1]);
     return result;
 }
@@ -108,6 +112,11 @@ class SamReader : IBamSamReader {
     }
 
     ///
+    void assumeSequentialProcessing() {
+        _seqprocmode = true;
+    }
+
+    ///
     std.range.InputRange!(bio.bam.read.BamRead) allReads() @property {
         return inputRangeObject(reads);
     }
@@ -123,6 +132,8 @@ private:
     string _filename;
     _LineRange _lines;
     ulong _lines_to_skip;
+
+    bool _seqprocmode;
 
     SamHeader _header;
     ReferenceSequenceInfo[] _reference_sequences;

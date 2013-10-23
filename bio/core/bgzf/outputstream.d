@@ -185,7 +185,6 @@ class BgzfOutputStream : Stream {
 
 unittest {
     import bio.core.bgzf.inputstream;
-    import bio.core.bgzf.blockrange;
 
     import std.array, std.range, std.stdio;
 
@@ -199,7 +198,8 @@ unittest {
     auto input_stream = new MemoryStream(output_stream.data);
     input_stream.seekSet(0);
 
-    auto bgzf_input_stream = new BgzfInputStream(input_stream);
+    auto block_supplier = new StreamSupplier(input_stream);
+    auto bgzf_input_stream = new BgzfInputStream(block_supplier);
     char[] uncompressed_data = new char[data.length];
     bgzf_input_stream.readExact(uncompressed_data.ptr, data.length);
     assert(uncompressed_data == data);

@@ -34,6 +34,8 @@ import bio.bam.validation.samheader;
 import bio.bam.validation.alignment;
 import bio.bam.utils.samheadermerger;
 import bio.sam.utils.recordparser;
+import bio.core.bgzf.block;
+import bio.core.bgzf.inputstream;
 import bio.core.bgzf.outputstream;
 import bio.core.utils.roundbuf;
 import bio.core.utils.range;

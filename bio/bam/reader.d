@@ -56,8 +56,7 @@ import bio.bam.baifile;
 import bio.bam.bai.indexing;
 import bio.core.utils.range;
 import bio.core.utils.stream;
-public import bio.core.bgzf.blockrange;
-public import bio.core.bgzf.inputstream;
+import bio.core.bgzf.inputstream;
 public import bio.core.bgzf.virtualoffset;
 
 import std.system;
@@ -259,7 +258,7 @@ class BamReader : IBamSamReader {
             _range.popFront();
             if (_progress_bar_func !is null) {
                 _progress_bar_func(min(1.0, 
-                    cast(float)_bytes_read / (_stream.compressed_file_size * 
+                    cast(float)_bytes_read / (_stream.total_compressed_size * 
                                               _stream.average_compression_ratio)));
             }
         }
@@ -307,10 +306,15 @@ class BamReader : IBamSamReader {
         auto reads_with_offsets = bamReadRange!withOffsets(_decompressed_stream, this);
        
         alias ReadsWithProgressResult!(IteratePolicy, 
-                       typeof(reads_with_offsets), IChunkInputStream) Result;
+                       typeof(reads_with_offsets), BgzfInputStream) Result;
         
         return Result(reads_with_offsets, _decompressed_stream,
                       progressBarFunc, finishFunc);
+    }
+
+    ///
+    void assumeSequentialProcessing() {
+        _seqprocmode = true;
     }
 
     /// Part of IBamSamReader interface
@@ -346,7 +350,7 @@ class BamReader : IBamSamReader {
     /**
       Get BAI chunks containing all reads that overlap specified region.
      */
-    bio.bam.bai.chunk.Chunk[] getChunks(int ref_id, int beg, int end) {
+    bio.core.bgzf.chunk.Chunk[] getChunks(int ref_id, int beg, int end) {
         enforce(_random_access_manager !is null);
         enforce(beg < end);
 
@@ -399,11 +403,13 @@ class BamReader : IBamSamReader {
         _random_access_manager.setBufferSize(buffer_size);
     }
 
+    package bool _seqprocmode; // available for bio.bam.readrange;
+
 private:
     
     string _filename;                       // filename (if available)
     Stream _source_stream;                  // compressed
-    IChunkInputStream _decompressed_stream; // decompressed
+    BgzfInputStream _decompressed_stream; // decompressed
     Stream _bam;                            // decompressed + endian conversion
     bool _stream_is_seekable;
 
@@ -489,44 +495,26 @@ private:
     }
 
     // get decompressed stream out of compressed BAM file
-    IChunkInputStream getDecompressedStream() {
-
+    BgzfInputStream getDecompressedStream() {
         auto compressed_stream = getSeekableCompressedStream();
 
-        auto bgzf_range = (compressed_stream is null) ? BgzfRange(_source_stream) :
-                                                        BgzfRange(compressed_stream);
-        version(serial) {
-            auto chunk_range = map!decompressBgzfBlock(bgzf_range);
-        } else {
-            auto chunk_range = _task_pool.map!decompressBgzfBlock(bgzf_range, 24);
-        }
+        auto block_supplier = new StreamSupplier(compressed_stream is null ?
+                                                 _source_stream :
+                                                 compressed_stream);
 
-        if (compressed_stream !is null) {
-            return makeChunkInputStream(chunk_range, cast(size_t)compressed_stream.size);
-        } else {
-            return makeChunkInputStream(chunk_range);
-        }
+        return new BgzfInputStream(block_supplier, _task_pool);
     }
 
-
     // get decompressed stream starting from the first alignment record
-    IChunkInputStream getDecompressedBamReadStream() {
+    BgzfInputStream getDecompressedBamReadStream() {
         auto compressed_stream = getSeekableCompressedStream();
 
         if (compressed_stream !is null) {
             enforce(_reads_start_voffset != 0UL);
 
             compressed_stream.seekCur(_reads_start_voffset.coffset);
-            auto bgzf_range = BgzfRange(compressed_stream);
-
-            version(serial) {
-                auto chunk_range = map!decompressBgzfBlock(bgzf_range);
-            } else {
-                auto chunk_range = _task_pool.map!decompressBgzfBlock(bgzf_range, 24);
-            }
-        
-            auto sz = compressed_stream.size;
-            auto stream = makeChunkInputStream(chunk_range, cast(size_t)sz);
+            auto block_supplier = new StreamSupplier(compressed_stream);
+            auto stream = new BgzfInputStream(block_supplier, _task_pool);
             stream.readString(_reads_start_voffset.uoffset);
             return stream;
         } else {

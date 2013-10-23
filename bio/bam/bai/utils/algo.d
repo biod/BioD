@@ -23,7 +23,7 @@
 */
 module bio.bam.bai.utils.algo;
 
-import bio.bam.bai.chunk;
+import bio.core.bgzf.chunk;
 
 import std.range;
 import std.algorithm;
