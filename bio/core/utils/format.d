@@ -78,7 +78,7 @@ private {
 
 ///
 template isSomeSink(T) {
-    static if (is(T == void delegate(const(char)[])))
+    static if (__traits(compiles, T.init("string")))//T == void delegate(const(char)[])))
         enum isSomeSink = true;
     else static if (is(T == char*))
         enum isSomeSink = true;

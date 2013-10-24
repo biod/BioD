@@ -280,7 +280,7 @@ unittest
  */
 class MessagePackException : Exception
 {
-    this(string message)
+    pure this(string message)
     {
         super(message);
     }
@@ -3095,7 +3095,7 @@ struct Value
 
     /// ditto
     @trusted
-    bool opEquals(T : ubyte[])(in T other) const
+    bool opEquals(T : const ubyte[])(in T other) const
     {
         if (type != Type.raw)
             return false;
@@ -4540,7 +4540,7 @@ template getFieldName(Type, size_t i)
     static assert(i < Type.tupleof.length, text(Type.stringof, " has ", Type.tupleof.length, " attributes: given index = ", i));
 
     // 3 means () + .
-    enum getFieldName = Type.tupleof[i].stringof[3 + Type.stringof.length..$];
+    enum getFieldName = Type.tupleof[i].stringof;
 }
 
 

@@ -775,15 +775,8 @@ struct BamRead {
 
     /// Compare two alignments, including tags 
     /// (the tags must follow in the same order for equality).
-    bool opEquals(const ref BamRead other) const pure nothrow {
-        // don't forget about _is_slice trick
-        auto m = _cigar_offset;
-        return _chunk[0 .. m - 1] == other._chunk[0 .. m - 1] &&
-               _chunk[m .. $] == other._chunk[m .. $];
-    }
-
-    /// ditto
     bool opEquals(BamRead other) const pure nothrow {
+        // don't forget about _is_slice trick
         auto m = _cigar_offset;
         return _chunk[0 .. m - 1] == other._chunk[0 .. m - 1] &&
                _chunk[m .. $] == other._chunk[m .. $];
