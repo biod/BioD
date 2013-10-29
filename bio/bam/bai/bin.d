@@ -80,6 +80,8 @@ struct Bin {
 /// Returns bin number for [beg, end) interval (zero-based).
 /// Taken from SAM/BAM specification.
 ushort reg2bin(int beg, int end) {
+    if (end == beg) end = beg + 1; // edge case
+
     --end;
     if (beg>>14 == end>>14) return cast(ushort)(((1<<15)-1)/7 + (beg>>14));
     if (beg>>17 == end>>17) return cast(ushort)(((1<<12)-1)/7 + (beg>>17));

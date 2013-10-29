@@ -296,6 +296,7 @@ class BgzfInputStream : Stream {
 
         ubyte[] _read_buffer;
         VirtualOffset _current_vo;
+        VirtualOffset _end_vo;
 
         size_t _compressed_size;
 
@@ -351,11 +352,22 @@ class BgzfInputStream : Stream {
             auto to = b.block.input_size - b.skip_end;
             _read_buffer = b.block._buffer.ptr[from .. to];
 
-            if (from == to)
-                readEOF = true;
+            if (from == to) {
+                assert(from == 0);
+                setEOF();
+            }
 
-            _current_vo = VirtualOffset(b.block.start_offset, b.skip_start);
+            _current_vo = VirtualOffset(b.block.start_offset, from);
+            if (b.skip_end > 0)
+                _end_vo = VirtualOffset(b.block.start_offset, cast(ushort)to);
+            else
+                _end_vo = VirtualOffset(b.block.end_offset, 0);
             _tasks.popFront();
+        }
+
+        void setEOF() {
+            _current_vo = _end_vo;
+            readEOF = true;
         }
     }
 
@@ -397,7 +409,7 @@ class BgzfInputStream : Stream {
     override size_t readBlock(void* buf, size_t size) {
         if (_read_buffer.length == 0) {
             assert(_tasks.empty);
-            readEOF = true;
+            setEOF();
             return 0;
         }
         
@@ -409,13 +421,14 @@ class BgzfInputStream : Stream {
         _current_vo = VirtualOffset(cast(ulong)_current_vo + len);
 
         if (_read_buffer.length == 0) {
+            _current_vo = _end_vo;
             if (!_tasks.empty) {
                 setupReadBuffer();
                 if (!readEOF)
                     fillNextBlock();
             }
             else
-                readEOF = true;
+                setEOF();
         }
 
         return len;
