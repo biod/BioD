@@ -161,13 +161,27 @@ private:
 
             data = _buffer[0 .. block_size];
         } else {
-            data = uninitializedArray!(ubyte[])(block_size);
+            data = allocate(block_size);
         }
 
         _stream.readExact(data.ptr, block_size);
 
         _current_record = BamRead(data);
         _current_record.associateWithReader(_reader);
+    }
+
+    private {
+        ubyte[] allocate(size_t size) {
+            if (_alloc_buffer_used + size > _alloc_buffer.length) {
+                _alloc_buffer = uninitializedArray!(ubyte[])(max(size, 65536));
+                _alloc_buffer_used = 0;
+            }
+            auto result = _alloc_buffer[_alloc_buffer_used .. $][0 .. size];
+            _alloc_buffer_used += size;
+            return result;
+        }
+        ubyte[] _alloc_buffer;
+        size_t _alloc_buffer_used;
     }
 }
 

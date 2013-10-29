@@ -782,6 +782,10 @@ struct BamRead {
                _chunk[m .. $] == other._chunk[m .. $];
     }
 
+    bool opEquals(const(BamRead) other) const pure nothrow {
+        return opEquals(cast()other);
+    }
+
     /// Size of the alignment record when output to stream in BAM format.
     /// Includes block_size as well (see SAM/BAM specification)
     @property size_t size_in_bytes() const {

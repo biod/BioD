@@ -244,6 +244,8 @@ struct IndexBuilder {
         }
 
         void checkThatBinIsCorrect(ref BamReadBlock read) {
+            if (!check_bins)
+                return;
             auto expected = reg2bin(read.position, 
                                     read.position + read.basesCovered());
             enforce(read.bin.id == expected,
@@ -278,6 +280,9 @@ struct IndexBuilder {
         _stream.writeString(BAI_MAGIC);            // write BAI magic string
         _stream.write(cast(int)_n_refs);           // and number of references
     }
+
+    /// Check that bins are correct.
+    bool check_bins;
 
     /// Add a read. The reads must be put in coordinate-sorted order.
     void put(BamReadBlock read) {
@@ -346,11 +351,12 @@ struct IndexBuilder {
 /// Writes BAM index to the $(D stream)
 ///
 /// Accepts optional $(D progressBarFunc)
-void createIndex(BamReader bam, Stream stream,
+void createIndex(BamReader bam, Stream stream, bool check_bins=false,
                  void delegate(lazy float p) progressBarFunc=null)
 {
     auto n_refs = cast(int)bam.reference_sequences.length;
     auto index_builder = IndexBuilder(stream, n_refs);
+    index_builder.check_bins = check_bins;
     auto reads = bam.readsWithProgress!withOffsets(progressBarFunc);
     foreach (read; reads)
         index_builder.put(read);

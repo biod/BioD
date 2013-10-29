@@ -74,6 +74,7 @@ private {
 class SamReader : IBamSamReader {
 
     private {
+        version(gzippedSamSupport) {
         void checkGunzip() {
             auto gunzip = executeShell("gunzip -V");
             if (gunzip.status != 0)
@@ -92,6 +93,18 @@ class SamReader : IBamSamReader {
             } else {
                 return File(filename);
             }
+        }
+
+        } else {
+
+        File openSamFile(string filename) {
+            if (filename[$ - 4 .. $] == ".bam") {
+                throw new Exception("SAM reader can't read BAM file " ~ filename);
+            } else {
+                return File(filename);
+            }
+        }
+
         }
     }
 
