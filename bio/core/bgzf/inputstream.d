@@ -209,6 +209,7 @@ class StreamSupplier : BgzfBlockSupplier {
                           ushort* skip_start, ushort* skip_end) {
         auto result = fillBgzfBufferFromStream(_stream, _seekable, block, buffer);
         *skip_start = _skip_start;
+        _skip_start = 0;
         *skip_end = 0;
         return result;
     }

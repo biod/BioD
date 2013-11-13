@@ -341,10 +341,37 @@ class BamReader : IBamSamReader {
      */ 
     auto getReadsBetween(bio.core.bgzf.virtualoffset.VirtualOffset from, 
                          bio.core.bgzf.virtualoffset.VirtualOffset to) {
-        enforce(from < to, "First offset must be strictly less than second");
+        enforce(from <= to, "First offset must be less than second");
         enforce(_stream_is_seekable, "Stream is not seekable");
         
         return _random_access_manager.getReadsBetween(from, to);
+    }
+
+    /**
+      Unmapped reads, i.e. reads at the end of file whose reference id is -1.
+      The file must be coordinate-sorted and indexed.
+     */
+    auto unmappedReads() {
+        enforce(_random_access_manager !is null);
+        auto bai = _random_access_manager.getBai();
+
+        VirtualOffset start;
+        start = eofVirtualOffset();
+
+        auto all_reads = this.reads();
+        if (!all_reads.empty && all_reads.front.ref_id == -1)
+            start = _reads_start_voffset;
+
+        auto ioffsets = bai.indices[0 .. reference_sequences.length].retro()
+                           .map!(index => index.ioffsets.retro()).joiner();
+        if (!ioffsets.empty)
+            start = ioffsets.front;
+
+        auto stream = _random_access_manager.createStreamStartingFrom(start);
+        auto r = bamReadRange!withOffsets(stream, this);
+        while (!r.empty && r.front.ref_id != -1)
+            r.popFront();
+        return r;
     }
 
     /**

@@ -176,13 +176,14 @@ class RandomAccessManager {
         return until!offsetTooBig(bamReadRange!withOffsets(stream, _reader), to);
     }
 
-    bool found_index_file() @property {
+    bool found_index_file() @property const {
         return _found_index_file;
     }
     private bool _found_index_file = false; // overwritten in constructor if filename is provided
 
     /// BAI file
     ref const(BaiFile) getBai() const {
+        enforce(found_index_file, "BAM index file (.bai) must be provided");
         return _bai;
     }
 
