@@ -871,6 +871,7 @@ struct PileupChunkRange(C) {
                 _current_chunk = _chunks.front;
                 _chunks.popFront();
 
+                _beg = _current_chunk[0].position;
                 if (_beg >= end_at) {
                     _empty = true;
                     break;
@@ -889,10 +890,13 @@ struct PileupChunkRange(C) {
     }
 
     auto front() @property {
+        auto end_pos = _current_chunk[$-1].position;
+        if (_chunks.empty || _chunks.front[0].ref_id != _current_chunk[$-1].ref_id)
+            end_pos += _current_chunk[$-1].basesCovered();
+        
         return makePileup(chain(_prev_chunk, _current_chunk), 
                           _use_md_tag,
-                          max(_beg, _start_from), 
-                          min(_current_chunk[$-1].position, _end_at));
+                          max(_beg, _start_from), min(end_pos, _end_at));
     }
 
     void popFront() {
@@ -905,8 +909,15 @@ struct PileupChunkRange(C) {
         _current_chunk = _chunks.front;
         _chunks.popFront();
 
-        assert(_prev_chunk.length > 0);
-        _beg = _prev_chunk[$-1].position;
+        // if we changed reference, nullify prev_chunk
+        if (_prev_chunk.length > 0 && 
+            _prev_chunk[$ - 1].ref_id == _current_chunk[0].ref_id)
+        {
+            _beg = _prev_chunk[$-1].position;
+        } else {
+            _beg = _current_chunk[0].position;
+            _prev_chunk.length = 0;
+        }
 
         // keep only those reads in _prev_chunk that have overlap with the last one
         
