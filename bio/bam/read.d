@@ -1669,7 +1669,8 @@ bool compareCoordinates(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
     if (a1.ref_id < a2.ref_id) return true;
     if (a1.ref_id > a2.ref_id) return false;
     if (a1.position < a2.position) return true;
-    return false;
+    if (a1.position > a2.position) return false;
+    return !a1.is_reversed && a2.is_reversed;
 }
 
 bool compareCoordinates(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
