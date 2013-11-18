@@ -436,7 +436,7 @@ private:
     
     string _filename;                       // filename (if available)
     Stream _source_stream;                  // compressed
-    BgzfInputStream _decompressed_stream; // decompressed
+    BgzfInputStream _decompressed_stream;   // decompressed
     Stream _bam;                            // decompressed + endian conversion
     bool _stream_is_seekable;
 
@@ -529,7 +529,8 @@ private:
                                                  _source_stream :
                                                  compressed_stream);
 
-        return new BgzfInputStream(block_supplier, _task_pool);
+        return new BgzfInputStream(block_supplier, _task_pool,
+                                   null, _buffer_size);
     }
 
     // get decompressed stream starting from the first alignment record
@@ -541,7 +542,8 @@ private:
 
             compressed_stream.seekCur(_reads_start_voffset.coffset);
             auto block_supplier = new StreamSupplier(compressed_stream);
-            auto stream = new BgzfInputStream(block_supplier, _task_pool);
+            auto stream = new BgzfInputStream(block_supplier, _task_pool, 
+                                              null, _buffer_size);
             stream.readString(_reads_start_voffset.uoffset);
             return stream;
         } else {

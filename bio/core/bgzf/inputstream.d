@@ -374,7 +374,8 @@ class BgzfInputStream : Stream {
 
     this(BgzfBlockSupplier supplier,
          TaskPool pool=taskPool,
-         BgzfBlockCache cache=null)
+         BgzfBlockCache cache=null,
+         size_t buffer_size=0)
     {
         _supplier = supplier;
         _compressed_size = _supplier.totalCompressedSize();
@@ -382,6 +383,9 @@ class BgzfInputStream : Stream {
         _cache = cache;
 
         size_t n_tasks = max(pool.size, 1) * 2;
+        if (buffer_size > 0)
+            n_tasks = max(n_tasks, buffer_size / BGZF_MAX_BLOCK_SIZE);
+
         _tasks = RoundBuf!BlockAux(n_tasks);
 
         _data = uninitializedArray!(ubyte[])(n_tasks * _max_block_size);

@@ -66,11 +66,14 @@ final class BamWriter {
     /// Params:
     ///     compression_level  = compression level, must be in range -1..9
     ///     task_pool          = task pool to use for parallel compression
+    ///     buffer_size        = size of BgzfOutputStream buffer
     this(std.stream.Stream stream, 
          int compression_level=-1,
-         std.parallelism.TaskPool task_pool=std.parallelism.taskPool) 
+         std.parallelism.TaskPool task_pool=std.parallelism.taskPool,
+         size_t buffer_size=0) 
     {
-        _stream = new BgzfOutputStream(stream, compression_level, task_pool);
+        _stream = new BgzfOutputStream(stream, compression_level, 
+                                       task_pool, buffer_size);
         writeString(BAM_MAGIC);
     }
 

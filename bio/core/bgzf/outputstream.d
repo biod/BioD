@@ -58,6 +58,7 @@ class BgzfOutputStream : Stream {
     this(Stream output_stream, 
          int compression_level=-1, 
          TaskPool task_pool=taskPool, 
+         size_t buffer_size=0,
          size_t max_block_size=BGZF_BLOCK_SIZE) 
     {
         enforce(-1 <= compression_level && compression_level <= 9,
@@ -67,6 +68,9 @@ class BgzfOutputStream : Stream {
         _compression_level = compression_level;
 
         size_t n_tasks = max(task_pool.size, 1) * 16;
+        if (buffer_size > 0) {
+            n_tasks = max(n_tasks, buffer_size / max_block_size);
+        }
         _compression_tasks = RoundBuf!(CompressionTask*)(n_tasks);
 
         // 1 extra block to which we can write while n_tasks are executed
