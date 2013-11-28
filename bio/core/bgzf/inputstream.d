@@ -61,10 +61,13 @@ bool fillBgzfBufferFromStream(Stream stream, bool is_seekable,
         uint bgzf_magic = void;
            
         // TODO: fix byte order if needed
-        auto bytes_read = stream.read((cast(ubyte*)&bgzf_magic)[0 .. 4]);
-
-        if (bytes_read == 0) {
-            return false;
+        size_t bytes_read;
+        while (bytes_read < uint.sizeof) {
+            auto buf = (cast(ubyte*)&bgzf_magic)[bytes_read .. uint.sizeof];
+            auto read_ = stream.read(buf);
+            if (read_ == 0)
+                return false;
+            bytes_read += read_;
         }
 
         if (bgzf_magic != BGZF_MAGIC) { 

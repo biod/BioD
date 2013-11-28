@@ -495,7 +495,7 @@ private:
     int[string] _reference_sequence_dict; /// name -> index mapping
 
     TaskPool _task_pool;
-    size_t _buffer_size = 8192; // buffer size to be used for I/O
+    size_t _buffer_size = 4096; // buffer size to be used for I/O
 
     Stream getNativeEndianSourceStream() {
         assert(_filename !is null);
