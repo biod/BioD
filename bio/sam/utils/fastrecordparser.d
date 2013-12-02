@@ -408,7 +408,7 @@ tr23:
         if (end_pos == pos)
             ++end_pos;
         {
-        auto bin = reg2bin(pos, end_pos);
+        auto bin = reg2bin(pos - 1, end_pos - 1); // 0-based [) interval
         auto ptr = cast(uint*)(buffer.data.ptr + 2 * uint.sizeof);
         *ptr = (*ptr) | ((cast(uint)bin) << 16);
         }
@@ -431,7 +431,7 @@ tr155:
         if (end_pos == pos)
             ++end_pos;
         {
-        auto bin = reg2bin(pos, end_pos);
+        auto bin = reg2bin(pos - 1, end_pos - 1); // 0-based [) interval
         auto ptr = cast(uint*)(buffer.data.ptr + 2 * uint.sizeof);
         *ptr = (*ptr) | ((cast(uint)bin) << 16);
         }
