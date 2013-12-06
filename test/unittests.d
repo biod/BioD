@@ -58,6 +58,10 @@ import std.math;
 import std.typetuple;
 import std.regex;
 
+CigarOperation[] cigarFromString(string cigar) {
+    return match(cigar, regex(`(\d+)([A-Z=])`, "g")).map!(m => CigarOperation(m[1].to!uint, m[2].to!char)).array;
+}
+
 unittest {
 
     writeln("Testing extracting SAM header...");
@@ -426,9 +430,6 @@ unittest {
     }
 
     writeln("Testing extended CIGAR conversion...");
-    CigarOperation[] cigarFromString(string cigar) {
-        return match(cigar, regex(`(\d+)([A-Z=])`, "g")).map!(m => CigarOperation(m[1].to!uint, m[2].to!char)).array;
-    }
 
     auto cigars = ["2M1D7M1D6M1D13M1D5M1D12M2D7M1D10M1D17M1D12M3D23M",
                    "12M2D9M1D14M1D16M2D7M1D4M1D12M1D9M1D15M1D6M1D14M1S",
