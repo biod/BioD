@@ -54,7 +54,8 @@ final class File: std.stream.File {
             auto file = fopen(toStringz(filename), toStringz(mode));
             if (file == null) {
                 throw new OpenException(cast(string) ("Cannot open or create file '"
-                                                      ~ filename ~ "'"));
+                                                      ~ filename ~ "' : ") ~ 
+                                        to!string(strerror(errno)));
             }
             super(core.stdc.stdio.fileno(file), toFileMode(mode));
         }
