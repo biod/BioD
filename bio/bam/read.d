@@ -490,7 +490,7 @@ struct BamRead {
         return cast(string)str;
     }
 
-    private @property const(ubyte)[] raw_sequence_data() const nothrow {
+    private @property inout(ubyte)[] raw_sequence_data() inout nothrow {
         return _chunk[_seq_offset .. _seq_offset + (_l_seq + 1) / 2];
     }
 
@@ -577,7 +577,6 @@ struct BamRead {
 
         ///
         @property bio.core.base.Base opIndex(size_t i) const {
-
             auto pos = _index + i;
 
             if (_use_first_4_bits)
@@ -597,6 +596,27 @@ struct BamRead {
 
             assert(false);
         }
+
+        /// ditto
+        @property void opIndexAssign(bio.core.base.Base base, size_t i) {
+            auto pos = _index + i;
+
+            if (_use_first_4_bits)
+            {
+                if (pos & 1)
+                    _data[pos >> 1] &= 0xF0, _data[pos >> 1] |= base.internal_code;
+                else
+                    _data[pos >> 1] &= 0x0F, _data[pos >> 1] |= base.internal_code << 4;
+            }
+            else
+            {
+                if (pos & 1)
+                    _data[(pos >> 1) + 1] &= 0x0F, _data[(pos >> 1) + 1] |= base.internal_code << 4;
+                else
+                    _data[pos >> 1] &= 0xF0, _data[pos >> 1] |= base.internal_code;
+            }
+        }
+
 
         ///
         void popFront() {
@@ -647,7 +667,7 @@ struct BamRead {
     }
 
     /// Quality data (phred-based scores)
-    @property const(ubyte)[] base_qualities() const nothrow {
+    @property inout(ubyte)[] base_qualities() inout nothrow {
         return _chunk[_qual_offset .. _qual_offset + _l_seq * char.sizeof];
     }
 
@@ -1559,6 +1579,14 @@ unittest {
     assert(read.tagCount() == 1);
     read["RG"] = null;
     assert(read.tagCount() == 0);
+
+    read.sequence[5] = Base('N');
+    read.sequence[6] = Base('A');
+    read.sequence[7] = Base('C');
+    read.sequence[8] = Base('G');
+    read.base_qualities[5] = 42;
+    assert(read.sequence[5 .. 9].equal("NACG"));
+    assert(read.base_qualities[5] == 42);
 
     // Test MsgPack serialization/deserialization
 
