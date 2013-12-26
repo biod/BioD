@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2013    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -43,13 +43,14 @@ class BgzfOutputStream : Stream {
         Stream _stream = void;
         TaskPool _task_pool = void;
 
-        ubyte[] _buffer; // a slice into _compression_buffer
+        ubyte[] _buffer; // a slice into _compression_buffer (uncompressed data)
+        ubyte[] _tmp;    // a slice into _compression_buffer (compressed data)
         size_t _current_size;
 
-        int _compression_level = void;
+        int _compression_level;
 
-        alias Task!(bgzfCompress, ubyte[], int) CompressionTask;
-        RoundBuf!(CompressionTask*) _compression_tasks = void;
+        alias Task!(bgzfCompress, ubyte[], int, ubyte[]) CompressionTask;
+        RoundBuf!(CompressionTask*) _compression_tasks;
         ubyte[] _compression_buffer;
     }
 
@@ -59,7 +60,7 @@ class BgzfOutputStream : Stream {
          int compression_level=-1, 
          TaskPool task_pool=taskPool, 
          size_t buffer_size=0,
-         size_t max_block_size=BGZF_BLOCK_SIZE) 
+         size_t max_block_size=BGZF_MAX_BLOCK_SIZE) 
     {
         enforce(-1 <= compression_level && compression_level <= 9,
                 "Compression level must be a number in interval [-1, 9]");
@@ -74,10 +75,11 @@ class BgzfOutputStream : Stream {
         _compression_tasks = RoundBuf!(CompressionTask*)(n_tasks);
 
         // 1 extra block to which we can write while n_tasks are executed
-        auto comp_buf_size = (n_tasks + 1) * max_block_size;
+        auto comp_buf_size = (2 * n_tasks + 2) * max_block_size;
         auto p = cast(ubyte*)std.c.stdlib.malloc(comp_buf_size);
         _compression_buffer = p[0 .. comp_buf_size];
         _buffer = _compression_buffer[0 .. max_block_size];
+        _tmp = _compression_buffer[max_block_size .. max_block_size * 2];
 
         readable = false;
         writeable = true;
@@ -131,15 +133,17 @@ class BgzfOutputStream : Stream {
         }
 
         auto compression_task = task!bgzfCompress(_buffer[0 .. _current_size], 
-                                                  _compression_level);
+                                                  _compression_level, _tmp);
         _compression_tasks.put(compression_task);
         _task_pool.put(compression_task);
 
         size_t offset = _buffer.ptr - _compression_buffer.ptr;
-        offset += _buffer.length;
+        offset += 2 * _buffer.length;
         if (offset == _compression_buffer.length)
             offset = 0;
-        _buffer = _compression_buffer[offset .. offset + _buffer.length];
+        immutable N = _buffer.length;
+        _buffer = _compression_buffer[offset .. offset + N];
+        _tmp = _compression_buffer[offset + N .. offset + 2 * N];
         _current_size = 0;
 
         if (front_block !is null)
@@ -194,17 +198,19 @@ unittest {
 
     char[] data = "my very l" ~ array(repeat('o', 1000000)) ~ "ng string";
 
-    auto output_stream = new MemoryStream();
-    auto bgzf_output_stream = new BgzfOutputStream(output_stream);
-    bgzf_output_stream.writeExact(data.ptr, data.length);
-    bgzf_output_stream.close();
+    foreach (level; [-1, 0, 1]) {
+        auto output_stream = new MemoryStream();
+        auto bgzf_output_stream = new BgzfOutputStream(output_stream, 1);
+        bgzf_output_stream.writeExact(data.ptr, data.length);
+        bgzf_output_stream.close();
 
-    auto input_stream = new MemoryStream(output_stream.data);
-    input_stream.seekSet(0);
+        auto input_stream = new MemoryStream(output_stream.data);
+        input_stream.seekSet(0);
 
-    auto block_supplier = new StreamSupplier(input_stream);
-    auto bgzf_input_stream = new BgzfInputStream(block_supplier);
-    char[] uncompressed_data = new char[data.length];
-    bgzf_input_stream.readExact(uncompressed_data.ptr, data.length);
-    assert(uncompressed_data == data);
+        auto block_supplier = new StreamSupplier(input_stream);
+        auto bgzf_input_stream = new BgzfInputStream(block_supplier);
+        char[] uncompressed_data = new char[data.length];
+        bgzf_input_stream.readExact(uncompressed_data.ptr, data.length);
+        assert(uncompressed_data == data);
+    }
 }
