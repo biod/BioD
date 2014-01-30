@@ -175,21 +175,21 @@ struct ReferenceSequence {
 
             foreach (read; reads) {
 
-		debug {
-		    reads_processed += 1;
-		}
+                 debug {
+                     reads_processed += 1;
+                 }
 
-		if (read.ref_id != _ref_id) {
-		    break;
-		}
+                 if (read.ref_id != _ref_id) {
+                     break;
+                 }
                 
-		if (read.position == -1) {
-		    continue;
-		}
+                 if (read.position == -1) {
+                     continue;
+                 }
 
-		auto end_pos = read.position + read.basesCovered();
-		if (end_pos > last_position)
-		    last_position = end_pos;
+                 auto end_pos = read.position + read.basesCovered();
+                 if (end_pos > last_position)
+                     last_position = end_pos;
             }
 
             if (last_position != int.min) {

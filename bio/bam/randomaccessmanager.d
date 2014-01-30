@@ -57,9 +57,9 @@ debug {
 
 private {
     auto nonOverlappingChunks(R)(R chunks) {
-	static ref auto chunkB(ref Chunk chunk) { return chunk.beg; }
-	static ref auto chunkE(ref Chunk chunk) { return chunk.end; }
-	return nonOverlapping!(chunkB, chunkE)(chunks);
+        static ref auto chunkB(ref Chunk chunk) { return chunk.beg; }
+        static ref auto chunkE(ref Chunk chunk) { return chunk.end; }
+        return nonOverlapping!(chunkB, chunkE)(chunks);
     }
 }
 
@@ -197,7 +197,7 @@ class RandomAccessManager {
     }
 
     private void checkIndexExistence() {
-	enforce(found_index_file, "BAM index file (.bai) must be provided");
+        enforce(found_index_file, "BAM index file (.bai) must be provided");
     }
 
     private void checkRefId(uint ref_id) {
@@ -205,24 +205,24 @@ class RandomAccessManager {
     }
 
     private void appendChunks(ref Chunk[] chunks, Bin bin, VirtualOffset min_offset) {
-	foreach (chunk; bin.chunks) {
-	    if (chunk.end > min_offset) {
-		chunks ~= chunk;
+        foreach (chunk; bin.chunks) {
+            if (chunk.end > min_offset) {
+                chunks ~= chunk;
 
-		// optimization
-		if (chunks[$-1].beg < min_offset)
-		    chunks[$-1].beg = min_offset;
-	    }
-	}
+                // optimization
+                if (chunks[$-1].beg < min_offset)
+                    chunks[$-1].beg = min_offset;
+            }
+        }
     }
 
     /// Get BAI chunks containing all alignment records overlapping the region
     Chunk[] getChunks(BamRegion region) {
-	auto ref_id = region.ref_id;
-	auto beg = region.start;
-	auto end = region.end;
-	checkIndexExistence();
-	checkRefId(ref_id);
+        auto ref_id = region.ref_id;
+        auto beg = region.start;
+        auto end = region.end;
+        checkIndexExistence();
+        checkRefId(ref_id);
 
         // Select all bins that overlap with [beg, end).
         // Then from such bins select all chunks that end to the right of min_offset.
@@ -234,35 +234,35 @@ class RandomAccessManager {
         foreach (b; _bai.indices[ref_id].bins) {
             if (!b.canOverlapWith(beg, end))
                 continue;
-	    appendChunks(bai_chunks, b, min_offset);
+            appendChunks(bai_chunks, b, min_offset);
         }
 
         sort(bai_chunks);
-	return bai_chunks.nonOverlappingChunks().array();
+        return bai_chunks.nonOverlappingChunks().array();
     }
 
     // regions should be from the same reference sequence
     private Chunk[] getGroupChunks(BamRegion[] regions) {
-	auto bitset = Array!bool();
-	enforce(regions.length > 0);
-	bitset.length = BAI_MAX_BIN_ID;
-	bitset[0] = true;
-	foreach (region; regions) {
-	    auto beg = region.start;
-	    auto end = region.end;
-	    int i = 0, k;
-	    enforce(beg < end);
-	    --end;
-	    for (k =    1 + (beg>>26); k <=    1 + (end>>26); ++k) bitset[k] = true;
-	    for (k =    9 + (beg>>23); k <=    9 + (end>>23); ++k) bitset[k] = true;
-	    for (k =   73 + (beg>>20); k <=   73 + (end>>20); ++k) bitset[k] = true;
-	    for (k =  585 + (beg>>17); k <=  585 + (end>>17); ++k) bitset[k] = true;
-	    for (k = 4681 + (beg>>14); k <= 4681 + (end>>14); ++k) bitset[k] = true;
-	}
+        auto bitset = Array!bool();
+        enforce(regions.length > 0);
+        bitset.length = BAI_MAX_BIN_ID;
+        bitset[0] = true;
+        foreach (region; regions) {
+            auto beg = region.start;
+            auto end = region.end;
+            int i = 0, k;
+            enforce(beg < end);
+            --end;
+            for (k =    1 + (beg>>26); k <=    1 + (end>>26); ++k) bitset[k] = true;
+            for (k =    9 + (beg>>23); k <=    9 + (end>>23); ++k) bitset[k] = true;
+            for (k =   73 + (beg>>20); k <=   73 + (end>>20); ++k) bitset[k] = true;
+            for (k =  585 + (beg>>17); k <=  585 + (end>>17); ++k) bitset[k] = true;
+            for (k = 4681 + (beg>>14); k <= 4681 + (end>>14); ++k) bitset[k] = true;
+        }
 
-	auto ref_id = regions.front.ref_id;
-	checkIndexExistence();
-	checkRefId(ref_id);
+        auto ref_id = regions.front.ref_id;
+        checkIndexExistence();
+        checkRefId(ref_id);
 
         // Select all bins that overlap with [beg, end).
         // Then from such bins select all chunks that end to the right of min_offset.
@@ -270,49 +270,49 @@ class RandomAccessManager {
 
         auto min_offset = _bai.indices[ref_id].getMinimumOffset(regions.front.start);
 
-	Chunk[] bai_chunks;
-	auto bins = _bai.indices[ref_id].bins;
-	foreach (bin; bins)
-	    if (bitset[bin.id])
-		appendChunks(bai_chunks, bin, min_offset);
-	sort(bai_chunks);
-	return bai_chunks.nonOverlappingChunks().array();
+        Chunk[] bai_chunks;
+        auto bins = _bai.indices[ref_id].bins;
+        foreach (bin; bins)
+            if (bitset[bin.id])
+                appendChunks(bai_chunks, bin, min_offset);
+        sort(bai_chunks);
+        return bai_chunks.nonOverlappingChunks().array();
     }
 
     private auto filteredReads(alias IteratePolicy)(BamRegion[] regions) {
-	auto chunks = getGroupChunks(regions);
-	auto reads = readsFromChunks!IteratePolicy(chunks);
-	return filterBamReads(reads, regions);
+        auto chunks = getGroupChunks(regions);
+        auto reads = readsFromChunks!IteratePolicy(chunks);
+        return filterBamReads(reads, regions);
     }
     
     /// Fetch alignments with given reference sequence id, overlapping [beg..end)
     auto getReads(alias IteratePolicy=withOffsets)(BamRegion region)
     {
         auto chunks = getChunks(region);
-	auto reads = readsFromChunks!IteratePolicy(chunks);
+        auto reads = readsFromChunks!IteratePolicy(chunks);
         return filterBamReads(reads, [region]);
     }
 
     auto getReads(alias IteratePolicy=withOffsets)(BamRegion[] regions) {
-	auto sorted_regions = regions.sort();
-	BamRegion[][] regions_by_ref;
-	// TODO: replace with groupBy once it's included into Phobos
-	uint last_ref_id = uint.max;
-	foreach (region; sorted_regions) {
-	    if (region.ref_id == last_ref_id) {
-		regions_by_ref.last ~= region;
-	    } else {
-		regions_by_ref ~= [region];
-		last_ref_id = region.ref_id;
-	    }
-	}
+        auto sorted_regions = regions.sort();
+        BamRegion[][] regions_by_ref;
+        // TODO: replace with groupBy once it's included into Phobos
+        uint last_ref_id = uint.max;
+        foreach (region; sorted_regions) {
+            if (region.ref_id == last_ref_id) {
+                regions_by_ref.last ~= region;
+            } else {
+                regions_by_ref ~= [region];
+                last_ref_id = region.ref_id;
+            }
+        }
     
-	static ref auto regB(ref BamRegion region) { return region.start; }
-	static ref auto regE(ref BamRegion region) { return region.end; }
-	foreach (ref group; regions_by_ref)
-	    group = nonOverlapping!(regB, regE)(group).array();
+        static ref auto regB(ref BamRegion region) { return region.start; }
+        static ref auto regE(ref BamRegion region) { return region.end; }
+        foreach (ref group; regions_by_ref)
+            group = nonOverlapping!(regB, regE)(group).array();
 
-	return regions_by_ref.map!(filteredReads!IteratePolicy)().joiner();
+        return regions_by_ref.map!(filteredReads!IteratePolicy)().joiner();
     }
 
 private:
@@ -343,10 +343,10 @@ public:
     static struct BamReadFilter(R) {
         this(R r, BamRegion[] regions) {
             _range = r;
-	    _regions = regions;
-	    enforce(regions.length > 0);
-	    _region = _regions.front;
-	    _ref_id = _region.ref_id; // assumed to be constant
+            _regions = regions;
+            enforce(regions.length > 0);
+            _region = _regions.front;
+            _ref_id = _region.ref_id; // assumed to be constant
             findNext();
         }
 
@@ -365,14 +365,14 @@ public:
 
     private: 
         R _range;
-	uint _ref_id;
-	BamRegion _region;
-	BamRegion[] _regions; // non-overlapping and sorted
+        uint _ref_id;
+        BamRegion _region;
+        BamRegion[] _regions; // non-overlapping and sorted
         bool _empty;
         ElementType!R _current_read;
 
         void findNext() {
-	    if (_regions.empty || _range.empty) {
+            if (_regions.empty || _range.empty) {
                 _empty = true;
                 return;
             }
@@ -405,16 +405,16 @@ public:
                     //                  .    [-------)
                     //                  .         [-)
                     //    [beg .....  end)
-		    _regions.popFront();
-		    // TODO: potentially binary search may be faster,
-		    // but it needs to be checked
-		    if (_regions.empty) {
-			_empty = true;
-			return;
-		    } else {
-			_region = _regions.front;
-			continue;
-		    }
+                    _regions.popFront();
+                    // TODO: potentially binary search may be faster,
+                    // but it needs to be checked
+                    if (_regions.empty) {
+                        _empty = true;
+                        return;
+                    } else {
+                        _region = _regions.front;
+                        continue;
+                    }
                 }
 
                 if (_current_read.position > _region.start) {
@@ -423,14 +423,14 @@ public:
 
                 if (_current_read.position +
                     _current_read.basesCovered() <= _region.start) 
-		    {
-			/// ends before beginning of the region
-			///  [-----------)
-			///               [beg .......... end)
-			_range.popFront();
-			/// Zero-length reads are also considered non-overlapping,
-			/// so for consistency the inequality 12 lines above is strict.
-		    } else {
+                    {
+                        /// ends before beginning of the region
+                        ///  [-----------)
+                        ///               [beg .......... end)
+                        _range.popFront();
+                        /// Zero-length reads are also considered non-overlapping,
+                        /// so for consistency the inequality 12 lines above is strict.
+                    } else {
                     return; /// _current_read overlaps the region
                 }
             }
