@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2014    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -43,6 +43,7 @@ module bio.bam.reference;
 public import bio.bam.referenceinfo;
 
 import bio.bam.readrange;
+import bio.bam.region;
 import bio.bam.randomaccessmanager;
 import bio.core.bgzf.virtualoffset;
 
@@ -74,7 +75,8 @@ struct ReferenceSequence {
     auto opSlice(uint start, uint end) {
         enforce(start < end, "start must be less than end");
         enforce(_manager !is null, "random access is not available");
-        return _manager.getReads(_ref_id, start, end);
+        enforce(_ref_id >= 0, "invalid reference id");
+        return _manager.getReads(BamRegion(cast(uint)_ref_id, start, end));
     }
 
     /// Get all alignments for this reference
@@ -111,8 +113,8 @@ struct ReferenceSequence {
         assert(ioffsets.length > 0);
 
         // Try to get startVirtualOffset of the next reference presented in the file.
-        for (auto r = _ref_id + 1; r < _manager.getBai().indices.length; ++r) {
-            auto reads = _manager.getReads(r, 0, uint.max);
+        for (uint r = _ref_id + 1; r < _manager.getBai().indices.length; ++r) {
+            auto reads = _manager.getReads(BamRegion(r, 0, uint.max));
             if (reads.empty) {
                 continue;
             } else {
@@ -173,21 +175,21 @@ struct ReferenceSequence {
 
             foreach (read; reads) {
 
-                 debug {
-                     reads_processed += 1;
-                 }
+		debug {
+		    reads_processed += 1;
+		}
 
-                 if (read.ref_id != _ref_id) {
-                     break;
-                 }
+		if (read.ref_id != _ref_id) {
+		    break;
+		}
                 
-                 if (read.position == -1) {
-                     continue;
-                 }
+		if (read.position == -1) {
+		    continue;
+		}
 
-                 auto end_pos = read.position + read.basesCovered();
-                 if (end_pos > last_position)
-                     last_position = end_pos;
+		auto end_pos = read.position + read.basesCovered();
+		if (end_pos > last_position)
+		    last_position = end_pos;
             }
 
             if (last_position != int.min) {

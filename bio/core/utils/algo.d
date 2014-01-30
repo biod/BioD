@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2014    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,11 @@
 */
 module bio.core.utils.algo;
 
+import std.traits;
 import std.range;
+import std.algorithm;
+import std.array;
+
 
 /**
   This function is supposed to be used on a small amount of objects,
@@ -86,4 +90,73 @@ auto argmax(alias func, S)(S set) {
     }
 
     return best_elem;
+}
+
+struct NonOverlappingChunks(R, alias begFunc, alias endFunc) {
+
+    this(R r) {
+        _range = r;
+        popFront();
+    }
+
+    bool empty() @property {
+        return _empty;
+    }
+
+    auto front() @property {
+        return _front;
+    }
+
+    void popFront() {
+        if (!_range.empty()) {
+            _front = _range.front;
+            tryToJoinWithNextChunks();
+        } else {
+            _empty = true;
+        }
+    }
+
+private:
+
+    R _range;
+
+    void tryToJoinWithNextChunks() {
+        _range.popFront();
+        while (!_range.empty()) {
+            /// Get next element
+            auto next = _range.front;
+            /// It's presumed that chunks are sorted
+            assert(next >= _front);
+            /// Check if the chunk can be joined with the previous one
+            if (endFunc(_front) >= begFunc(next)) {
+                /// update end of _front
+                endFunc(_front) = max(endFunc(_front), endFunc(next));
+                _range.popFront(); /// next is consumed
+            } else {
+                /// can't join
+                break;
+            }
+        }
+    }
+
+    Unqual!(ElementType!R) _front;
+    bool _empty = false;
+}
+
+/// $(D begFunc) and $(D endFunc) must take a reference to the object
+/// and return references to the field.
+/// FIXME: the design is ugly.
+/// Params: 
+///      r - range of chunks, sorted by leftmost coordinate
+/// Returns:
+///      range of non-overlapping chunks, covering the same subset
+///      as original chunks
+NonOverlappingChunks!(R, begFunc, endFunc)
+nonOverlapping(alias begFunc, alias endFunc, R)(R r) 
+    if (__traits(compiles, {
+	begFunc(r.front) == endFunc(r.front);
+	endFunc(r.front) = begFunc(r.front);
+    }))
+{
+    return NonOverlappingChunks!(R, begFunc, endFunc)(r);
 }

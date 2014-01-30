@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2014    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -31,7 +31,8 @@ import bio.bam.reader;
 import bio.bam.read;
 import bio.bam.readrange;
 import bio.bam.baifile;
-import bio.bam.bai.utils.algo;
+import bio.bam.region;
+import bio.core.utils.algo;
 
 import bio.core.bgzf.block;
 import bio.core.bgzf.virtualoffset;
@@ -47,11 +48,19 @@ import std.array;
 import std.range;
 import std.traits;
 import std.exception;
-
+import std.container;
 import std.parallelism;
 
 debug {
     import std.stdio;
+}
+
+private {
+    auto nonOverlappingChunks(R)(R chunks) {
+	static ref auto chunkB(ref Chunk chunk) { return chunk.beg; }
+	static ref auto chunkE(ref Chunk chunk) { return chunk.end; }
+	return nonOverlapping!(chunkB, chunkE)(chunks);
+    }
 }
 
 /// Class which random access tasks are delegated to.
@@ -187,10 +196,33 @@ class RandomAccessManager {
         return _bai;
     }
 
+    private void checkIndexExistence() {
+	enforce(found_index_file, "BAM index file (.bai) must be provided");
+    }
+
+    private void checkRefId(uint ref_id) {
+        enforce(ref_id < _bai.indices.length, "Invalid reference sequence index");
+    }
+
+    private void appendChunks(ref Chunk[] chunks, Bin bin, VirtualOffset min_offset) {
+	foreach (chunk; bin.chunks) {
+	    if (chunk.end > min_offset) {
+		chunks ~= chunk;
+
+		// optimization
+		if (chunks[$-1].beg < min_offset)
+		    chunks[$-1].beg = min_offset;
+	    }
+	}
+    }
+
     /// Get BAI chunks containing all alignment records overlapping the region
-    Chunk[] getChunks(int ref_id, int beg, int end) {
-        enforce(found_index_file, "BAM index file (.bai) must be provided");
-        enforce(ref_id >= 0 && ref_id < _bai.indices.length, "Invalid reference sequence index");
+    Chunk[] getChunks(BamRegion region) {
+	auto ref_id = region.ref_id;
+	auto beg = region.start;
+	auto end = region.end;
+	checkIndexExistence();
+	checkRefId(ref_id);
 
         // Select all bins that overlap with [beg, end).
         // Then from such bins select all chunks that end to the right of min_offset.
@@ -202,37 +234,95 @@ class RandomAccessManager {
         foreach (b; _bai.indices[ref_id].bins) {
             if (!b.canOverlapWith(beg, end))
                 continue;
-
-            foreach (chunk; b.chunks) {
-                if (chunk.end > min_offset) {
-                    bai_chunks ~= chunk;
-
-                    // optimization
-                    if (bai_chunks[$-1].beg < min_offset) {
-                        bai_chunks[$-1].beg = min_offset;
-                    }
-                }
-            }
+	    appendChunks(bai_chunks, b, min_offset);
         }
 
         sort(bai_chunks);
-
-        return bai_chunks;
+	return bai_chunks.nonOverlappingChunks().array();
     }
 
+    // regions should be from the same reference sequence
+    private Chunk[] getGroupChunks(BamRegion[] regions) {
+	auto bitset = Array!bool();
+	enforce(regions.length > 0);
+	bitset.length = BAI_MAX_BIN_ID;
+	bitset[0] = true;
+	foreach (region; regions) {
+	    auto beg = region.start;
+	    auto end = region.end;
+	    int i = 0, k;
+	    enforce(beg < end);
+	    --end;
+	    for (k =    1 + (beg>>26); k <=    1 + (end>>26); ++k) bitset[k] = true;
+	    for (k =    9 + (beg>>23); k <=    9 + (end>>23); ++k) bitset[k] = true;
+	    for (k =   73 + (beg>>20); k <=   73 + (end>>20); ++k) bitset[k] = true;
+	    for (k =  585 + (beg>>17); k <=  585 + (end>>17); ++k) bitset[k] = true;
+	    for (k = 4681 + (beg>>14); k <= 4681 + (end>>14); ++k) bitset[k] = true;
+	}
+
+	auto ref_id = regions.front.ref_id;
+	checkIndexExistence();
+	checkRefId(ref_id);
+
+        // Select all bins that overlap with [beg, end).
+        // Then from such bins select all chunks that end to the right of min_offset.
+        // Sort these chunks by leftmost coordinate and remove all overlaps.
+
+        auto min_offset = _bai.indices[ref_id].getMinimumOffset(regions.front.start);
+
+	Chunk[] bai_chunks;
+	auto bins = _bai.indices[ref_id].bins;
+	foreach (bin; bins)
+	    if (bitset[bin.id])
+		appendChunks(bai_chunks, bin, min_offset);
+	sort(bai_chunks);
+	return bai_chunks.nonOverlappingChunks().array();
+    }
+
+    private auto filteredReads(alias IteratePolicy)(BamRegion[] regions) {
+	auto chunks = getGroupChunks(regions);
+	auto reads = readsFromChunks!IteratePolicy(chunks);
+	return filterBamReads(reads, regions);
+    }
+    
     /// Fetch alignments with given reference sequence id, overlapping [beg..end)
-    auto getReads(alias IteratePolicy=withOffsets)(int ref_id, uint beg, uint end)
+    auto getReads(alias IteratePolicy=withOffsets)(BamRegion region)
     {
-        auto chunks = array(nonOverlappingChunks(getChunks(ref_id, beg, end)));
+        auto chunks = getChunks(region);
+	auto reads = readsFromChunks!IteratePolicy(chunks);
+        return filterBamReads(reads, [region]);
+    }
+
+    auto getReads(alias IteratePolicy=withOffsets)(BamRegion[] regions) {
+	auto sorted_regions = regions.sort();
+	BamRegion[][] regions_by_ref;
+	// TODO: replace with groupBy once it's included into Phobos
+	uint last_ref_id = uint.max;
+	foreach (region; sorted_regions) {
+	    if (region.ref_id == last_ref_id) {
+		regions_by_ref.last ~= region;
+	    } else {
+		regions_by_ref ~= [region];
+		last_ref_id = region.ref_id;
+	    }
+	}
+    
+	static ref auto regB(ref BamRegion region) { return region.start; }
+	static ref auto regE(ref BamRegion region) { return region.end; }
+	foreach (ref group; regions_by_ref)
+	    group = nonOverlapping!(regB, regE)(group).array();
+
+	return regions_by_ref.map!(filteredReads!IteratePolicy)().joiner();
+    }
+
+private:
+    auto readsFromChunks(alias IteratePolicy, R)(R chunks) {
         auto fstream = new bio.core.utils.stream.File(_filename);
         auto compressed_stream = new EndianStream(fstream, Endian.littleEndian);
         auto supplier = new StreamChunksSupplier(compressed_stream, chunks);
         auto stream = new BgzfInputStream(supplier, _task_pool, _cache);
-        auto reads = bamReadRange!IteratePolicy(stream, _reader);
-        return filterBamReads(reads, ref_id, beg, end);
+        return bamReadRange!IteratePolicy(stream, _reader);
     }
-
-private:
     
     string _filename;
     BaiFile _bai;
@@ -251,11 +341,12 @@ private:
 public:
 
     static struct BamReadFilter(R) {
-        this(R r, int ref_id, uint beg, uint end) {
+        this(R r, BamRegion[] regions) {
             _range = r;
-            _ref_id = ref_id;
-            _beg = beg;
-            _end = end;
+	    _regions = regions;
+	    enforce(regions.length > 0);
+	    _region = _regions.front;
+	    _ref_id = _region.ref_id; // assumed to be constant
             findNext();
         }
 
@@ -274,22 +365,24 @@ public:
 
     private: 
         R _range;
-        int _ref_id;
-        uint _beg;
-        uint _end;
+	uint _ref_id;
+	BamRegion _region;
+	BamRegion[] _regions; // non-overlapping and sorted
         bool _empty;
         ElementType!R _current_read;
 
         void findNext() {
-            if (_range.empty) {
+	    if (_regions.empty || _range.empty) {
                 _empty = true;
                 return;
             }
+
             while (!_range.empty) {
                 _current_read = _range.front;
 
                 // BamReads are sorted first by ref. ID.
-                auto current_ref_id = _current_read.ref_id;
+                auto current_ref_id = cast(uint)_current_read.ref_id;
+                // ref_id can't be -1 unless the index is fucked up
                 if (current_ref_id > _ref_id) {
                     // no more records for this _ref_id
                     _empty = true;
@@ -301,11 +394,10 @@ public:
                     continue;
                 }
 
-                if (_current_read.position >= _end) {
-                    _empty = true;
+                if (_current_read.position >= _region.end) {
                     // As reads are sorted by leftmost coordinate,
                     // all remaining alignments in _range 
-                    // will not overlap the interval as well.
+                    // will not overlap the current interval as well.
                     // 
                     //                  [-----)
                     //                  . [-----------)
@@ -313,23 +405,32 @@ public:
                     //                  .    [-------)
                     //                  .         [-)
                     //    [beg .....  end)
-                    return;
+		    _regions.popFront();
+		    // TODO: potentially binary search may be faster,
+		    // but it needs to be checked
+		    if (_regions.empty) {
+			_empty = true;
+			return;
+		    } else {
+			_region = _regions.front;
+			continue;
+		    }
                 }
 
-                if (_current_read.position > _beg) {
+                if (_current_read.position > _region.start) {
                     return; // definitely overlaps
                 }
 
                 if (_current_read.position +
-                    _current_read.basesCovered() <= _beg) 
-                {
-                    /// ends before beginning of the region
-                    ///  [-----------)
-                    ///               [beg .......... end)
-                    _range.popFront();
-                    /// Zero-length reads are also considered non-overlapping,
-                    /// so for consistency the inequality 12 lines above is strict.
-                } else {
+                    _current_read.basesCovered() <= _region.start) 
+		    {
+			/// ends before beginning of the region
+			///  [-----------)
+			///               [beg .......... end)
+			_range.popFront();
+			/// Zero-length reads are also considered non-overlapping,
+			/// so for consistency the inequality 12 lines above is strict.
+		    } else {
                     return; /// _current_read overlaps the region
                 }
             }
@@ -340,8 +441,8 @@ public:
     // Get range of alignments sorted by leftmost coordinate,
     // together with an interval [beg, end),
     // and return another range of alignments which overlap the region.
-    static auto filterBamReads(R)(R r, int ref_id, uint beg, uint end) 
+    static auto filterBamReads(R)(R r, BamRegion[] regions)
     {
-        return BamReadFilter!R(r, ref_id, beg, end);
+        return BamReadFilter!R(r, regions);
     }
 }

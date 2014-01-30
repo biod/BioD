@@ -48,6 +48,7 @@ module bio.bam.reader;
 import bio.bam.abstractreader;
 public import bio.sam.header;
 public import bio.bam.reference;
+public import bio.bam.region;
 public import bio.bam.read;
 public import bio.bam.tagvalue;
 public import bio.bam.readrange;
@@ -376,12 +377,13 @@ class BamReader : IBamSamReader {
 
     /**
       Get BAI chunks containing all reads that overlap specified region.
+      For $(I ref_id) = -1, use $(D unmappedReads) method.
      */
-    bio.core.bgzf.chunk.Chunk[] getChunks(int ref_id, int beg, int end) {
+    bio.core.bgzf.chunk.Chunk[] getChunks(uint ref_id, int beg, int end) {
         enforce(_random_access_manager !is null);
         enforce(beg < end);
 
-        return _random_access_manager.getChunks(ref_id, beg, end);
+        return _random_access_manager.getChunks(BamRegion(ref_id, beg, end));
     }
 
     /**
