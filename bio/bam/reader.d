@@ -349,6 +349,13 @@ class BamReader : IBamSamReader {
     }
 
     /**
+      Returns: all reads overlapping any region from a set.
+    */
+    auto getReadsOverlapping(BamRegion[] regions) {
+	return _random_access_manager.getReads(regions);
+    }
+
+    /**
       Unmapped reads, i.e. reads at the end of file whose reference id is -1.
       The file must be coordinate-sorted and indexed.
      */

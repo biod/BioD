@@ -154,8 +154,8 @@ private:
 NonOverlappingChunks!(R, begFunc, endFunc)
 nonOverlapping(alias begFunc, alias endFunc, R)(R r) 
     if (__traits(compiles, {
-	begFunc(r.front) == endFunc(r.front);
-	endFunc(r.front) = begFunc(r.front);
+	if (begFunc(r.front) == endFunc(r.front))
+	    endFunc(r.front) = begFunc(r.front);
     }))
 {
     return NonOverlappingChunks!(R, begFunc, endFunc)(r);

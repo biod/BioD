@@ -300,7 +300,7 @@ class RandomAccessManager {
         uint last_ref_id = uint.max;
         foreach (region; sorted_regions) {
             if (region.ref_id == last_ref_id) {
-                regions_by_ref.last ~= region;
+                regions_by_ref.back ~= region;
             } else {
                 regions_by_ref ~= [region];
                 last_ref_id = region.ref_id;
@@ -309,10 +309,11 @@ class RandomAccessManager {
     
         static ref auto regB(ref BamRegion region) { return region.start; }
         static ref auto regE(ref BamRegion region) { return region.end; }
-        foreach (ref group; regions_by_ref)
-            group = nonOverlapping!(regB, regE)(group).array();
+	foreach (ref group; regions_by_ref)
+	  group = nonOverlapping!(regB, regE)(group).array();
 
-        return regions_by_ref.map!(filteredReads!IteratePolicy)().joiner();
+        return regions_by_ref.map!(group => filteredReads!IteratePolicy(group))()
+	                     .joiner();
     }
 
 private:

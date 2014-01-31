@@ -24,11 +24,22 @@
 
 module bio.bam.region;
 
-import std.typecons;
+///
+struct BamRegion {
+    uint ref_id; /// Reference ID in the BAM file
+    uint start;  /// 0-based leftmost coordinate (included)
+    uint end;    /// 0-based rightmost coordinate (excluded)
 
-///  ref_id -  Reference ID in the BAM file
-///  start  -  0-based leftmost coordinate (included)
-///  end    -  0-based rightmost coordinate (excluded)
-alias BamRegion = Tuple!(uint, "ref_id",
-			 uint, "start",
-			 uint, "end");
+    int opCmp(const ref BamRegion other) const nothrow {
+        if (this.ref_id > other.ref_id) { return  1; }
+        if (this.ref_id < other.ref_id) { return  -1; }
+	
+        if (this.start > other.start) { return  1; }
+        if (this.start < other.start) { return  -1; }
+
+	if (this.end > other.end) { return  1; }
+        if (this.end < other.end) { return  -1; }
+
+        return 0;
+    }
+}
