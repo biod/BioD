@@ -132,6 +132,7 @@ struct ReferenceSequence {
         VirtualOffset result;
         assert(!last_few_reads.empty);
         foreach (read; last_few_reads) {
+            if (read.ref_id == -1) break;
             result = read.end_virtual_offset;
         }
 
