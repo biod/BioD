@@ -60,7 +60,8 @@ class BgzfOutputStream : Stream {
          int compression_level=-1, 
          TaskPool task_pool=taskPool, 
          size_t buffer_size=0,
-         size_t max_block_size=BGZF_MAX_BLOCK_SIZE) 
+         size_t max_block_size=BGZF_MAX_BLOCK_SIZE,
+         size_t block_size=BGZF_BLOCK_SIZE)
     {
         enforce(-1 <= compression_level && compression_level <= 9,
                 "Compression level must be a number in interval [-1, 9]");
@@ -78,7 +79,7 @@ class BgzfOutputStream : Stream {
         auto comp_buf_size = (2 * n_tasks + 2) * max_block_size;
         auto p = cast(ubyte*)std.c.stdlib.malloc(comp_buf_size);
         _compression_buffer = p[0 .. comp_buf_size];
-        _buffer = _compression_buffer[0 .. max_block_size];
+        _buffer = _compression_buffer[0 .. block_size];
         _tmp = _compression_buffer[max_block_size .. max_block_size * 2];
 
         readable = false;
@@ -138,10 +139,10 @@ class BgzfOutputStream : Stream {
         _task_pool.put(compression_task);
 
         size_t offset = _buffer.ptr - _compression_buffer.ptr;
-        offset += 2 * _buffer.length;
+        immutable N = _tmp.length;
+        offset += 2 * N;
         if (offset == _compression_buffer.length)
             offset = 0;
-        immutable N = _buffer.length;
         _buffer = _compression_buffer[offset .. offset + N];
         _tmp = _compression_buffer[offset + N .. offset + 2 * N];
         _current_size = 0;
