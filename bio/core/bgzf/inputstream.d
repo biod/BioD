@@ -160,11 +160,19 @@ bool fillBgzfBufferFromStream(Stream stream, bool is_seekable,
         block.bsize = bsize;
         block.cdata_size = cast(ushort)cdata_size;
 
+        version(extraVerbose) {
+            import std.stdio;
+            // stderr.writeln("[compressed] reading ", cdata_size, " bytes starting from ", start_offset);
+        }
         stream.readExact(buffer, cdata_size);
-            
+        version(extraVerbose) {
+            stderr.writeln("[  compressed] [write] range: ", buffer, " - ", buffer + cdata_size);
+        }
+        // version(extraVerbose) {stderr.writeln("[compressed] reading block crc32 and input size...");}
         stream.read(block.crc32);
         stream.read(block.input_size);
            
+        // version(extraVerbose) {stderr.writeln("[compressed] read block input size: ", block.input_size);}
         block._buffer = buffer[0 .. max(block.input_size, cdata_size)];
         block.start_offset = start_offset;
         block.dirty = false;
@@ -239,6 +247,9 @@ class StreamChunksSupplier : BgzfBlockSupplier {
             _chunks = _chunks[i - 1 .. $];
             _chunks[0].beg = beg;
             _stream.seekSet(cast(size_t)_chunks[0].beg.coffset);
+            version(extraVerbose) {
+                import std.stdio; stderr.writeln("started processing chunk ", beg, " - ", _chunks[0].end);
+            }
         }
     }
     
@@ -256,30 +267,50 @@ class StreamChunksSupplier : BgzfBlockSupplier {
         if (_chunks.length == 0)
             return false;
 
+        // Usually there can't be two or more chunks overlapping a
+        // single block -- in such cases they are merged during
+        // indexing in most implementations.
+        // If this is not the case, the algorithm should still work,
+        // but it might decompress the same block several times.
+        //
+        // On each call of this method, one of these things happen:
+        // 1) We remain in the current chunk, but read next block
+        // 2) We finish dealing with the current chunk, so we move to
+        //    the next one. If this was the last one, false is returned.
+        //
+        // moveToNextChunk moves stream pointer to chunk.beg.coffset,
+        // in which case skip_start should be set to chunk.beg.uoffset
+
         auto result = fillBgzfBufferFromStream(_stream, true, block, buffer);
         auto offset = block.start_offset;
-        
+
         if (!result)
             return false;
 
         if (offset == _chunks[0].beg.coffset)
-            *skip_start = _chunks[0].beg.uoffset;
+            *skip_start = _chunks[0].beg.uoffset; // first block in a chunk
         else
             *skip_start = 0;
 
-        if (offset == _chunks[0].end.coffset)
-            *skip_end = cast(ushort)(block.input_size - _chunks[0].end.uoffset);
+        long _skip_end; // may be equal to 65536!
+        if (offset == _chunks[0].end.coffset) // last block in a chunk
+            _skip_end = block.input_size - _chunks[0].end.uoffset;
         else
-            *skip_end = 0;
+            _skip_end = 0;
+
+        *skip_end = cast(ushort)_skip_end;
 
         if (offset >= _chunks[0].end.coffset) {
             _chunks = _chunks[1 .. $];
             moveToNextChunk();
         }
 
-        // special case
-        if (block.input_size > 0 && *skip_end == block.input_size)
+        // special case: it's not actually the last block in a chunk,
+        // but rather that chunk ended on the edge of two blocks
+        if (block.input_size > 0 && _skip_end == block.input_size) {
+            version(extraVerbose) { import std.stdio; stderr.writeln("skip_end == input size"); }
             return getNextBgzfBlock(block, buffer, skip_start, skip_end);
+        }
 
         return true;
     }
@@ -337,6 +368,10 @@ class BgzfInputStream : Stream {
 
                 _compressed_read += b.block.end_offset - b.block.start_offset;
                 _uncompressed_read += b.block.input_size;
+                version(extraVerbose) {
+                    import std.stdio;
+                    stderr.writeln("[creating task] ", b.block.start_offset, " / ", b.skip_start, " / ", b.skip_end);
+                }
                 b.task = task!decompressBgzfBlock(b.block, _cache);
                 _pool.put(b.task);
                 _tasks.put(b);
@@ -362,6 +397,9 @@ class BgzfInputStream : Stream {
             }
 
             _current_vo = VirtualOffset(b.block.start_offset, from);
+            version(extraVerbose) {
+                import std.stdio; stderr.writeln("[setup read buffer] ", _current_vo);
+            }
             if (b.skip_end > 0)
                 _end_vo = VirtualOffset(b.block.start_offset, cast(ushort)to);
             else
@@ -415,6 +453,10 @@ class BgzfInputStream : Stream {
     }
 
     override size_t readBlock(void* buf, size_t size) {
+        version(extraVerbose) {
+            import std.stdio;
+            // stderr.writeln("[uncompressed] reading ", size, " bytes to address ", buf);
+        }
         if (_read_buffer.length == 0) {
             assert(_tasks.empty);
             setEOF();
@@ -425,6 +467,9 @@ class BgzfInputStream : Stream {
 
         auto len = min(size, _read_buffer.length);
         buffer[0 .. len] = _read_buffer[0 .. len];
+        version(extraVerbose) {
+            // stderr.writeln("[uncompressed] [read] range: ", _read_buffer.ptr, " - ", _read_buffer.ptr + len);
+        }
         _read_buffer = _read_buffer[len .. $];
         _current_vo = VirtualOffset(cast(ulong)_current_vo + len);
 

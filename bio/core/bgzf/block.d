@@ -185,6 +185,11 @@ DecompressedBgzfBlock decompressBgzfBlock(BgzfBlock block,
     // Now copy back to block._buffer, overwriting existing data.
     // It should have enough bytes already allocated.
     assert(block._buffer.length >= block.input_size);
+    version(extraVerbose) {
+        import std.stdio;
+        stderr.writeln("[uncompressed] [write] range: ", block._buffer.ptr,
+                       " - ", block._buffer.ptr + block.input_size);
+    }
     block._buffer[0 .. block.input_size] = uncompressed[];
     block.dirty = true;
 

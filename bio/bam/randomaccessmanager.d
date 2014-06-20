@@ -270,17 +270,35 @@ class RandomAccessManager {
 
         auto min_offset = _bai.indices[ref_id].getMinimumOffset(regions.front.start);
 
+        version(extraVerbose) {
+            import std.stdio;
+            stderr.writeln("min offset = ", min_offset);
+        }
+
         Chunk[] bai_chunks;
         auto bins = _bai.indices[ref_id].bins;
         foreach (bin; bins)
             if (bitset[bin.id])
                 appendChunks(bai_chunks, bin, min_offset);
         sort(bai_chunks);
+
+        version(extraVerbose) {
+            stderr.writeln("[chunks before normalization]");
+            foreach(chunk; bai_chunks)
+                stderr.writeln(chunk.beg, " - ", chunk.end);
+        }
+
         return bai_chunks.nonOverlappingChunks().array();
     }
 
     private auto filteredReads(alias IteratePolicy)(BamRegion[] regions) {
         auto chunks = getGroupChunks(regions);
+        version(extraVerbose) {
+            import std.stdio;
+            stderr.writeln("[chunks]");
+            foreach (chunk; chunks)
+                stderr.writeln(chunk.beg, " - ", chunk.end);
+        }
         auto reads = readsFromChunks!IteratePolicy(chunks);
         return filterBamReads(reads, regions);
     }

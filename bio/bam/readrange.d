@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012-2013    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2014    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -128,6 +128,9 @@ private:
         }
      
         // In order to get the right virtual offset, we need to do it here.
+        version(extraVerbose) {
+            // import std.stdio; stderr.writeln("record v.o. = ", _stream.virtualTell());
+        }
         beforeNextBamReadLoad();
 
         // (FIXME: that won't work on Big Endian systems!)
@@ -149,6 +152,11 @@ private:
             _read += _actually_read;
             ptr += _actually_read;
         } 
+
+        version(extraVerbose) {
+            import std.stdio;
+            stderr.writeln("[uncompressed] record size: ", block_size);
+        }
 
         if (std.system.endian != Endian.littleEndian) {
             switchEndianness(&block_size, int.sizeof);
