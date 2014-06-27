@@ -634,6 +634,19 @@ struct BamRead {
         }
 
         alias length opDollar;
+
+        void toString(scope void delegate(const(char)[]) dg) const {
+            char[256] buf = void;
+            size_t total = this.length;
+            size_t written = 0;
+            while (written < total) {
+                size_t n = min(buf.length, total - written);
+                foreach (j; 0 .. n)
+                    buf[j] = opIndex(written + j).asCharacter;
+                dg(buf[0 .. n]);
+                written += n;
+            }
+        }
     }
 
     /// Random-access range of characters

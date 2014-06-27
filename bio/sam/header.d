@@ -593,80 +593,65 @@ class SamHeader {
     }
 
     void toJson(Sink)(auto ref Sink sink) if (isSomeSink!Sink) {
-        static JSONValue jv(T)(T value) {
-            JSONValue v;
-            static if(is(T == string)) {
-                v.str = value;
-                v.type = JSON_TYPE.STRING;
-            } else static if(is(T == uint)) {
-                v.integer = value;
-                v.type = JSON_TYPE.INTEGER;
-            }
-            return v;
-        }
+        JSONValue[string] result;
 
-        JSONValue result;
-        result.type = JSON_TYPE.OBJECT;
-
-        result.object["format_version"] = jv(format_version);
+        result["format_version"].str = format_version;
 
         if (sorting_order != SortingOrder.unknown) {
-            result.object["sorting_order"] = jv(to!string(sorting_order));
+            result["sorting_order"].str = sorting_order.to!string;
         }
 
-        JSONValue tmp;
-        tmp.type = JSON_TYPE.ARRAY;
-        tmp.array = new JSONValue[sequences.length];
+        auto tmp = new JSONValue[sequences.length];
 
         for (auto i = 0; i < sequences.length; i++) {
             auto line = getSequence(i);
-            JSONValue sq;
-            sq.type = JSON_TYPE.OBJECT;
-            sq.object["sequence_name"] = jv(line.name);
-            sq.object["sequence_length"] = jv(line.length);
-            sq.object["assembly"] = jv(line.assembly);
-            sq.object["md5"] = jv(line.md5);
-            sq.object["species"] = jv(line.species);
-            sq.object["uri"] = jv(line.uri);
-            tmp.array[i] = sq;
+            JSONValue[string] sq;
+            sq["sequence_name"].str = line.name;
+            sq["sequence_length"].uinteger = line.length;
+            sq["assembly"].str = line.assembly;
+            sq["md5"].str = line.md5;
+            sq["species"].str = line.species;
+            sq["uri"].str = line.uri;
+            tmp[i].object = sq;
         }
-        result.object["sq_lines"] = tmp;
+        result["sq_lines"].array = tmp.dup;
 
-        tmp.array = new JSONValue[read_groups.length];
+        tmp.length = read_groups.length;
         size_t i = 0;
         foreach (line; read_groups) {
-            JSONValue sq;
-            sq.type = JSON_TYPE.OBJECT;
-            sq.object["identifier"] = jv(line.identifier);
-            sq.object["sequencing_center"] = jv(line.sequencing_center);
-            sq.object["description"] = jv(line.description);
-            sq.object["date"] = jv(line.date);
-            sq.object["flow_order"] = jv(line.flow_order);
-            sq.object["key_sequence"] = jv(line.key_sequence);
-            sq.object["library"] = jv(line.library);
-            sq.object["programs"] = jv(line.programs);
-            sq.object["predicted_insert_size"] = jv(line.predicted_insert_size);
-            sq.object["platform"] = jv(line.platform);
-            sq.object["platform_unit"] = jv(line.platform_unit);
-            sq.object["sample"] = jv(line.sample);
-            tmp.array[i++] = sq;
+            JSONValue[string] sq;
+            sq["identifier"].str = line.identifier;
+            sq["sequencing_center"].str = line.sequencing_center;
+            sq["description"].str = line.description;
+            sq["date"].str = line.date;
+            sq["flow_order"].str = line.flow_order;
+            sq["key_sequence"].str = line.key_sequence;
+            sq["library"].str = line.library;
+            sq["programs"].str = line.programs;
+            sq["predicted_insert_size"].integer = line.predicted_insert_size;
+            sq["platform"].str = line.platform;
+            sq["platform_unit"].str = line.platform_unit;
+            sq["sample"].str = line.sample;
+            tmp[i++].object = sq;
         }
-        result.object["rg_lines"] = tmp;
+        result["rg_lines"].array = tmp.dup;
 
-        tmp.array = new JSONValue[programs.length];
+        tmp.length = programs.length;
         i = 0;
         foreach (line; programs) {
-            JSONValue sq;
-            sq.type = JSON_TYPE.OBJECT;
-            sq.object["identifier"] = jv(line.identifier);
-            sq.object["program_name"] = jv(line.name);
-            sq.object["command_line"] = jv(line.command_line);
-            sq.object["previous_program"] = jv(line.previous_program);
-            sq.object["program_version"] = jv(line.program_version);
-            tmp.array[i++] = sq;
+            JSONValue[string] sq;
+            sq["identifier"].str = line.identifier;
+            sq["program_name"].str = line.name;
+            sq["command_line"].str = line.command_line;
+            sq["previous_program"].str = line.previous_program;
+            sq["program_version"].str = line.program_version;
+            tmp.array[i++].object = sq;
         }
-        result.object["pg_lines"] = tmp;
-        sink.write(toJSON(&result));
+        result["pg_lines"].array = tmp;
+
+        JSONValue json;
+        json.object = result;
+        sink.write(toJSON(&json));
     }
 
     /// Packs message in the following format:
