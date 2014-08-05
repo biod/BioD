@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012-2013    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2014    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -66,6 +66,22 @@ auto readRange(BamReader reader, SamHeaderMerger merger, FileId index,
     return zip(reads, repeat(merger), repeat(index));
 }
 
+// (BamReader, SamHeaderMerger, FileId, [BamRegion]) ->
+//                                    [(BamRead, SamHeaderMerger, FileId)]
+auto readRange(BamReader reader, SamHeaderMerger merger, FileId index,
+               BamRegion[] regions) {
+    auto old_regions = regions.dup;
+    foreach (j; 0 .. regions.length) {
+        auto new_ref_id = regions[j].ref_id;
+        if (new_ref_id != -1) {
+            auto old_ref_id = cast(uint)merger.ref_id_reverse_map[index][new_ref_id];
+            old_regions[j].ref_id = old_ref_id;
+        }
+    }
+    return zip(reader.getReadsOverlapping(old_regions).map!(r => r.read),
+               repeat(merger), repeat(index));
+}
+
 // ([BamReader], SamHeaderMerger) -> [[(BamRead, SamHeaderMerger, FileId)]]
 auto readRanges(BamReader[] readers, SamHeaderMerger merger) {
     return readers.zip(repeat(merger), iota(readers.length))
@@ -73,13 +89,22 @@ auto readRanges(BamReader[] readers, SamHeaderMerger merger) {
 }
 
 // ([BamReader], SamHeaderMerger, int, uint, uint) -> 
-//                                    [[BamRead, SamHeaderMerger, FileId)]]
+//                                    [[(BamRead, SamHeaderMerger, FileId)]]
 auto readRanges(BamReader[] readers, SamHeaderMerger merger, 
                 int ref_id, uint start, uint end) 
 {
     return readers.zip(repeat(merger), iota(readers.length), 
                        repeat(ref_id), repeat(start), repeat(end))
                   .map!(t => readRange(t[0], t[1], t[2], t[3], t[4], t[5]))();
+}
+
+// ([BamReader], SamHeaderMerger, [BamRegion]) ->
+//        [[(BamRead, SamHeaderMerger, FileId)])
+auto readRanges(BamReader[] readers, SamHeaderMerger merger, BamRegion[] regions)
+{
+    return readers.zip(repeat(merger), iota(readers.length),
+                       repeat(regions))
+        .map!(t => readRange(t[0], t[1], t[2], t[3]))();
 }
 
 // tweaks RG and PG tags, and reference sequence ID
@@ -198,6 +223,13 @@ class MultiBamReader {
     }
 
     /**
+       Check if all BAM files have indices.
+    */
+    bool has_index() @property {
+        return readers.all!(b => b.has_index);
+    }
+
+    /**
       Returns reference sequence with id $(I ref_id).
      */
     MultiBamReference reference(int ref_id) {
@@ -221,6 +253,19 @@ class MultiBamReader {
     void setBufferSize(size_t bytes) {
         foreach (reader; _readers)
             reader.setBufferSize(bytes);
+    }
+
+    /**
+       Requires coordinate sorting and presence of indices.
+    */
+    auto getReadsOverlapping(BamRegion[] regions) {
+        enforce(header.sorting_order == SortingOrder.coordinate,
+                "Not all files are coordinate-sorted");
+        enforce(has_index, "Not all files are indexed");
+
+        auto ranges = readRanges(_readers, _merger, regions);
+        return ranges.adjustTags(_task_pool, _adj_bufsz)
+                     .nWayUnion!compare().map!"a[0]"();
     }
 
     private {
@@ -269,14 +314,14 @@ struct MultiBamReference {
     int length() @property const { return _info.length; }
 
     ///
-    int ref_id() @property const { return _ref_id; }
+    int id() @property const { return _ref_id; }
 
     /// Get alignments overlapping [start, end) region.
     /// $(BR)
     /// Coordinates are 0-based.
     auto opSlice(uint start, uint end) {
         enforce(start < end, "start must be less than end");
-        auto ranges = readRanges(_readers, _merger, ref_id, start, end);
+        auto ranges = readRanges(_readers, _merger, id, start, end);
         return ranges.adjustTags(_pool, _adj_bufsz)
                      .nWayUnion!compare().map!"a[0]"();
     }
