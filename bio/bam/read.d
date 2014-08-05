@@ -1626,15 +1626,15 @@ unittest {
 ///
 /// $(P The idea is that this should be a drop-in replacement for BamRead in algorithms,
 /// as the struct uses 'alias this' construction for the wrapped read.)
-struct EagerBamRead {
+struct EagerBamRead(R=BamRead) {
     /// 
-    this(BamRead read) {
+    this(R read) {
         this.read = read;
         this.end_position = read.position + read.basesCovered();
     }
 
     ///
-    BamRead read;
+    R read;
     ///
     alias read this;
  
@@ -1647,7 +1647,7 @@ struct EagerBamRead {
     }
 }
 
-static assert(is(EagerBamRead : BamRead));
+static assert(is(EagerBamRead!BamRead : BamRead));
 
 /// Checks if $(D T) behaves like $(D BamRead)
 template isBamRead(T)

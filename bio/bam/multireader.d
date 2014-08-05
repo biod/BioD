@@ -39,7 +39,21 @@ import std.typecons;
 
 alias size_t FileId;
 
-// ((BamRead, SamHeaderMerger), (BamRead, SamHeaderMerger)) -> bool
+/// Read from one of multiple BAM files
+struct MultiBamRead(R=BamRead) {
+    R read;
+    alias read this;
+
+    /// from which file it came
+    FileId file_id;
+
+    ///
+    MultiBamRead dup() @property const {
+        return MultiBamRead(read.dup, file_id);
+    }
+}
+
+// ((MultiBamRead, SamHeaderMerger), (MultiBamRead, SamHeaderMerger)) -> bool
 bool compare(T)(const auto ref T r1, const auto ref T r2) {
     assert(r1[1] == r2[1]);
     auto sorting_order = r1[1].merged_header.sorting_order;
@@ -51,23 +65,25 @@ bool compare(T)(const auto ref T r1, const auto ref T r2) {
         assert(0);
 }
 
-// (BamReader, SamHeaderMerger, FileId) -> [(BamRead, SamHeaderMerger, FileId)]
+// (BamReader, SamHeaderMerger, FileId) -> [(MultiBamRead, SamHeaderMerger, FileId)]
 auto readRange(BamReader reader, SamHeaderMerger merger, FileId index) {
-    return zip(reader.reads, repeat(merger), repeat(index));
+    return zip(reader.reads.map!(r => MultiBamRead!BamRead(r, index)),
+               repeat(merger), repeat(index));
 }
 
 // (BamReader, SamHeaderMerger, FileId, int, uint, uint) -> 
-//                                    [(BamRead, SamHeaderMerger, FileId)]
+//                                    [(MultiBamRead, SamHeaderMerger, FileId)]
 auto readRange(BamReader reader, SamHeaderMerger merger, FileId index,
                int ref_id, uint start, uint end) 
 {
     auto old_ref_id = cast(int)merger.ref_id_reverse_map[index][ref_id];
     auto reads = reader.reference(old_ref_id)[start .. end];
-    return zip(reads, repeat(merger), repeat(index));
+    return zip(reads.map!(r => MultiBamRead!BamRead(r, index)),
+               repeat(merger), repeat(index));
 }
 
 // (BamReader, SamHeaderMerger, FileId, [BamRegion]) ->
-//                                    [(BamRead, SamHeaderMerger, FileId)]
+//                                    [(MultiBamRead, SamHeaderMerger, FileId)]
 auto readRange(BamReader reader, SamHeaderMerger merger, FileId index,
                BamRegion[] regions) {
     auto old_regions = regions.dup;
@@ -78,18 +94,19 @@ auto readRange(BamReader reader, SamHeaderMerger merger, FileId index,
             old_regions[j].ref_id = old_ref_id;
         }
     }
-    return zip(reader.getReadsOverlapping(old_regions).map!(r => r.read),
+    return zip(reader.getReadsOverlapping(old_regions)
+                     .map!(r => MultiBamRead!BamRead(r.read, index)),
                repeat(merger), repeat(index));
 }
 
-// ([BamReader], SamHeaderMerger) -> [[(BamRead, SamHeaderMerger, FileId)]]
+// ([BamReader], SamHeaderMerger) -> [[(MultiBamRead, SamHeaderMerger, FileId)]]
 auto readRanges(BamReader[] readers, SamHeaderMerger merger) {
     return readers.zip(repeat(merger), iota(readers.length))
                   .map!(t => readRange(t[0], t[1], t[2]))();
 }
 
 // ([BamReader], SamHeaderMerger, int, uint, uint) -> 
-//                                    [[(BamRead, SamHeaderMerger, FileId)]]
+//                                    [[(MultiBamRead, SamHeaderMerger, FileId)]]
 auto readRanges(BamReader[] readers, SamHeaderMerger merger, 
                 int ref_id, uint start, uint end) 
 {
@@ -99,7 +116,7 @@ auto readRanges(BamReader[] readers, SamHeaderMerger merger,
 }
 
 // ([BamReader], SamHeaderMerger, [BamRegion]) ->
-//        [[(BamRead, SamHeaderMerger, FileId)])
+//        [[(MultiBamRead, SamHeaderMerger, FileId)])
 auto readRanges(BamReader[] readers, SamHeaderMerger merger, BamRegion[] regions)
 {
     return readers.zip(repeat(merger), iota(readers.length),
@@ -108,7 +125,7 @@ auto readRanges(BamReader[] readers, SamHeaderMerger merger, BamRegion[] regions
 }
 
 // tweaks RG and PG tags, and reference sequence ID
-// [[(BamRead, SamHeaderMerger, size_t)]] -> [[BamRead]]
+// [[(BamRead, SamHeaderMerger, size_t)]] -> [[MultiBamRead]]
 auto adjustTags(R)(R reads_with_aux_info, TaskPool pool, size_t bufsize) 
     if (isInputRange!R) 
 {
@@ -117,14 +134,14 @@ auto adjustTags(R)(R reads_with_aux_info, TaskPool pool, size_t bufsize)
                               .map!adj().array();
 }
 
-// [(BamRead, SamHeaderMerger, size_t)] -> [BamRead]
+// [(MultiBamRead, SamHeaderMerger, size_t)] -> [MultiBamRead]
 auto adjustTags1(R)(R reads_with_aux_info, TaskPool pool, size_t bufsize) 
     if (isInputRange!R) 
 {
     return pool.map!adjustTags(reads_with_aux_info, bufsize);
 }
 
-// (BamRead, SamHeaderMerger, size_t) -> (BamRead, SamHeaderMerger)
+// (BamRead, SamHeaderMerger, size_t) -> (MultiBamRead, SamHeaderMerger)
 auto adjustTags(R)(R read_with_aux_info) if (!isInputRange!R) {
     auto read = read_with_aux_info[0];
     auto merger = read_with_aux_info[1];
@@ -204,7 +221,7 @@ class MultiBamReader {
         return _merger.merged_header;
     }
 
-    ///
+    /// Input range of MultiBamRead instances
     auto reads() @property {
         return readRanges(_readers, _merger).adjustTags(task_pool, _adj_bufsz)
                                             .nWayUnion!compare().map!"a[0]"();

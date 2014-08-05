@@ -229,7 +229,7 @@ struct PileupRead(Read=bio.bam.read.EagerBamRead) {
 }
 
 static assert(isBamRead!(PileupRead!BamRead));
-static assert(isBamRead!(PileupRead!EagerBamRead));
+static assert(isBamRead!(PileupRead!(EagerBamRead!BamRead)));
 
 /// Represents a single pileup column
 struct PileupColumn(R) {
@@ -292,7 +292,9 @@ struct PileupColumn(R) {
  * The class for iterating reference bases together with reads overlapping them.
  */
 class PileupRange(R, alias TColumn=PileupColumn) {
-    alias PileupRead!EagerBamRead Read;
+    alias Unqual!(ElementType!R) Raw;
+    alias EagerBamRead!Raw Eager;
+    alias PileupRead!Eager Read;
     alias Read[] ReadArray;
     alias TColumn!ReadArray Column;
 
@@ -309,8 +311,8 @@ class PileupRange(R, alias TColumn=PileupColumn) {
         // For that reason it is not marked as final. Overhead of virtual 
         // function is negligible compared to computations in EagerBamRead
         // constructor together with inserting new element into appender.
-        void add(ref BamRead read) {
-            _read_buf.put(PileupRead!EagerBamRead(EagerBamRead(read)));
+        void add(ref Raw read) {
+            _read_buf.put(PileupRead!Eager(Eager(read)));
         }
     }
 
@@ -547,13 +549,15 @@ final static class PileupRangeUsingMdTag(R) :
         super(reads, skip_zero_coverage);
     }
 
+    alias Unqual!(ElementType!R) Raw;
+
     //  Checks length of the newly added read and tracks the read which
     //  end position on the reference is the largest. 
     //
     //  When reconstructed reference chunk will become empty, next one will be
     //  constructed from that read. This algorithm allows to minimize the number
     //  of reads for which MD tag will be decoded.
-    protected override void add(ref BamRead read) {
+    protected override void add(ref Raw read) {
         // the behaviour depends on whether a new contig starts here or not
         bool had_zero_coverage = _prev_coverage == 0;
 
