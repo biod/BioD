@@ -42,4 +42,24 @@ struct BamRegion {
 
         return 0;
     }
+
+    bool overlaps(uint ref_id, uint position) const {
+        return this.ref_id == ref_id && start <= position && position < end;
+    }
+
+    bool fullyLeftOf(uint ref_id, uint position) {
+        if (this.ref_id < ref_id)
+            return true;
+        if (this.ref_id == ref_id && end <= position)
+            return true;
+        return false;
+    }
+
+    bool fullyRightOf(uint ref_id, uint position) {
+        if (this.ref_id > ref_id)
+            return true;
+        if (this.ref_id == ref_id && start > position)
+            return true;
+        return false;
+    }
 }
