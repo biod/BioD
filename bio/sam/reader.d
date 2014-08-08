@@ -26,6 +26,7 @@ module bio.sam.reader;
 import bio.bam.abstractreader;
 import bio.sam.header;
 import bio.bam.read;
+import bio.bam.reference;
 import bio.bam.referenceinfo;
 import bio.core.utils.outbuffer;
 import bio.core.utils.range;
@@ -47,6 +48,7 @@ import std.algorithm;
 import std.typecons;
 import std.parallelism;
 import std.process;
+import std.exception;
 import std.c.string;
 
 BamRead _parseSamRecord(Tuple!(char[], SamReader, OutBuffer) t) {
@@ -126,6 +128,18 @@ class SamReader : IBamSamReader {
         return _reference_sequences;
     }
 
+    ///
+    bool hasReference(string reference) {
+        return null != (reference in _reference_sequence_dict);
+    }
+
+    ///
+    bio.bam.reference.ReferenceSequence opIndex(string ref_name) {
+        enforce(hasReference(ref_name), "Reference with name " ~ ref_name ~ " is not present in the header");
+        auto ref_id = _reference_sequence_dict[ref_name];
+        return ReferenceSequence(null, ref_id, _reference_sequences[ref_id]);
+    }
+
     /// Reads in SAM file.
     auto reads() @property {
         
@@ -173,6 +187,7 @@ private:
 
     SamHeader _header;
     ReferenceSequenceInfo[] _reference_sequences;
+    int[string] _reference_sequence_dict;
 
     void _initializeStream() {
         auto header = Appender!(char[])(); 
@@ -196,6 +211,8 @@ private:
         _reference_sequences = new ReferenceSequenceInfo[_header.sequences.length];
         foreach (sq; _header.sequences) {
             auto seq = ReferenceSequenceInfo(sq.name, sq.length);
+            auto n = cast(int)_reference_sequences.length;
+            _reference_sequence_dict[sq.name] = n;
             _reference_sequences[_header.getSequenceIndex(seq.name)] = seq;
         }
     }
