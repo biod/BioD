@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012-2013    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2014    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -1417,54 +1417,8 @@ mixin template TagStorage() {
     // Reads value which starts from (_tags_chunk.ptr + offset) address,
     // and updates offset to the end of value. O(1)
     private Value readValue(ref size_t offset, const(ubyte)[] tags_chunk) const {
-
-        string readValueArrayTypeHelper() {
-            char[] cases;
-            foreach (c2t; ArrayElementTagValueTypes) {
-                cases ~= 
-                "case '"~c2t.ch~"':".dup~
-                "  auto begin = offset;"~
-                "  auto end = offset + length * "~c2t.ValueType.stringof~".sizeof;"~
-                "  offset = end;"~ 
-                "  return Value(cast("~c2t.ValueType.stringof~"[])(tags_chunk[begin .. end]));";
-            }
-            return to!string("switch (elem_type) {" ~ cases ~
-                   "  default: throw new UnknownTagTypeException(to!string(elem_type));"~
-                   "}");
-        }
-
-        string readValuePrimitiveTypeHelper() {
-            char[] cases;
-            foreach (c2t; PrimitiveTagValueTypes) {
-                cases ~= "case '"~c2t.ch~"':"~
-                         "  auto p = tags_chunk.ptr + offset;"~ 
-                         "  auto value = *(cast("~c2t.ValueType.stringof~"*)p);"~
-                         "  offset += value.sizeof;"~
-                         "  return Value(value);".dup;
-            }
-            return to!string("switch (type) {" ~ cases ~
-                   "  default: throw new UnknownTagTypeException(to!string(type));"~
-                   "}");
-        }
-
         char type = cast(char)tags_chunk[offset++];
-        if (type == 'Z' || type == 'H') {
-            auto begin = offset;
-            while (tags_chunk[offset++] != 0) {}
-            // return string with stripped '\0'
-            auto v = Value(cast(string)tags_chunk[begin .. offset - 1]);
-            if (type == 'H') {
-                v.setHexadecimalFlag();
-            }
-            return v;
-        } else if (type == 'B') {
-            char elem_type = cast(char)tags_chunk[offset++];
-            uint length = *(cast(uint*)(tags_chunk.ptr + offset));
-            offset += uint.sizeof;
-            mixin(readValueArrayTypeHelper());
-        } else {
-            mixin(readValuePrimitiveTypeHelper());
-        }
+        return readValueFromArray(type, tags_chunk, offset);
     }
 
     // Increases offset so that it points to the next value. O(1).

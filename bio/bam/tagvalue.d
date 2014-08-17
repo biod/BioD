@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2014    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -535,5 +535,54 @@ struct Value {
             case GetTypeId!char: sink.writeJson(*cast(char*)(&u)); break;
             default: break;
         }
+    }
+}
+
+Value readValueFromArray(char type, const(ubyte)[] bytes, ref size_t offset) {
+    string readValueArrayTypeHelper() {
+        char[] cases;
+        foreach (c2t; ArrayElementTagValueTypes) {
+            cases ~=
+            "case '"~c2t.ch~"':".dup~
+            "  auto begin = offset;"~
+            "  auto end = offset + length * "~c2t.ValueType.stringof~".sizeof;"~
+            "  offset = end;"~
+            "  return Value(cast("~c2t.ValueType.stringof~"[])(bytes[begin .. end]));";
+        }
+        return to!string("switch (elem_type) {" ~ cases ~
+               "  default: throw new UnknownTagTypeException(to!string(elem_type));"~
+               "}");
+    }
+
+    string readValuePrimitiveTypeHelper() {
+        char[] cases;
+        foreach (c2t; PrimitiveTagValueTypes) {
+            cases ~= "case '"~c2t.ch~"':"~
+                     "  auto p = bytes.ptr + offset;"~
+                     "  auto value = *(cast("~c2t.ValueType.stringof~"*)p);"~
+                     "  offset += value.sizeof;"~
+                     "  return Value(value);".dup;
+        }
+        return to!string("switch (type) {" ~ cases ~
+               "  default: throw new UnknownTagTypeException(to!string(type));"~
+               "}");
+    }
+
+    if (type == 'Z' || type == 'H') {
+        auto begin = offset;
+        while (bytes[offset++] != 0) {}
+        // return string with stripped '\0'
+        auto v = Value(cast(string)bytes[begin .. offset - 1]);
+        if (type == 'H') {
+            v.setHexadecimalFlag();
+        }
+        return v;
+    } else if (type == 'B') {
+        char elem_type = cast(char)bytes[offset++];
+        uint length = *(cast(uint*)(bytes.ptr + offset));
+        offset += uint.sizeof;
+        mixin(readValueArrayTypeHelper());
+    } else {
+        mixin(readValuePrimitiveTypeHelper());
     }
 }
