@@ -229,7 +229,7 @@ mixin HeaderLineStruct!("RgLine", "@RG", "identifier",
           Field!("key_sequence", "KS"),
           Field!("library", "LB"),
           Field!("programs", "PG"),
-          Field!("predicted_insert_size", "PI", uint),
+          Field!("predicted_insert_size", "PI", int),
           Field!("platform", "PL"),
           Field!("platform_unit", "PU"),
           Field!("sample", "SM"));
