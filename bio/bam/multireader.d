@@ -187,6 +187,7 @@ class MultiBamReader {
     this(BamReader[] readers) {
         _readers = readers;
         _merger = new SamHeaderMerger(readers.map!(r => r.header)().array());
+        enforce(_merger.strategy == SamHeaderMerger.Strategy.simple, "NYI"); // TODO
 
         auto n_references = _merger.merged_header.sequences.length;
         _reference_sequences = new ReferenceSequenceInfo[n_references];

@@ -40,6 +40,13 @@ import bio.bam.utils.graph;
 /// so it could be replaced by a function returning a struct.)
 class SamHeaderMerger {
 
+    enum Strategy {
+        simple,
+        usingIndex
+    }
+
+    Strategy strategy;
+
     /// Takes array of SAM headers as an input.
     this(SamHeader[] headers, bool validate_headers=false) {
         _headers = headers;
@@ -139,8 +146,17 @@ private:
         }
 
         // get topologically sorted nodes
-        foreach (v; g.topologicalSort()) {
-            merged_header.sequences.add(dict[v]);
+        try {
+            foreach (v; g.topologicalSort()) {
+                merged_header.sequences.add(dict[v]);
+            }
+            strategy = Strategy.simple;
+        } catch (Exception e) {
+            // failed, try another strategy which requires index files
+            foreach (sq_line; sort!((a, b) => a.name < b.name)(dict.values)) {
+                merged_header.sequences.add(sq_line);
+            }
+            strategy = Strategy.usingIndex;
         }
 
         // make mappings

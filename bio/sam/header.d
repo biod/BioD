@@ -457,6 +457,12 @@ class SamHeader {
     /// Parse SAM header given in plain text.
     this(string header_text) {
         this();
+
+        // lots of allocations are going to occur
+        import core.memory;
+        core.memory.GC.disable();
+        scope(exit) core.memory.GC.enable();
+
         bool parsed_first_line = false;
 
         foreach (line; splitter(header_text, '\n')) {
@@ -477,28 +483,34 @@ class SamHeader {
                 }
                 format_version = header_line.format_version;
             }
-            switch (line[0..3]) {
-                case "@SQ":
+            enforce(line[0] == '@', "Header lines must start with @");
+            switch (line[1]) {
+                case 'S':
+                    enforce(line[2] == 'Q');
                     auto sq_line = SqLine.parse(line);
                     if (!sequences.add(sq_line)) {
                         stderr.writeln("duplicating @SQ line ",  sq_line.name);
                     }
                     break;
-                case "@RG":
+                case 'R':
+                    enforce(line[2] == 'G');
                     auto rg_line = RgLine.parse(line);
                     if (!read_groups.add(rg_line)) {
                         stderr.writeln("duplicating @RG line ",  rg_line.identifier);
                     }
                     break;
-                case "@PG":
+                case 'P':
+                    enforce(line[2] == 'G');
                     auto pg_line = PgLine.parse(line);
                     if (!programs.add(pg_line)) {
                         stderr.writeln("duplicating @PG line ", pg_line.identifier);
                     }
                     break;
-                case "@HD":
+                case 'H':
+                    enforce(line[2] == 'D');
                     break;
-                case "@CO":
+                case 'C':
+                    enforce(line[2] == 'O');
                     comments ~= line[4..$];
                     break;
                 default:
