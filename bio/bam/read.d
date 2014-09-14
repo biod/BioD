@@ -825,7 +825,7 @@ struct BamRead {
         return int.sizeof + _chunk.length;
     }
    
-    package void write(ref BamWriter writer) {
+    package void write(BamWriter writer) {
         writer.writeInteger(cast(int)(_chunk.length));
 
         ubyte old_byte = _chunk[_cigar_offset - 1];

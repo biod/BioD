@@ -35,7 +35,7 @@ struct VirtualOffset {
     ///
     ///     uoffset =    unsigned byte offset into the uncompressed
     ///                  data stream represented by that BGZF block
-    this(ulong coffset, ushort uoffset) nothrow 
+    this(ulong coffset, ushort uoffset) nothrow @safe
     in {
         assert(coffset < (1UL<<48));
     } 
@@ -44,36 +44,36 @@ struct VirtualOffset {
     }
     
     /// Set both coffset and uoffset packed as (coffset<<16)|uoffset
-    this(ulong voffset) nothrow {
+    this(ulong voffset) nothrow @safe {
         this.voffset = voffset;
     }
 
     /// ditto
-    ulong coffset() @property const nothrow {
+    ulong coffset() @property const nothrow @safe pure {
         return voffset >> 16;
     }
     
     /// ditto
-    ushort uoffset() @property const nothrow {
+    ushort uoffset() @property const nothrow @safe pure {
         return voffset & 0xFFFF;
     }
 
-    int opCmp(const ref VirtualOffset other) const nothrow {
+    int opCmp(const ref VirtualOffset other) const nothrow @safe pure {
         if (this.voffset > other.voffset) { return  1; }
         if (this.voffset < other.voffset) { return -1; }
         return 0;
     }
 
-    bool opEquals(const ref VirtualOffset other) const nothrow {
+    bool opEquals(const ref VirtualOffset other) const nothrow @safe {
         return this.voffset == other.voffset;
     }
 
-    bool opEquals(ulong voffset) const nothrow {
+    bool opEquals(ulong voffset) const nothrow @safe {
         auto vo = VirtualOffset(voffset);
         return opEquals(vo);
     }
 
-    ulong opCast() const nothrow {
+    ulong opCast() const nothrow @safe pure {
         return voffset;
     }
 

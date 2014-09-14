@@ -161,7 +161,7 @@ private {
         if (isSomeString!T)
     {
         auto str = cast(const(char)[])s;
-        memcpy(sink, str.ptr, str.length);
+        std.c.string.memcpy(sink, str.ptr, str.length);
         sink += str.length;
     }
 
