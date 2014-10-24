@@ -36,6 +36,16 @@ import std.algorithm : max;
 import std.typecons;
 import std.c.stdlib;
 
+alias void delegate(ubyte[], ubyte[]) BlockWriteHandler;
+
+Tuple!(ubyte[], ubyte[], BlockWriteHandler)
+bgzfCompressFunc(ubyte[] input, int level, ubyte[] output_buffer,
+		 BlockWriteHandler handler)
+{
+    auto output = bgzfCompress(input, level, output_buffer);
+    return tuple(input, output, handler);
+}
+
 /// Class for BGZF compression
 class BgzfOutputStream : Stream {
 
@@ -49,7 +59,8 @@ class BgzfOutputStream : Stream {
 
         int _compression_level;
 
-        alias Task!(bgzfCompress, ubyte[], int, ubyte[]) CompressionTask;
+        alias Task!(bgzfCompressFunc,
+		    ubyte[], int, ubyte[], BlockWriteHandler) CompressionTask;
         RoundBuf!(CompressionTask*) _compression_tasks;
         ubyte[] _compression_buffer;
     }
@@ -127,14 +138,15 @@ class BgzfOutputStream : Stream {
         if (_current_size == 0)
             return;
 
-        ubyte[] front_block = null;
+        Tuple!(ubyte[], ubyte[], BlockWriteHandler) front_result;
         if (_compression_tasks.full) {
-            front_block = _compression_tasks.front.workForce();
+            front_result = _compression_tasks.front.workForce();
             _compression_tasks.popFront();
         }
 
-        auto compression_task = task!bgzfCompress(_buffer[0 .. _current_size], 
-                                                  _compression_level, _tmp);
+        auto compression_task = task!bgzfCompressFunc(_buffer[0 .. _current_size],
+						      _compression_level, _tmp,
+						      _before_write);
         _compression_tasks.put(compression_task);
         _task_pool.put(compression_task);
 
@@ -147,17 +159,32 @@ class BgzfOutputStream : Stream {
         _tmp = _compression_buffer[offset + N .. offset + 2 * N];
         _current_size = 0;
 
-        if (front_block !is null)
-            _stream.writeExact(front_block.ptr, front_block.length);
+        if (front_result[0] !is null)
+	    writeResult(front_result);
 
         while (!_compression_tasks.empty) {
             auto task = _compression_tasks.front;
             if (!task.done())
                 break;
-            auto block = task.yieldForce();
-            _stream.writeExact(block.ptr, block.length);
+            auto result = task.yieldForce();
+	    writeResult(result);
             _compression_tasks.popFront();
         }
+    }
+
+    private void delegate(ubyte[], ubyte[]) _before_write;
+    void setWriteHandler(void delegate(ubyte[], ubyte[]) handler) {
+	_before_write = handler;
+    }
+
+    private void writeResult(Tuple!(ubyte[], ubyte[], BlockWriteHandler) block) {
+	auto uncompressed = block[0];
+	auto compressed = block[1];
+	auto handler = block[2];
+	if (handler) {// write handler enabled
+	    handler(uncompressed, compressed);
+	}
+	_stream.writeExact(compressed.ptr, compressed.length);
     }
 
     /// Flush all remaining BGZF blocks and underlying stream.
@@ -165,7 +192,7 @@ class BgzfOutputStream : Stream {
         flushCurrentBlock();
         foreach (task; _compression_tasks) {
             auto block = task.yieldForce();
-            _stream.writeExact(block.ptr, block.length);
+	    writeResult(block);
         }
 
         _stream.flush();

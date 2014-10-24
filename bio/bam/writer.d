@@ -26,7 +26,11 @@ module bio.bam.writer;
 import bio.bam.referenceinfo;
 import bio.sam.header;
 import bio.bam.constants;
+import bio.bam.bai.indexing;
+import bio.bam.read;
+import bio.bam.readrange;
 import bio.core.bgzf.outputstream;
+import bio.core.bgzf.virtualoffset;
 import bio.core.utils.stream;
 import bio.core.utils.switchendianness;
 
@@ -35,6 +39,8 @@ import std.exception;
 import std.stream;
 import std.traits;
 import std.system;
+import std.algorithm;
+import std.array;
 
 /** Class for outputting BAM.
     $(BR)
@@ -74,6 +80,10 @@ final class BamWriter {
     {
         _stream = new BgzfOutputStream(stream, compression_level, 
                                        task_pool, buffer_size);
+        _stream.setWriteHandler((ubyte[] uncompressed, ubyte[] compressed) {
+            _bytes_written += compressed.length;
+        });
+
         writeString(BAM_MAGIC);
     }
 
@@ -82,8 +92,15 @@ final class BamWriter {
          int compression_level=-1,
          std.parallelism.TaskPool task_pool=std.parallelism.taskPool)
     {
+        _filename = filename;
         auto filestream = new bio.core.utils.stream.File(filename, "wb+");
         this(filestream, compression_level, task_pool);
+    }
+
+    /// Can be called right after the stream constructor, only once
+    void setFilename(string output_filename) {
+        enforce(_filename is null, "Can't set output filename twice");
+        _filename = output_filename;
     }
 
     package void writeByteArray(const(ubyte[]) array) {
@@ -105,11 +122,48 @@ final class BamWriter {
         _stream.writeExact(&num, T.sizeof);
     }
 
+    private {
+        size_t _bytes_written;
+        bool _create_index = false;
+        bool _record_writing_mode = false;
+        string _filename;
+
+        IndexBuilder _index_builder;
+
+        void indexBlock(ubyte[] uncompressed, ubyte[] compressed) {
+            ushort inner_offset = 0;
+            while (uncompressed.length > 0) {
+                auto len = *cast(int*)(uncompressed.ptr); // assume LE...
+                auto read_data = uncompressed[int.sizeof .. int.sizeof + len];
+                uncompressed = uncompressed[int.sizeof + len .. $];
+                auto read = BamRead(read_data);
+                VirtualOffset start_vo, end_vo;
+                start_vo = VirtualOffset(_bytes_written, inner_offset);
+                inner_offset += len + int.sizeof;
+                if (uncompressed.length > 0) {
+                    end_vo = VirtualOffset(_bytes_written, inner_offset);
+                } else {
+                    end_vo = VirtualOffset(_bytes_written + compressed.length, 0);
+                }
+                auto read_block = BamReadBlock(start_vo, end_vo, read);
+                _index_builder.put(read_block);
+            }
+            _bytes_written += compressed.length;
+        }
+    }
+
     /// Writes SAM header. Should be called after construction.
     void writeSamHeader(bio.sam.header.SamHeader header) {
-        auto text = header.text;
-        writeInteger(cast(int)text.length);
-        writeString(text);
+        writeSamHeader(header.text);
+    }
+
+    /// ditto
+    void writeSamHeader(string header_text) {
+        _create_index = !header_text.find("SO:coordinate").empty &&
+            _filename.length >= 4 &&
+            _filename[$ - 4 .. $] == ".bam";
+        writeInteger(cast(int)header_text.length);
+        writeString(header_text);
     }
 
     /// Writes reference sequence information. Should be called after
@@ -121,12 +175,19 @@ final class BamWriter {
     {
         _reference_sequences = reference_sequences;
 
-        writeInteger(cast(int)reference_sequences.length);
+        auto n_refs = cast(int)reference_sequences.length;
+        writeInteger(n_refs);
         foreach (sequence; reference_sequences) {
             writeInteger(cast(int)(sequence.name.length + 1));
             writeString(sequence.name);
             writeInteger(cast(ubyte)'\0');
             writeInteger(cast(int)sequence.length);
+        }
+
+        if (_create_index) {
+            auto index = new bio.core.utils.stream.File(_filename ~ ".bai", "wb+");
+            _index_builder = IndexBuilder(index, n_refs);
+            _index_builder.check_bins = true;
         }
 
         _stream.flushCurrentBlock();
@@ -136,6 +197,17 @@ final class BamWriter {
     void writeRecord(R)(R read) {
         enforce(read.ref_id == -1 || read.ref_id < _reference_sequences.length,
                 "Read reference ID is out of range");
+
+        if (!_record_writing_mode) {
+            if (_create_index) {
+                _record_writing_mode = true;
+                _stream.setWriteHandler((ubyte[] uncomp, ubyte[] comp) {
+                    indexBlock(uncomp, comp);
+                });
+            } else {
+                _stream.setWriteHandler(null);
+            }
+        }
 
         auto read_size = read.size_in_bytes;
         if (read_size + _current_size > BGZF_BLOCK_SIZE) {
@@ -156,6 +228,8 @@ final class BamWriter {
     /// Flushes buffer and closes output stream. Adds BAM EOF block automatically.
     void finish() {
         _stream.close();
+        if (_create_index)
+            _index_builder.finish();
     }
 
     private {
