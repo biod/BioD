@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2014    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -24,9 +24,7 @@
 module bio.core.bgzf.compress;
 
 import bio.bam.constants;
-
-import etc.c.zlib;
-import std.zlib : crc32, ZlibException;
+import bio.core.utils.zlib;
 
 import std.array;
 import std.system;
@@ -49,7 +47,7 @@ in
 }
 body
 {
-    assert(etc.c.zlib.compressBound(BGZF_BLOCK_SIZE) < BGZF_MAX_BLOCK_SIZE);
+    assert(bio.core.utils.zlib.compressBound(BGZF_BLOCK_SIZE) < BGZF_MAX_BLOCK_SIZE);
 
     if (buffer is null) {
         buffer = uninitializedArray!(ubyte[])(BGZF_MAX_BLOCK_SIZE);
@@ -60,7 +58,7 @@ body
     // write header
     buffer[0 .. BLOCK_HEADER_LENGTH - ushort.sizeof] = BLOCK_HEADER_START[];
 
-    etc.c.zlib.z_stream zs;
+    bio.core.utils.zlib.z_stream zs;
 
     zs.zalloc = null;
     zs.zfree = null;
@@ -71,7 +69,7 @@ body
     zs.next_out = buffer.ptr + BLOCK_HEADER_LENGTH;
     zs.avail_out = cast(int)(buffer.length - BLOCK_HEADER_LENGTH - BLOCK_FOOTER_LENGTH);
 
-    auto err = etc.c.zlib.deflateInit2(&zs, /* compression level */ level, 
+    auto err = bio.core.utils.zlib.deflateInit2(&zs, /* compression level */ level,
                                             /* deflated compression method */ Z_DEFLATED, 
                                             /* winbits (no header) */ -15, 
                                             /* memory usage level (default) */ 8, 
@@ -80,12 +78,12 @@ body
         throw new ZlibException(err);
     }
 
-    err = etc.c.zlib.deflate(&zs, Z_FINISH);
+    err = bio.core.utils.zlib.deflate(&zs, Z_FINISH);
     if (err != Z_STREAM_END) {
         throw new ZlibException(err);
     }
 
-    err = etc.c.zlib.deflateEnd(&zs);
+    err = bio.core.utils.zlib.deflateEnd(&zs);
     if (err != Z_OK) {
         throw new ZlibException(err);
     }

@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012-2013    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2014    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -25,12 +25,11 @@ module bio.core.bgzf.block;
 
 import bio.bam.constants;
 import bio.core.utils.memoize;
+import bio.core.utils.zlib;
 
 import std.array;
 import std.conv;
 import std.algorithm;
-import std.zlib : crc32, ZlibException;
-import etc.c.zlib;
 import std.exception;
 
 /**
@@ -139,11 +138,11 @@ DecompressedBgzfBlock decompressBgzfBlock(BgzfBlock block,
     auto uncompressed = uncompressed_buf[0 .. block.input_size];
 
     // set input data
-    etc.c.zlib.z_stream zs;
+    bio.core.utils.zlib.z_stream zs;
     zs.next_in = cast(typeof(zs.next_in))block.compressed_data;
     zs.avail_in = to!uint(block.compressed_data.length);
 
-    err = etc.c.zlib.inflateInit2(&zs, /* winbits = */-15);
+    err = bio.core.utils.zlib.inflateInit2(&zs, /* winbits = */-15);
     if (err)
     {
         throw new ZlibException(err);
@@ -153,18 +152,18 @@ DecompressedBgzfBlock decompressBgzfBlock(BgzfBlock block,
     zs.next_out = cast(typeof(zs.next_out))uncompressed_buf.ptr;
     zs.avail_out = block.input_size;
 
-    err = etc.c.zlib.inflate(&zs, Z_FINISH);
+    err = bio.core.utils.zlib.inflate(&zs, Z_FINISH);
     switch (err)
     {
         case Z_STREAM_END:
             assert(zs.total_out == block.input_size);
-            err = etc.c.zlib.inflateEnd(&zs);
+            err = bio.core.utils.zlib.inflateEnd(&zs);
             if (err != Z_OK) {
                 throw new ZlibException(err);
             }
             break;
         default:
-            etc.c.zlib.inflateEnd(&zs);
+            bio.core.utils.zlib.inflateEnd(&zs);
             throw new ZlibException(err);
     }
 
