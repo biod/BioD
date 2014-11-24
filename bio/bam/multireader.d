@@ -65,10 +65,17 @@ bool compare(T)(const auto ref T r1, const auto ref T r2) {
         assert(0);
 }
 
+// ([BamRead/BamReadBlock], FileId) -> [MultiBamRead]
+auto multiBamReads(R)(R reads, FileId index) {
+  static if (is(ElementType!R == BamRead))
+    return reads.zip(repeat(index)).map!(x => MultiBamRead!BamRead(x[0], x[1]));
+  else
+    return reads.zip(repeat(index)).map!(x => MultiBamRead!BamRead(x[0].read, x[1]));
+}
+
 // (BamReader, SamHeaderMerger, FileId) -> [(MultiBamRead, SamHeaderMerger, FileId)]
 auto readRange(BamReader reader, SamHeaderMerger merger, FileId index) {
-    return zip(reader.reads.map!(r => MultiBamRead!BamRead(r, index)),
-               repeat(merger), repeat(index));
+    return zip(reader.reads.multiBamReads(index), repeat(merger), repeat(index));
 }
 
 // (BamReader, SamHeaderMerger, FileId, int, uint, uint) -> 
@@ -78,8 +85,7 @@ auto readRange(BamReader reader, SamHeaderMerger merger, FileId index,
 {
     auto old_ref_id = cast(int)merger.ref_id_reverse_map[index][ref_id];
     auto reads = reader.reference(old_ref_id)[start .. end];
-    return zip(reads.map!(r => MultiBamRead!BamRead(r, index)),
-               repeat(merger), repeat(index));
+    return zip(reads.multiBamReads(index), repeat(merger), repeat(index));
 }
 
 // (BamReader, SamHeaderMerger, FileId, [BamRegion]) ->
@@ -94,8 +100,7 @@ auto readRange(BamReader reader, SamHeaderMerger merger, FileId index,
             old_regions[j].ref_id = old_ref_id;
         }
     }
-    return zip(reader.getReadsOverlapping(old_regions)
-                     .map!(r => MultiBamRead!BamRead(r.read, index)),
+    return zip(reader.getReadsOverlapping(old_regions).multiBamReads(index),
                repeat(merger), repeat(index));
 }
 
@@ -129,20 +134,15 @@ auto readRanges(BamReader[] readers, SamHeaderMerger merger, BamRegion[] regions
 auto adjustTags(R)(R reads_with_aux_info, TaskPool pool, size_t bufsize) 
     if (isInputRange!R) 
 {
-    static auto adj(U)(U tpl) { return adjustTags1(tpl[0], tpl[1], tpl[2]); }
-    return reads_with_aux_info.zip(repeat(pool), repeat(bufsize))
-                              .map!adj().array();
-}
-
-// [(MultiBamRead, SamHeaderMerger, size_t)] -> [MultiBamRead]
-auto adjustTags1(R)(R reads_with_aux_info, TaskPool pool, size_t bufsize) 
-    if (isInputRange!R) 
-{
-    return pool.map!adjustTags(reads_with_aux_info, bufsize);
+  alias R2 = typeof(pool.map!adjustTagsInRange(reads_with_aux_info.front, 1));
+  R2[] result;
+  foreach (read_range; reads_with_aux_info)
+    result ~= pool.map!adjustTagsInRange(read_range, bufsize);
+  return result;
 }
 
 // (BamRead, SamHeaderMerger, size_t) -> (MultiBamRead, SamHeaderMerger)
-auto adjustTags(R)(R read_with_aux_info) if (!isInputRange!R) {
+auto adjustTagsInRange(R)(R read_with_aux_info) if (!isInputRange!R) {
     auto read = read_with_aux_info[0];
     auto merger = read_with_aux_info[1];
     auto file_id = read_with_aux_info[2];
