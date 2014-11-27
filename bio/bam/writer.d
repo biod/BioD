@@ -103,6 +103,13 @@ final class BamWriter {
         _filename = output_filename;
     }
 
+    /// By default, the writer attempts to automatically create index
+    /// when writing coordinate-sorted files. If this behaviour is not
+    /// desired, it can be switched off before writing SAM header.
+    void disableAutoIndexCreation() {
+        _disable_index_creation = true;
+    }
+
     package void writeByteArray(const(ubyte[]) array) {
         _stream.writeExact(array.ptr, array.length);
     }
@@ -125,6 +132,7 @@ final class BamWriter {
     private {
         size_t _bytes_written;
         bool _create_index = false;
+        bool _disable_index_creation = false;
         bool _record_writing_mode = false;
         string _filename;
 
@@ -159,7 +167,8 @@ final class BamWriter {
 
     /// ditto
     void writeSamHeader(string header_text) {
-        _create_index = !header_text.find("SO:coordinate").empty &&
+        _create_index = !_disable_index_creation &&
+            !header_text.find("SO:coordinate").empty &&
             _filename.length >= 4 &&
             _filename[$ - 4 .. $] == ".bam";
         writeInteger(cast(int)header_text.length);
