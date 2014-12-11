@@ -386,7 +386,7 @@ class BgzfInputStream : Stream {
 
         void setupReadBuffer() {
             auto b = _tasks.front;
-            auto decompressed_block = b.task.workForce();
+            auto decompressed_block = b.task.yieldForce();
             auto from = b.skip_start;
             auto to = b.block.input_size - b.skip_end;
             _read_buffer = b.block._buffer.ptr[from .. to];

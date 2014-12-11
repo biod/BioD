@@ -192,7 +192,7 @@ auto memoize(alias func, uint maxItems=1024,
             }
 
             version(unittest) {
-                evaluations += 1;
+                evaluations.atomicOp!"+="(1);
             }
 
             auto result = func(args);

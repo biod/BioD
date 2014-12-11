@@ -136,6 +136,7 @@ unittest {
     fn = buildPath(dirName(__FILE__), "data", "wrong_bc_subfield_length.bam");
     assertThrown!BgzfException(reduce!"a+b.sequence_length"(0, (new BamReader(fn)).reads!withoutOffsets));
     fn = buildPath(dirName(__FILE__), "data", "corrupted_zlib_archive.bam");
+    import bio.core.utils.zlib;
     assertThrown!ZlibException(walkLength((new BamReader(fn)).reads));
 
     writeln("Testing random access...");

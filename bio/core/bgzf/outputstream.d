@@ -140,7 +140,7 @@ class BgzfOutputStream : Stream {
 
         Tuple!(ubyte[], ubyte[], BlockWriteHandler) front_result;
         if (_compression_tasks.full) {
-            front_result = _compression_tasks.front.workForce();
+            front_result = _compression_tasks.front.yieldForce();
             _compression_tasks.popFront();
         }
 
