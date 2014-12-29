@@ -306,9 +306,11 @@ class HeaderLineDictionary(T) {
     invariant() {
         assert(_index_to_id.length == _dict.length);
         assert(_id_to_index.length == _dict.length);
+        /*
         foreach(id, index; _id_to_index) {
             assert(_index_to_id[index] == id);
         }
+        */
     }
 
     ///

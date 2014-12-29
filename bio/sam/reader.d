@@ -206,7 +206,10 @@ private:
             }
         }
 
+        import core.memory;
+        GC.disable();
         _header = new SamHeader(cast(string)(header.data));
+        GC.enable();
 
         _reference_sequences = new ReferenceSequenceInfo[_header.sequences.length];
         foreach (sq; _header.sequences) {

@@ -56,7 +56,7 @@ static const int sam_alignment_en_alignment_field_parsing_mandatoryfields_qual_p
 static const int sam_alignment_en_alignment_tag_parsing = 251;
 
 
-#line 406 "sam_alignment.rl"
+#line 419 "sam_alignment.rl"
 
 
 import bio.sam.header;
@@ -91,6 +91,9 @@ BamRead parseAlignmentLine(string line, SamHeader header, OutBuffer buffer=null)
     uint cigar_op_len;   // length of CIGAR operation
     char cigar_op_chr;   // CIGAR operation
 
+    size_t quals_length;  // number of QUAL characters
+    char quals_last_char; // needed in order to handle '*' correctly
+
     size_t cigar_op_len_start; // position of start of CIGAR operation
     
     long int_value;                      // for storing temporary integers
@@ -114,14 +117,14 @@ BamRead parseAlignmentLine(string line, SamHeader header, OutBuffer buffer=null)
     int ref_id = -1;
 
     
-#line 117 "sam_alignment.d"
+#line 120 "sam_alignment.d"
 	{
 	cs = sam_alignment_start;
 	}
 
-#line 463 "sam_alignment.rl"
+#line 479 "sam_alignment.rl"
     
-#line 124 "sam_alignment.d"
+#line 127 "sam_alignment.d"
 	{
 	if ( p == pe )
 		goto _test_eof;
@@ -186,7 +189,7 @@ tr39:
     }
 	goto st0;
 tr43:
-#line 230 "sam_alignment.rl"
+#line 243 "sam_alignment.rl"
 	{
         buffer.shrink(rollback_size);
         for (size_t i = 0; i < l_seq; ++i)
@@ -196,13 +199,13 @@ tr43:
     }
 	goto st0;
 tr49:
-#line 390 "sam_alignment.rl"
+#line 403 "sam_alignment.rl"
 	{
         buffer.shrink(rollback_size); 
         p--; {if (true) goto st180;}
     }
 	goto st0;
-#line 205 "sam_alignment.d"
+#line 208 "sam_alignment.d"
 st0:
 cs = 0;
 	goto _out;
@@ -220,7 +223,7 @@ st2:
 	if ( ++p == pe )
 		goto _test_eof2;
 goto case; case 2:
-#line 223 "sam_alignment.d"
+#line 226 "sam_alignment.d"
 	if ( 48u <= (*p) && (*p) <= 57u )
 		goto tr4;
 	goto tr3;
@@ -234,7 +237,7 @@ st3:
 	if ( ++p == pe )
 		goto _test_eof3;
 goto case; case 3:
-#line 237 "sam_alignment.d"
+#line 240 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr5;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -248,7 +251,7 @@ st4:
 	if ( ++p == pe )
 		goto _test_eof4;
 goto case; case 4:
-#line 251 "sam_alignment.d"
+#line 254 "sam_alignment.d"
 	if ( (*p) == 42u )
 		goto st150;
 	if ( (*p) > 60u ) {
@@ -265,7 +268,7 @@ st5:
 	if ( ++p == pe )
 		goto _test_eof5;
 goto case; case 5:
-#line 268 "sam_alignment.d"
+#line 271 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr10;
 	if ( 33u <= (*p) && (*p) <= 126u )
@@ -281,7 +284,7 @@ st6:
 	if ( ++p == pe )
 		goto _test_eof6;
 goto case; case 6:
-#line 284 "sam_alignment.d"
+#line 287 "sam_alignment.d"
 	if ( 48u <= (*p) && (*p) <= 57u )
 		goto tr13;
 	goto tr12;
@@ -295,7 +298,7 @@ st7:
 	if ( ++p == pe )
 		goto _test_eof7;
 goto case; case 7:
-#line 298 "sam_alignment.d"
+#line 301 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr14;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -309,7 +312,7 @@ st8:
 	if ( ++p == pe )
 		goto _test_eof8;
 goto case; case 8:
-#line 312 "sam_alignment.d"
+#line 315 "sam_alignment.d"
 	if ( 48u <= (*p) && (*p) <= 57u )
 		goto tr17;
 	goto tr16;
@@ -323,7 +326,7 @@ st9:
 	if ( ++p == pe )
 		goto _test_eof9;
 goto case; case 9:
-#line 326 "sam_alignment.d"
+#line 329 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr18;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -389,7 +392,7 @@ st10:
 	if ( ++p == pe )
 		goto _test_eof10;
 goto case; case 10:
-#line 392 "sam_alignment.d"
+#line 395 "sam_alignment.d"
 	if ( (*p) == 42u )
 		goto st11;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -441,7 +444,7 @@ st12:
 	if ( ++p == pe )
 		goto _test_eof12;
 goto case; case 12:
-#line 444 "sam_alignment.d"
+#line 447 "sam_alignment.d"
 	switch( (*p) ) {
 		case 42u: goto st95;
 		case 61u: goto st96;
@@ -458,7 +461,7 @@ st13:
 	if ( ++p == pe )
 		goto _test_eof13;
 goto case; case 13:
-#line 461 "sam_alignment.d"
+#line 464 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr28;
 	if ( 33u <= (*p) && (*p) <= 126u )
@@ -486,7 +489,7 @@ st14:
 	if ( ++p == pe )
 		goto _test_eof14;
 goto case; case 14:
-#line 489 "sam_alignment.d"
+#line 492 "sam_alignment.d"
 	if ( 48u <= (*p) && (*p) <= 57u )
 		goto tr31;
 	goto tr30;
@@ -500,7 +503,7 @@ st15:
 	if ( ++p == pe )
 		goto _test_eof15;
 goto case; case 15:
-#line 503 "sam_alignment.d"
+#line 506 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr32;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -519,7 +522,7 @@ st16:
 	if ( ++p == pe )
 		goto _test_eof16;
 goto case; case 16:
-#line 522 "sam_alignment.d"
+#line 525 "sam_alignment.d"
 	switch( (*p) ) {
 		case 43u: goto tr35;
 		case 45u: goto tr35;
@@ -536,7 +539,7 @@ st17:
 	if ( ++p == pe )
 		goto _test_eof17;
 goto case; case 17:
-#line 539 "sam_alignment.d"
+#line 542 "sam_alignment.d"
 	if ( 48u <= (*p) && (*p) <= 57u )
 		goto tr36;
 	goto tr34;
@@ -550,7 +553,7 @@ st18:
 	if ( ++p == pe )
 		goto _test_eof18;
 goto case; case 18:
-#line 553 "sam_alignment.d"
+#line 556 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr37;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -571,7 +574,7 @@ st19:
 	if ( ++p == pe )
 		goto _test_eof19;
 goto case; case 19:
-#line 574 "sam_alignment.d"
+#line 577 "sam_alignment.d"
 	switch( (*p) ) {
 		case 42u: goto st20;
 		case 46u: goto tr41;
@@ -589,8 +592,14 @@ st20:
 		goto _test_eof20;
 goto case; case 20:
 	if ( (*p) == 9u )
-		goto st21;
+		goto tr42;
 	goto tr39;
+tr42:
+#line 223 "sam_alignment.rl"
+	{
+        rollback_size = buffer.length;
+    }
+	goto st21;
 tr101:
 #line 194 "sam_alignment.rl"
 	{ 
@@ -621,13 +630,15 @@ st21:
 	if ( ++p == pe )
 		goto _test_eof21;
 goto case; case 21:
-#line 624 "sam_alignment.d"
+#line 633 "sam_alignment.d"
 	if ( 33u <= (*p) && (*p) <= 126u )
 		goto tr44;
 	goto tr43;
 tr44:
-#line 226 "sam_alignment.rl"
+#line 230 "sam_alignment.rl"
 	{
+        ++quals_length;
+        quals_last_char = (*p);
         buffer.putUnsafe!ubyte(cast(ubyte)((*p) - 33));
     }
 	goto st191;
@@ -635,14 +646,21 @@ st191:
 	if ( ++p == pe )
 		goto _test_eof191;
 goto case; case 191:
-#line 638 "sam_alignment.d"
+#line 649 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr238;
+		goto tr239;
 	if ( 33u <= (*p) && (*p) <= 126u )
 		goto tr44;
 	goto tr43;
-tr238:
-#line 240 "sam_alignment.rl"
+tr239:
+#line 236 "sam_alignment.rl"
+	{
+        // '*' may correspond either to a one-base long sequence
+        // or to absence of information
+        if (quals_length == 1 && quals_last_char == '*' && l_seq == 0)
+            buffer.shrink(rollback_size);
+    }
+#line 253 "sam_alignment.rl"
 	{
         if (buffer.length - rollback_size != l_seq) {
             buffer.shrink(rollback_size);
@@ -652,14 +670,14 @@ tr238:
         rollback_size = buffer.length;
     }
 	goto st22;
-tr239:
-#line 397 "sam_alignment.rl"
+tr240:
+#line 410 "sam_alignment.rl"
 	{ rollback_size = buffer.length; }
 	goto st22;
-tr240:
+tr241:
 #line 30 "sam_alignment.rl"
 	{ int_value *= current_sign; current_sign = 1; }
-#line 349 "sam_alignment.rl"
+#line 362 "sam_alignment.rl"
 	{
         // here, we assume that compiler is smart enough to move switch out of loop.
         switch (arraytype) {
@@ -676,15 +694,15 @@ tr240:
             ++*ptr;
         }
     }
-#line 397 "sam_alignment.rl"
+#line 410 "sam_alignment.rl"
 	{ rollback_size = buffer.length; }
 	goto st22;
-tr259:
+tr260:
 #line 38 "sam_alignment.rl"
 	{ 
         float_value = to!float(line[float_beg .. p - line.ptr]);
     }
-#line 366 "sam_alignment.rl"
+#line 379 "sam_alignment.rl"
 	{ 
         buffer.put!float(float_value);
         {
@@ -692,11 +710,11 @@ tr259:
             ++*ptr;
         }
     }
-#line 397 "sam_alignment.rl"
+#line 410 "sam_alignment.rl"
 	{ rollback_size = buffer.length; }
 	goto st22;
-tr262:
-#line 324 "sam_alignment.rl"
+tr263:
+#line 337 "sam_alignment.rl"
 	{
         {
         auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
@@ -707,11 +725,11 @@ tr262:
         buffer.putUnsafe!ubyte(0);
         }
     }
-#line 397 "sam_alignment.rl"
+#line 410 "sam_alignment.rl"
 	{ rollback_size = buffer.length; }
 	goto st22;
-tr264:
-#line 313 "sam_alignment.rl"
+tr265:
+#line 326 "sam_alignment.rl"
 	{ 
         {
         auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
@@ -722,28 +740,28 @@ tr264:
         buffer.putUnsafe!ubyte(0);
         }
     }
-#line 397 "sam_alignment.rl"
+#line 410 "sam_alignment.rl"
 	{ rollback_size = buffer.length; }
 	goto st22;
-tr266:
+tr267:
 #line 38 "sam_alignment.rl"
 	{ 
         float_value = to!float(line[float_beg .. p - line.ptr]);
     }
-#line 306 "sam_alignment.rl"
+#line 319 "sam_alignment.rl"
 	{ 
         buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('f');
         buffer.putUnsafe!float(float_value);
     }
-#line 397 "sam_alignment.rl"
+#line 410 "sam_alignment.rl"
 	{ rollback_size = buffer.length; }
 	goto st22;
-tr268:
+tr269:
 #line 30 "sam_alignment.rl"
 	{ int_value *= current_sign; current_sign = 1; }
-#line 272 "sam_alignment.rl"
+#line 285 "sam_alignment.rl"
 	{ 
         buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
@@ -775,14 +793,14 @@ tr268:
             }
         }
     }
-#line 397 "sam_alignment.rl"
+#line 410 "sam_alignment.rl"
 	{ rollback_size = buffer.length; }
 	goto st22;
 st22:
 	if ( ++p == pe )
 		goto _test_eof22;
 goto case; case 22:
-#line 785 "sam_alignment.d"
+#line 803 "sam_alignment.d"
 	if ( (*p) > 90u ) {
 		if ( 97u <= (*p) && (*p) <= 122u )
 			goto tr45;
@@ -790,14 +808,14 @@ goto case; case 22:
 		goto tr45;
 	goto st0;
 tr45:
-#line 387 "sam_alignment.rl"
+#line 400 "sam_alignment.rl"
 	{ tag_key_beg = p - line.ptr; }
 	goto st23;
 st23:
 	if ( ++p == pe )
 		goto _test_eof23;
 goto case; case 23:
-#line 800 "sam_alignment.d"
+#line 818 "sam_alignment.d"
 	if ( (*p) < 65u ) {
 		if ( 48u <= (*p) && (*p) <= 57u )
 			goto st24;
@@ -815,14 +833,14 @@ goto case; case 24:
 		goto tr48;
 	goto st0;
 tr48:
-#line 388 "sam_alignment.rl"
+#line 401 "sam_alignment.rl"
 	{ tag_key = cast(ubyte[])(line[tag_key_beg .. p - line.ptr]); }
 	goto st25;
 st25:
 	if ( ++p == pe )
 		goto _test_eof25;
 goto case; case 25:
-#line 825 "sam_alignment.d"
+#line 843 "sam_alignment.d"
 	switch( (*p) ) {
 		case 65u: goto st26;
 		case 66u: goto st28;
@@ -848,7 +866,7 @@ goto case; case 27:
 		goto tr57;
 	goto tr49;
 tr57:
-#line 265 "sam_alignment.rl"
+#line 278 "sam_alignment.rl"
 	{ 
         buffer.capacity = buffer.length + 4;
         buffer.putUnsafe(tag_key);
@@ -860,9 +878,9 @@ st192:
 	if ( ++p == pe )
 		goto _test_eof192;
 goto case; case 192:
-#line 863 "sam_alignment.d"
+#line 881 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr239;
+		goto tr240;
 	goto tr49;
 st28:
 	if ( ++p == pe )
@@ -887,7 +905,7 @@ goto case; case 29:
 	}
 	goto tr49;
 tr59:
-#line 339 "sam_alignment.rl"
+#line 352 "sam_alignment.rl"
 	{
         arraytype = (*p);
         buffer.capacity = buffer.length + 8;
@@ -902,14 +920,14 @@ st30:
 	if ( ++p == pe )
 		goto _test_eof30;
 goto case; case 30:
-#line 905 "sam_alignment.d"
+#line 923 "sam_alignment.d"
 	if ( (*p) == 44u )
 		goto st31;
 	goto tr49;
-tr241:
+tr242:
 #line 30 "sam_alignment.rl"
 	{ int_value *= current_sign; current_sign = 1; }
-#line 349 "sam_alignment.rl"
+#line 362 "sam_alignment.rl"
 	{
         // here, we assume that compiler is smart enough to move switch out of loop.
         switch (arraytype) {
@@ -931,7 +949,7 @@ st31:
 	if ( ++p == pe )
 		goto _test_eof31;
 goto case; case 31:
-#line 934 "sam_alignment.d"
+#line 952 "sam_alignment.d"
 	switch( (*p) ) {
 		case 43u: goto tr62;
 		case 45u: goto tr62;
@@ -948,7 +966,7 @@ st32:
 	if ( ++p == pe )
 		goto _test_eof32;
 goto case; case 32:
-#line 951 "sam_alignment.d"
+#line 969 "sam_alignment.d"
 	if ( 48u <= (*p) && (*p) <= 57u )
 		goto tr63;
 	goto tr49;
@@ -962,27 +980,10 @@ st193:
 	if ( ++p == pe )
 		goto _test_eof193;
 goto case; case 193:
-#line 965 "sam_alignment.d"
+#line 983 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr240;
-		case 44u: goto tr241;
-		default: break;
-	}
-	if ( 48u <= (*p) && (*p) <= 57u )
-		goto tr242;
-	goto tr49;
-tr242:
-#line 29 "sam_alignment.rl"
-	{ int_value *= 10; int_value += (*p) - '0'; }
-	goto st194;
-st194:
-	if ( ++p == pe )
-		goto _test_eof194;
-goto case; case 194:
-#line 982 "sam_alignment.d"
-	switch( (*p) ) {
-		case 9u: goto tr240;
-		case 44u: goto tr241;
+		case 9u: goto tr241;
+		case 44u: goto tr242;
 		default: break;
 	}
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -991,15 +992,15 @@ goto case; case 194:
 tr243:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
-	goto st195;
-st195:
+	goto st194;
+st194:
 	if ( ++p == pe )
-		goto _test_eof195;
-goto case; case 195:
-#line 999 "sam_alignment.d"
+		goto _test_eof194;
+goto case; case 194:
+#line 1000 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr240;
-		case 44u: goto tr241;
+		case 9u: goto tr241;
+		case 44u: goto tr242;
 		default: break;
 	}
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -1008,15 +1009,15 @@ goto case; case 195:
 tr244:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
-	goto st196;
-st196:
+	goto st195;
+st195:
 	if ( ++p == pe )
-		goto _test_eof196;
-goto case; case 196:
-#line 1016 "sam_alignment.d"
+		goto _test_eof195;
+goto case; case 195:
+#line 1017 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr240;
-		case 44u: goto tr241;
+		case 9u: goto tr241;
+		case 44u: goto tr242;
 		default: break;
 	}
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -1025,15 +1026,15 @@ goto case; case 196:
 tr245:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
-	goto st197;
-st197:
+	goto st196;
+st196:
 	if ( ++p == pe )
-		goto _test_eof197;
-goto case; case 197:
-#line 1033 "sam_alignment.d"
+		goto _test_eof196;
+goto case; case 196:
+#line 1034 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr240;
-		case 44u: goto tr241;
+		case 9u: goto tr241;
+		case 44u: goto tr242;
 		default: break;
 	}
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -1042,15 +1043,15 @@ goto case; case 197:
 tr246:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
-	goto st198;
-st198:
+	goto st197;
+st197:
 	if ( ++p == pe )
-		goto _test_eof198;
-goto case; case 198:
-#line 1050 "sam_alignment.d"
+		goto _test_eof197;
+goto case; case 197:
+#line 1051 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr240;
-		case 44u: goto tr241;
+		case 9u: goto tr241;
+		case 44u: goto tr242;
 		default: break;
 	}
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -1059,15 +1060,15 @@ goto case; case 198:
 tr247:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
-	goto st199;
-st199:
+	goto st198;
+st198:
 	if ( ++p == pe )
-		goto _test_eof199;
-goto case; case 199:
-#line 1067 "sam_alignment.d"
+		goto _test_eof198;
+goto case; case 198:
+#line 1068 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr240;
-		case 44u: goto tr241;
+		case 9u: goto tr241;
+		case 44u: goto tr242;
 		default: break;
 	}
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -1076,15 +1077,15 @@ goto case; case 199:
 tr248:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
-	goto st200;
-st200:
+	goto st199;
+st199:
 	if ( ++p == pe )
-		goto _test_eof200;
-goto case; case 200:
-#line 1084 "sam_alignment.d"
+		goto _test_eof199;
+goto case; case 199:
+#line 1085 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr240;
-		case 44u: goto tr241;
+		case 9u: goto tr241;
+		case 44u: goto tr242;
 		default: break;
 	}
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -1093,15 +1094,15 @@ goto case; case 200:
 tr249:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
-	goto st201;
-st201:
+	goto st200;
+st200:
 	if ( ++p == pe )
-		goto _test_eof201;
-goto case; case 201:
-#line 1101 "sam_alignment.d"
+		goto _test_eof200;
+goto case; case 200:
+#line 1102 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr240;
-		case 44u: goto tr241;
+		case 9u: goto tr241;
+		case 44u: goto tr242;
 		default: break;
 	}
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -1110,15 +1111,15 @@ goto case; case 201:
 tr250:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
-	goto st202;
-st202:
+	goto st201;
+st201:
 	if ( ++p == pe )
-		goto _test_eof202;
-goto case; case 202:
-#line 1118 "sam_alignment.d"
+		goto _test_eof201;
+goto case; case 201:
+#line 1119 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr240;
-		case 44u: goto tr241;
+		case 9u: goto tr241;
+		case 44u: goto tr242;
 		default: break;
 	}
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -1127,15 +1128,15 @@ goto case; case 202:
 tr251:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
-	goto st203;
-st203:
+	goto st202;
+st202:
 	if ( ++p == pe )
-		goto _test_eof203;
-goto case; case 203:
-#line 1135 "sam_alignment.d"
+		goto _test_eof202;
+goto case; case 202:
+#line 1136 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr240;
-		case 44u: goto tr241;
+		case 9u: goto tr241;
+		case 44u: goto tr242;
 		default: break;
 	}
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -1144,15 +1145,15 @@ goto case; case 203:
 tr252:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
-	goto st204;
-st204:
+	goto st203;
+st203:
 	if ( ++p == pe )
-		goto _test_eof204;
-goto case; case 204:
-#line 1152 "sam_alignment.d"
+		goto _test_eof203;
+goto case; case 203:
+#line 1153 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr240;
-		case 44u: goto tr241;
+		case 9u: goto tr241;
+		case 44u: goto tr242;
 		default: break;
 	}
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -1161,15 +1162,15 @@ goto case; case 204:
 tr253:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
-	goto st205;
-st205:
+	goto st204;
+st204:
 	if ( ++p == pe )
-		goto _test_eof205;
-goto case; case 205:
-#line 1169 "sam_alignment.d"
+		goto _test_eof204;
+goto case; case 204:
+#line 1170 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr240;
-		case 44u: goto tr241;
+		case 9u: goto tr241;
+		case 44u: goto tr242;
 		default: break;
 	}
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -1178,15 +1179,15 @@ goto case; case 205:
 tr254:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
-	goto st206;
-st206:
+	goto st205;
+st205:
 	if ( ++p == pe )
-		goto _test_eof206;
-goto case; case 206:
-#line 1186 "sam_alignment.d"
+		goto _test_eof205;
+goto case; case 205:
+#line 1187 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr240;
-		case 44u: goto tr241;
+		case 9u: goto tr241;
+		case 44u: goto tr242;
 		default: break;
 	}
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -1195,15 +1196,15 @@ goto case; case 206:
 tr255:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
-	goto st207;
-st207:
+	goto st206;
+st206:
 	if ( ++p == pe )
-		goto _test_eof207;
-goto case; case 207:
-#line 1203 "sam_alignment.d"
+		goto _test_eof206;
+goto case; case 206:
+#line 1204 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr240;
-		case 44u: goto tr241;
+		case 9u: goto tr241;
+		case 44u: goto tr242;
 		default: break;
 	}
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -1212,15 +1213,15 @@ goto case; case 207:
 tr256:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
-	goto st208;
-st208:
+	goto st207;
+st207:
 	if ( ++p == pe )
-		goto _test_eof208;
-goto case; case 208:
-#line 1220 "sam_alignment.d"
+		goto _test_eof207;
+goto case; case 207:
+#line 1221 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr240;
-		case 44u: goto tr241;
+		case 9u: goto tr241;
+		case 44u: goto tr242;
 		default: break;
 	}
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -1229,15 +1230,15 @@ goto case; case 208:
 tr257:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
-	goto st209;
-st209:
+	goto st208;
+st208:
 	if ( ++p == pe )
-		goto _test_eof209;
-goto case; case 209:
-#line 1237 "sam_alignment.d"
+		goto _test_eof208;
+goto case; case 208:
+#line 1238 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr240;
-		case 44u: goto tr241;
+		case 9u: goto tr241;
+		case 44u: goto tr242;
 		default: break;
 	}
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -1246,20 +1247,37 @@ goto case; case 209:
 tr258:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
+	goto st209;
+st209:
+	if ( ++p == pe )
+		goto _test_eof209;
+goto case; case 209:
+#line 1255 "sam_alignment.d"
+	switch( (*p) ) {
+		case 9u: goto tr241;
+		case 44u: goto tr242;
+		default: break;
+	}
+	if ( 48u <= (*p) && (*p) <= 57u )
+		goto tr259;
+	goto tr49;
+tr259:
+#line 29 "sam_alignment.rl"
+	{ int_value *= 10; int_value += (*p) - '0'; }
 	goto st210;
 st210:
 	if ( ++p == pe )
 		goto _test_eof210;
 goto case; case 210:
-#line 1254 "sam_alignment.d"
+#line 1272 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr240;
-		case 44u: goto tr241;
+		case 9u: goto tr241;
+		case 44u: goto tr242;
 		default: break;
 	}
 	goto tr49;
 tr60:
-#line 339 "sam_alignment.rl"
+#line 352 "sam_alignment.rl"
 	{
         arraytype = (*p);
         buffer.capacity = buffer.length + 8;
@@ -1274,16 +1292,16 @@ st33:
 	if ( ++p == pe )
 		goto _test_eof33;
 goto case; case 33:
-#line 1277 "sam_alignment.d"
+#line 1295 "sam_alignment.d"
 	if ( (*p) == 44u )
 		goto st34;
 	goto tr49;
-tr260:
+tr261:
 #line 38 "sam_alignment.rl"
 	{ 
         float_value = to!float(line[float_beg .. p - line.ptr]);
     }
-#line 366 "sam_alignment.rl"
+#line 379 "sam_alignment.rl"
 	{ 
         buffer.put!float(float_value);
         {
@@ -1296,7 +1314,7 @@ st34:
 	if ( ++p == pe )
 		goto _test_eof34;
 goto case; case 34:
-#line 1299 "sam_alignment.d"
+#line 1317 "sam_alignment.d"
 	switch( (*p) ) {
 		case 43u: goto tr65;
 		case 45u: goto tr65;
@@ -1316,7 +1334,7 @@ st35:
 	if ( ++p == pe )
 		goto _test_eof35;
 goto case; case 35:
-#line 1319 "sam_alignment.d"
+#line 1337 "sam_alignment.d"
 	switch( (*p) ) {
 		case 46u: goto st36;
 		case 105u: goto st39;
@@ -1333,7 +1351,7 @@ st36:
 	if ( ++p == pe )
 		goto _test_eof36;
 goto case; case 36:
-#line 1336 "sam_alignment.d"
+#line 1354 "sam_alignment.d"
 	if ( 48u <= (*p) && (*p) <= 57u )
 		goto st211;
 	goto tr49;
@@ -1342,8 +1360,8 @@ st211:
 		goto _test_eof211;
 goto case; case 211:
 	switch( (*p) ) {
-		case 9u: goto tr259;
-		case 44u: goto tr260;
+		case 9u: goto tr260;
+		case 44u: goto tr261;
 		case 69u: goto st37;
 		case 101u: goto st37;
 		default: break;
@@ -1375,8 +1393,8 @@ st212:
 		goto _test_eof212;
 goto case; case 212:
 	switch( (*p) ) {
-		case 9u: goto tr259;
-		case 44u: goto tr260;
+		case 9u: goto tr260;
+		case 44u: goto tr261;
 		default: break;
 	}
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -1390,10 +1408,10 @@ st213:
 	if ( ++p == pe )
 		goto _test_eof213;
 goto case; case 213:
-#line 1393 "sam_alignment.d"
+#line 1411 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr259;
-		case 44u: goto tr260;
+		case 9u: goto tr260;
+		case 44u: goto tr261;
 		case 46u: goto st36;
 		case 69u: goto st37;
 		case 101u: goto st37;
@@ -1410,7 +1428,7 @@ st39:
 	if ( ++p == pe )
 		goto _test_eof39;
 goto case; case 39:
-#line 1413 "sam_alignment.d"
+#line 1431 "sam_alignment.d"
 	if ( (*p) == 110u )
 		goto st40;
 	goto tr49;
@@ -1426,8 +1444,8 @@ st214:
 		goto _test_eof214;
 goto case; case 214:
 	switch( (*p) ) {
-		case 9u: goto tr259;
-		case 44u: goto tr260;
+		case 9u: goto tr260;
+		case 44u: goto tr261;
 		default: break;
 	}
 	goto tr49;
@@ -1439,7 +1457,7 @@ st41:
 	if ( ++p == pe )
 		goto _test_eof41;
 goto case; case 41:
-#line 1442 "sam_alignment.d"
+#line 1460 "sam_alignment.d"
 	if ( (*p) == 97u )
 		goto st42;
 	goto tr49;
@@ -1471,16 +1489,16 @@ goto case; case 44:
 		goto tr80;
 	goto tr49;
 tr80:
-#line 304 "sam_alignment.rl"
+#line 317 "sam_alignment.rl"
 	{ tagvalue_beg = p - line.ptr; }
 	goto st215;
 st215:
 	if ( ++p == pe )
 		goto _test_eof215;
 goto case; case 215:
-#line 1481 "sam_alignment.d"
+#line 1499 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr262;
+		goto tr263;
 	if ( (*p) < 65u ) {
 		if ( 48u <= (*p) && (*p) <= 57u )
 			goto st215;
@@ -1505,16 +1523,16 @@ goto case; case 46:
 		goto tr82;
 	goto tr49;
 tr82:
-#line 304 "sam_alignment.rl"
+#line 317 "sam_alignment.rl"
 	{ tagvalue_beg = p - line.ptr; }
 	goto st216;
 st216:
 	if ( ++p == pe )
 		goto _test_eof216;
 goto case; case 216:
-#line 1515 "sam_alignment.d"
+#line 1533 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr264;
+		goto tr265;
 	if ( 32u <= (*p) && (*p) <= 126u )
 		goto st216;
 	goto tr49;
@@ -1548,7 +1566,7 @@ st49:
 	if ( ++p == pe )
 		goto _test_eof49;
 goto case; case 49:
-#line 1551 "sam_alignment.d"
+#line 1569 "sam_alignment.d"
 	switch( (*p) ) {
 		case 46u: goto st50;
 		case 105u: goto st53;
@@ -1565,7 +1583,7 @@ st50:
 	if ( ++p == pe )
 		goto _test_eof50;
 goto case; case 50:
-#line 1568 "sam_alignment.d"
+#line 1586 "sam_alignment.d"
 	if ( 48u <= (*p) && (*p) <= 57u )
 		goto st217;
 	goto tr49;
@@ -1574,7 +1592,7 @@ st217:
 		goto _test_eof217;
 goto case; case 217:
 	switch( (*p) ) {
-		case 9u: goto tr266;
+		case 9u: goto tr267;
 		case 69u: goto st51;
 		case 101u: goto st51;
 		default: break;
@@ -1606,7 +1624,7 @@ st218:
 		goto _test_eof218;
 goto case; case 218:
 	if ( (*p) == 9u )
-		goto tr266;
+		goto tr267;
 	if ( 48u <= (*p) && (*p) <= 57u )
 		goto st218;
 	goto tr49;
@@ -1618,9 +1636,9 @@ st219:
 	if ( ++p == pe )
 		goto _test_eof219;
 goto case; case 219:
-#line 1621 "sam_alignment.d"
+#line 1639 "sam_alignment.d"
 	switch( (*p) ) {
-		case 9u: goto tr266;
+		case 9u: goto tr267;
 		case 46u: goto st50;
 		case 69u: goto st51;
 		case 101u: goto st51;
@@ -1637,7 +1655,7 @@ st53:
 	if ( ++p == pe )
 		goto _test_eof53;
 goto case; case 53:
-#line 1640 "sam_alignment.d"
+#line 1658 "sam_alignment.d"
 	if ( (*p) == 110u )
 		goto st54;
 	goto tr49;
@@ -1653,7 +1671,7 @@ st220:
 		goto _test_eof220;
 goto case; case 220:
 	if ( (*p) == 9u )
-		goto tr266;
+		goto tr267;
 	goto tr49;
 tr88:
 #line 37 "sam_alignment.rl"
@@ -1663,7 +1681,7 @@ st55:
 	if ( ++p == pe )
 		goto _test_eof55;
 goto case; case 55:
-#line 1666 "sam_alignment.d"
+#line 1684 "sam_alignment.d"
 	if ( (*p) == 97u )
 		goto st56;
 	goto tr49;
@@ -1701,7 +1719,7 @@ st59:
 	if ( ++p == pe )
 		goto _test_eof59;
 goto case; case 59:
-#line 1704 "sam_alignment.d"
+#line 1722 "sam_alignment.d"
 	if ( 48u <= (*p) && (*p) <= 57u )
 		goto tr100;
 	goto tr49;
@@ -1715,13 +1733,13 @@ st221:
 	if ( ++p == pe )
 		goto _test_eof221;
 goto case; case 221:
-#line 1718 "sam_alignment.d"
+#line 1736 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr268;
-	if ( 48u <= (*p) && (*p) <= 57u )
 		goto tr269;
+	if ( 48u <= (*p) && (*p) <= 57u )
+		goto tr270;
 	goto tr49;
-tr269:
+tr270:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
 	goto st222;
@@ -1729,13 +1747,13 @@ st222:
 	if ( ++p == pe )
 		goto _test_eof222;
 goto case; case 222:
-#line 1732 "sam_alignment.d"
+#line 1750 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr268;
+		goto tr269;
 	if ( 48u <= (*p) && (*p) <= 57u )
-		goto tr270;
+		goto tr271;
 	goto tr49;
-tr270:
+tr271:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
 	goto st223;
@@ -1743,13 +1761,13 @@ st223:
 	if ( ++p == pe )
 		goto _test_eof223;
 goto case; case 223:
-#line 1746 "sam_alignment.d"
+#line 1764 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr268;
+		goto tr269;
 	if ( 48u <= (*p) && (*p) <= 57u )
-		goto tr271;
+		goto tr272;
 	goto tr49;
-tr271:
+tr272:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
 	goto st224;
@@ -1757,13 +1775,13 @@ st224:
 	if ( ++p == pe )
 		goto _test_eof224;
 goto case; case 224:
-#line 1760 "sam_alignment.d"
+#line 1778 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr268;
+		goto tr269;
 	if ( 48u <= (*p) && (*p) <= 57u )
-		goto tr272;
+		goto tr273;
 	goto tr49;
-tr272:
+tr273:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
 	goto st225;
@@ -1771,13 +1789,13 @@ st225:
 	if ( ++p == pe )
 		goto _test_eof225;
 goto case; case 225:
-#line 1774 "sam_alignment.d"
+#line 1792 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr268;
+		goto tr269;
 	if ( 48u <= (*p) && (*p) <= 57u )
-		goto tr273;
+		goto tr274;
 	goto tr49;
-tr273:
+tr274:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
 	goto st226;
@@ -1785,13 +1803,13 @@ st226:
 	if ( ++p == pe )
 		goto _test_eof226;
 goto case; case 226:
-#line 1788 "sam_alignment.d"
+#line 1806 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr268;
+		goto tr269;
 	if ( 48u <= (*p) && (*p) <= 57u )
-		goto tr274;
+		goto tr275;
 	goto tr49;
-tr274:
+tr275:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
 	goto st227;
@@ -1799,13 +1817,13 @@ st227:
 	if ( ++p == pe )
 		goto _test_eof227;
 goto case; case 227:
-#line 1802 "sam_alignment.d"
+#line 1820 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr268;
+		goto tr269;
 	if ( 48u <= (*p) && (*p) <= 57u )
-		goto tr275;
+		goto tr276;
 	goto tr49;
-tr275:
+tr276:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
 	goto st228;
@@ -1813,13 +1831,13 @@ st228:
 	if ( ++p == pe )
 		goto _test_eof228;
 goto case; case 228:
-#line 1816 "sam_alignment.d"
+#line 1834 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr268;
+		goto tr269;
 	if ( 48u <= (*p) && (*p) <= 57u )
-		goto tr276;
+		goto tr277;
 	goto tr49;
-tr276:
+tr277:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
 	goto st229;
@@ -1827,13 +1845,13 @@ st229:
 	if ( ++p == pe )
 		goto _test_eof229;
 goto case; case 229:
-#line 1830 "sam_alignment.d"
+#line 1848 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr268;
+		goto tr269;
 	if ( 48u <= (*p) && (*p) <= 57u )
-		goto tr277;
+		goto tr278;
 	goto tr49;
-tr277:
+tr278:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
 	goto st230;
@@ -1841,13 +1859,13 @@ st230:
 	if ( ++p == pe )
 		goto _test_eof230;
 goto case; case 230:
-#line 1844 "sam_alignment.d"
+#line 1862 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr268;
+		goto tr269;
 	if ( 48u <= (*p) && (*p) <= 57u )
-		goto tr278;
+		goto tr279;
 	goto tr49;
-tr278:
+tr279:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
 	goto st231;
@@ -1855,13 +1873,13 @@ st231:
 	if ( ++p == pe )
 		goto _test_eof231;
 goto case; case 231:
-#line 1858 "sam_alignment.d"
+#line 1876 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr268;
+		goto tr269;
 	if ( 48u <= (*p) && (*p) <= 57u )
-		goto tr279;
+		goto tr280;
 	goto tr49;
-tr279:
+tr280:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
 	goto st232;
@@ -1869,13 +1887,13 @@ st232:
 	if ( ++p == pe )
 		goto _test_eof232;
 goto case; case 232:
-#line 1872 "sam_alignment.d"
+#line 1890 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr268;
+		goto tr269;
 	if ( 48u <= (*p) && (*p) <= 57u )
-		goto tr280;
+		goto tr281;
 	goto tr49;
-tr280:
+tr281:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
 	goto st233;
@@ -1883,13 +1901,13 @@ st233:
 	if ( ++p == pe )
 		goto _test_eof233;
 goto case; case 233:
-#line 1886 "sam_alignment.d"
+#line 1904 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr268;
+		goto tr269;
 	if ( 48u <= (*p) && (*p) <= 57u )
-		goto tr281;
+		goto tr282;
 	goto tr49;
-tr281:
+tr282:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
 	goto st234;
@@ -1897,13 +1915,13 @@ st234:
 	if ( ++p == pe )
 		goto _test_eof234;
 goto case; case 234:
-#line 1900 "sam_alignment.d"
+#line 1918 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr268;
+		goto tr269;
 	if ( 48u <= (*p) && (*p) <= 57u )
-		goto tr282;
+		goto tr283;
 	goto tr49;
-tr282:
+tr283:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
 	goto st235;
@@ -1911,13 +1929,13 @@ st235:
 	if ( ++p == pe )
 		goto _test_eof235;
 goto case; case 235:
-#line 1914 "sam_alignment.d"
+#line 1932 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr268;
+		goto tr269;
 	if ( 48u <= (*p) && (*p) <= 57u )
-		goto tr283;
+		goto tr284;
 	goto tr49;
-tr283:
+tr284:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
 	goto st236;
@@ -1925,13 +1943,13 @@ st236:
 	if ( ++p == pe )
 		goto _test_eof236;
 goto case; case 236:
-#line 1928 "sam_alignment.d"
+#line 1946 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr268;
+		goto tr269;
 	if ( 48u <= (*p) && (*p) <= 57u )
-		goto tr284;
+		goto tr285;
 	goto tr49;
-tr284:
+tr285:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
 	goto st237;
@@ -1939,13 +1957,13 @@ st237:
 	if ( ++p == pe )
 		goto _test_eof237;
 goto case; case 237:
-#line 1942 "sam_alignment.d"
+#line 1960 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr268;
+		goto tr269;
 	if ( 48u <= (*p) && (*p) <= 57u )
-		goto tr285;
+		goto tr286;
 	goto tr49;
-tr285:
+tr286:
 #line 29 "sam_alignment.rl"
 	{ int_value *= 10; int_value += (*p) - '0'; }
 	goto st238;
@@ -1953,9 +1971,9 @@ st238:
 	if ( ++p == pe )
 		goto _test_eof238;
 goto case; case 238:
-#line 1956 "sam_alignment.d"
+#line 1974 "sam_alignment.d"
 	if ( (*p) == 9u )
-		goto tr268;
+		goto tr269;
 	goto tr49;
 tr41:
 #line 193 "sam_alignment.rl"
@@ -1965,7 +1983,7 @@ st60:
 	if ( ++p == pe )
 		goto _test_eof60;
 goto case; case 60:
-#line 1968 "sam_alignment.d"
+#line 1986 "sam_alignment.d"
 	switch( (*p) ) {
 		case 9u: goto tr101;
 		case 46u: goto st60;
@@ -1986,7 +2004,7 @@ st61:
 	if ( ++p == pe )
 		goto _test_eof61;
 goto case; case 61:
-#line 1989 "sam_alignment.d"
+#line 2007 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr37;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2000,7 +2018,7 @@ st62:
 	if ( ++p == pe )
 		goto _test_eof62;
 goto case; case 62:
-#line 2003 "sam_alignment.d"
+#line 2021 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr37;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2014,7 +2032,7 @@ st63:
 	if ( ++p == pe )
 		goto _test_eof63;
 goto case; case 63:
-#line 2017 "sam_alignment.d"
+#line 2035 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr37;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2028,7 +2046,7 @@ st64:
 	if ( ++p == pe )
 		goto _test_eof64;
 goto case; case 64:
-#line 2031 "sam_alignment.d"
+#line 2049 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr37;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2042,7 +2060,7 @@ st65:
 	if ( ++p == pe )
 		goto _test_eof65;
 goto case; case 65:
-#line 2045 "sam_alignment.d"
+#line 2063 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr37;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2056,7 +2074,7 @@ st66:
 	if ( ++p == pe )
 		goto _test_eof66;
 goto case; case 66:
-#line 2059 "sam_alignment.d"
+#line 2077 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr37;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2070,7 +2088,7 @@ st67:
 	if ( ++p == pe )
 		goto _test_eof67;
 goto case; case 67:
-#line 2073 "sam_alignment.d"
+#line 2091 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr37;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2084,7 +2102,7 @@ st68:
 	if ( ++p == pe )
 		goto _test_eof68;
 goto case; case 68:
-#line 2087 "sam_alignment.d"
+#line 2105 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr37;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2098,7 +2116,7 @@ st69:
 	if ( ++p == pe )
 		goto _test_eof69;
 goto case; case 69:
-#line 2101 "sam_alignment.d"
+#line 2119 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr37;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2112,7 +2130,7 @@ st70:
 	if ( ++p == pe )
 		goto _test_eof70;
 goto case; case 70:
-#line 2115 "sam_alignment.d"
+#line 2133 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr37;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2126,7 +2144,7 @@ st71:
 	if ( ++p == pe )
 		goto _test_eof71;
 goto case; case 71:
-#line 2129 "sam_alignment.d"
+#line 2147 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr37;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2140,7 +2158,7 @@ st72:
 	if ( ++p == pe )
 		goto _test_eof72;
 goto case; case 72:
-#line 2143 "sam_alignment.d"
+#line 2161 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr37;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2154,7 +2172,7 @@ st73:
 	if ( ++p == pe )
 		goto _test_eof73;
 goto case; case 73:
-#line 2157 "sam_alignment.d"
+#line 2175 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr37;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2168,7 +2186,7 @@ st74:
 	if ( ++p == pe )
 		goto _test_eof74;
 goto case; case 74:
-#line 2171 "sam_alignment.d"
+#line 2189 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr37;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2182,7 +2200,7 @@ st75:
 	if ( ++p == pe )
 		goto _test_eof75;
 goto case; case 75:
-#line 2185 "sam_alignment.d"
+#line 2203 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr37;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2196,7 +2214,7 @@ st76:
 	if ( ++p == pe )
 		goto _test_eof76;
 goto case; case 76:
-#line 2199 "sam_alignment.d"
+#line 2217 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr37;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2210,7 +2228,7 @@ st77:
 	if ( ++p == pe )
 		goto _test_eof77;
 goto case; case 77:
-#line 2213 "sam_alignment.d"
+#line 2231 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr37;
 	goto tr34;
@@ -2222,7 +2240,7 @@ st78:
 	if ( ++p == pe )
 		goto _test_eof78;
 goto case; case 78:
-#line 2225 "sam_alignment.d"
+#line 2243 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr32;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2236,7 +2254,7 @@ st79:
 	if ( ++p == pe )
 		goto _test_eof79;
 goto case; case 79:
-#line 2239 "sam_alignment.d"
+#line 2257 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr32;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2250,7 +2268,7 @@ st80:
 	if ( ++p == pe )
 		goto _test_eof80;
 goto case; case 80:
-#line 2253 "sam_alignment.d"
+#line 2271 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr32;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2264,7 +2282,7 @@ st81:
 	if ( ++p == pe )
 		goto _test_eof81;
 goto case; case 81:
-#line 2267 "sam_alignment.d"
+#line 2285 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr32;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2278,7 +2296,7 @@ st82:
 	if ( ++p == pe )
 		goto _test_eof82;
 goto case; case 82:
-#line 2281 "sam_alignment.d"
+#line 2299 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr32;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2292,7 +2310,7 @@ st83:
 	if ( ++p == pe )
 		goto _test_eof83;
 goto case; case 83:
-#line 2295 "sam_alignment.d"
+#line 2313 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr32;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2306,7 +2324,7 @@ st84:
 	if ( ++p == pe )
 		goto _test_eof84;
 goto case; case 84:
-#line 2309 "sam_alignment.d"
+#line 2327 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr32;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2320,7 +2338,7 @@ st85:
 	if ( ++p == pe )
 		goto _test_eof85;
 goto case; case 85:
-#line 2323 "sam_alignment.d"
+#line 2341 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr32;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2334,7 +2352,7 @@ st86:
 	if ( ++p == pe )
 		goto _test_eof86;
 goto case; case 86:
-#line 2337 "sam_alignment.d"
+#line 2355 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr32;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2348,7 +2366,7 @@ st87:
 	if ( ++p == pe )
 		goto _test_eof87;
 goto case; case 87:
-#line 2351 "sam_alignment.d"
+#line 2369 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr32;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2362,7 +2380,7 @@ st88:
 	if ( ++p == pe )
 		goto _test_eof88;
 goto case; case 88:
-#line 2365 "sam_alignment.d"
+#line 2383 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr32;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2376,7 +2394,7 @@ st89:
 	if ( ++p == pe )
 		goto _test_eof89;
 goto case; case 89:
-#line 2379 "sam_alignment.d"
+#line 2397 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr32;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2390,7 +2408,7 @@ st90:
 	if ( ++p == pe )
 		goto _test_eof90;
 goto case; case 90:
-#line 2393 "sam_alignment.d"
+#line 2411 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr32;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2404,7 +2422,7 @@ st91:
 	if ( ++p == pe )
 		goto _test_eof91;
 goto case; case 91:
-#line 2407 "sam_alignment.d"
+#line 2425 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr32;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2418,7 +2436,7 @@ st92:
 	if ( ++p == pe )
 		goto _test_eof92;
 goto case; case 92:
-#line 2421 "sam_alignment.d"
+#line 2439 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr32;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2432,7 +2450,7 @@ st93:
 	if ( ++p == pe )
 		goto _test_eof93;
 goto case; case 93:
-#line 2435 "sam_alignment.d"
+#line 2453 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr32;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2446,7 +2464,7 @@ st94:
 	if ( ++p == pe )
 		goto _test_eof94;
 goto case; case 94:
-#line 2449 "sam_alignment.d"
+#line 2467 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr32;
 	goto tr30;
@@ -2491,7 +2509,7 @@ st97:
 	if ( ++p == pe )
 		goto _test_eof97;
 goto case; case 97:
-#line 2494 "sam_alignment.d"
+#line 2512 "sam_alignment.d"
 	switch( (*p) ) {
 		case 61u: goto tr138;
 		case 68u: goto tr138;
@@ -2517,7 +2535,7 @@ st98:
 	if ( ++p == pe )
 		goto _test_eof98;
 goto case; case 98:
-#line 2520 "sam_alignment.d"
+#line 2538 "sam_alignment.d"
 	switch( (*p) ) {
 		case 61u: goto tr138;
 		case 68u: goto tr138;
@@ -2543,7 +2561,7 @@ st99:
 	if ( ++p == pe )
 		goto _test_eof99;
 goto case; case 99:
-#line 2546 "sam_alignment.d"
+#line 2564 "sam_alignment.d"
 	switch( (*p) ) {
 		case 61u: goto tr138;
 		case 68u: goto tr138;
@@ -2569,7 +2587,7 @@ st100:
 	if ( ++p == pe )
 		goto _test_eof100;
 goto case; case 100:
-#line 2572 "sam_alignment.d"
+#line 2590 "sam_alignment.d"
 	switch( (*p) ) {
 		case 61u: goto tr138;
 		case 68u: goto tr138;
@@ -2595,7 +2613,7 @@ st101:
 	if ( ++p == pe )
 		goto _test_eof101;
 goto case; case 101:
-#line 2598 "sam_alignment.d"
+#line 2616 "sam_alignment.d"
 	switch( (*p) ) {
 		case 61u: goto tr138;
 		case 68u: goto tr138;
@@ -2621,7 +2639,7 @@ st102:
 	if ( ++p == pe )
 		goto _test_eof102;
 goto case; case 102:
-#line 2624 "sam_alignment.d"
+#line 2642 "sam_alignment.d"
 	switch( (*p) ) {
 		case 61u: goto tr138;
 		case 68u: goto tr138;
@@ -2647,7 +2665,7 @@ st103:
 	if ( ++p == pe )
 		goto _test_eof103;
 goto case; case 103:
-#line 2650 "sam_alignment.d"
+#line 2668 "sam_alignment.d"
 	switch( (*p) ) {
 		case 61u: goto tr138;
 		case 68u: goto tr138;
@@ -2673,7 +2691,7 @@ st104:
 	if ( ++p == pe )
 		goto _test_eof104;
 goto case; case 104:
-#line 2676 "sam_alignment.d"
+#line 2694 "sam_alignment.d"
 	switch( (*p) ) {
 		case 61u: goto tr138;
 		case 68u: goto tr138;
@@ -2699,7 +2717,7 @@ st105:
 	if ( ++p == pe )
 		goto _test_eof105;
 goto case; case 105:
-#line 2702 "sam_alignment.d"
+#line 2720 "sam_alignment.d"
 	switch( (*p) ) {
 		case 61u: goto tr138;
 		case 68u: goto tr138;
@@ -2725,7 +2743,7 @@ st106:
 	if ( ++p == pe )
 		goto _test_eof106;
 goto case; case 106:
-#line 2728 "sam_alignment.d"
+#line 2746 "sam_alignment.d"
 	switch( (*p) ) {
 		case 61u: goto tr138;
 		case 68u: goto tr138;
@@ -2751,7 +2769,7 @@ st107:
 	if ( ++p == pe )
 		goto _test_eof107;
 goto case; case 107:
-#line 2754 "sam_alignment.d"
+#line 2772 "sam_alignment.d"
 	switch( (*p) ) {
 		case 61u: goto tr138;
 		case 68u: goto tr138;
@@ -2777,7 +2795,7 @@ st108:
 	if ( ++p == pe )
 		goto _test_eof108;
 goto case; case 108:
-#line 2780 "sam_alignment.d"
+#line 2798 "sam_alignment.d"
 	switch( (*p) ) {
 		case 61u: goto tr138;
 		case 68u: goto tr138;
@@ -2803,7 +2821,7 @@ st109:
 	if ( ++p == pe )
 		goto _test_eof109;
 goto case; case 109:
-#line 2806 "sam_alignment.d"
+#line 2824 "sam_alignment.d"
 	switch( (*p) ) {
 		case 61u: goto tr138;
 		case 68u: goto tr138;
@@ -2829,7 +2847,7 @@ st110:
 	if ( ++p == pe )
 		goto _test_eof110;
 goto case; case 110:
-#line 2832 "sam_alignment.d"
+#line 2850 "sam_alignment.d"
 	switch( (*p) ) {
 		case 61u: goto tr138;
 		case 68u: goto tr138;
@@ -2855,7 +2873,7 @@ st111:
 	if ( ++p == pe )
 		goto _test_eof111;
 goto case; case 111:
-#line 2858 "sam_alignment.d"
+#line 2876 "sam_alignment.d"
 	switch( (*p) ) {
 		case 61u: goto tr138;
 		case 68u: goto tr138;
@@ -2881,7 +2899,7 @@ st112:
 	if ( ++p == pe )
 		goto _test_eof112;
 goto case; case 112:
-#line 2884 "sam_alignment.d"
+#line 2902 "sam_alignment.d"
 	switch( (*p) ) {
 		case 61u: goto tr138;
 		case 68u: goto tr138;
@@ -2907,7 +2925,7 @@ st113:
 	if ( ++p == pe )
 		goto _test_eof113;
 goto case; case 113:
-#line 2910 "sam_alignment.d"
+#line 2928 "sam_alignment.d"
 	switch( (*p) ) {
 		case 61u: goto tr138;
 		case 68u: goto tr138;
@@ -2933,7 +2951,7 @@ st114:
 	if ( ++p == pe )
 		goto _test_eof114;
 goto case; case 114:
-#line 2936 "sam_alignment.d"
+#line 2954 "sam_alignment.d"
 	switch( (*p) ) {
 		case 61u: goto tr138;
 		case 68u: goto tr138;
@@ -2958,7 +2976,7 @@ st115:
 	if ( ++p == pe )
 		goto _test_eof115;
 goto case; case 115:
-#line 2961 "sam_alignment.d"
+#line 2979 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr155;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2972,7 +2990,7 @@ st116:
 	if ( ++p == pe )
 		goto _test_eof116;
 goto case; case 116:
-#line 2975 "sam_alignment.d"
+#line 2993 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr18;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -2986,7 +3004,7 @@ st117:
 	if ( ++p == pe )
 		goto _test_eof117;
 goto case; case 117:
-#line 2989 "sam_alignment.d"
+#line 3007 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr18;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3000,7 +3018,7 @@ st118:
 	if ( ++p == pe )
 		goto _test_eof118;
 goto case; case 118:
-#line 3003 "sam_alignment.d"
+#line 3021 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr18;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3014,7 +3032,7 @@ st119:
 	if ( ++p == pe )
 		goto _test_eof119;
 goto case; case 119:
-#line 3017 "sam_alignment.d"
+#line 3035 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr18;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3028,7 +3046,7 @@ st120:
 	if ( ++p == pe )
 		goto _test_eof120;
 goto case; case 120:
-#line 3031 "sam_alignment.d"
+#line 3049 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr18;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3042,7 +3060,7 @@ st121:
 	if ( ++p == pe )
 		goto _test_eof121;
 goto case; case 121:
-#line 3045 "sam_alignment.d"
+#line 3063 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr18;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3056,7 +3074,7 @@ st122:
 	if ( ++p == pe )
 		goto _test_eof122;
 goto case; case 122:
-#line 3059 "sam_alignment.d"
+#line 3077 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr18;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3070,7 +3088,7 @@ st123:
 	if ( ++p == pe )
 		goto _test_eof123;
 goto case; case 123:
-#line 3073 "sam_alignment.d"
+#line 3091 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr18;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3084,7 +3102,7 @@ st124:
 	if ( ++p == pe )
 		goto _test_eof124;
 goto case; case 124:
-#line 3087 "sam_alignment.d"
+#line 3105 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr18;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3098,7 +3116,7 @@ st125:
 	if ( ++p == pe )
 		goto _test_eof125;
 goto case; case 125:
-#line 3101 "sam_alignment.d"
+#line 3119 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr18;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3112,7 +3130,7 @@ st126:
 	if ( ++p == pe )
 		goto _test_eof126;
 goto case; case 126:
-#line 3115 "sam_alignment.d"
+#line 3133 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr18;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3126,7 +3144,7 @@ st127:
 	if ( ++p == pe )
 		goto _test_eof127;
 goto case; case 127:
-#line 3129 "sam_alignment.d"
+#line 3147 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr18;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3140,7 +3158,7 @@ st128:
 	if ( ++p == pe )
 		goto _test_eof128;
 goto case; case 128:
-#line 3143 "sam_alignment.d"
+#line 3161 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr18;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3154,7 +3172,7 @@ st129:
 	if ( ++p == pe )
 		goto _test_eof129;
 goto case; case 129:
-#line 3157 "sam_alignment.d"
+#line 3175 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr18;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3168,7 +3186,7 @@ st130:
 	if ( ++p == pe )
 		goto _test_eof130;
 goto case; case 130:
-#line 3171 "sam_alignment.d"
+#line 3189 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr18;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3182,7 +3200,7 @@ st131:
 	if ( ++p == pe )
 		goto _test_eof131;
 goto case; case 131:
-#line 3185 "sam_alignment.d"
+#line 3203 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr18;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3196,7 +3214,7 @@ st132:
 	if ( ++p == pe )
 		goto _test_eof132;
 goto case; case 132:
-#line 3199 "sam_alignment.d"
+#line 3217 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr18;
 	goto tr16;
@@ -3208,7 +3226,7 @@ st133:
 	if ( ++p == pe )
 		goto _test_eof133;
 goto case; case 133:
-#line 3211 "sam_alignment.d"
+#line 3229 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr14;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3222,7 +3240,7 @@ st134:
 	if ( ++p == pe )
 		goto _test_eof134;
 goto case; case 134:
-#line 3225 "sam_alignment.d"
+#line 3243 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr14;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3236,7 +3254,7 @@ st135:
 	if ( ++p == pe )
 		goto _test_eof135;
 goto case; case 135:
-#line 3239 "sam_alignment.d"
+#line 3257 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr14;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3250,7 +3268,7 @@ st136:
 	if ( ++p == pe )
 		goto _test_eof136;
 goto case; case 136:
-#line 3253 "sam_alignment.d"
+#line 3271 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr14;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3264,7 +3282,7 @@ st137:
 	if ( ++p == pe )
 		goto _test_eof137;
 goto case; case 137:
-#line 3267 "sam_alignment.d"
+#line 3285 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr14;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3278,7 +3296,7 @@ st138:
 	if ( ++p == pe )
 		goto _test_eof138;
 goto case; case 138:
-#line 3281 "sam_alignment.d"
+#line 3299 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr14;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3292,7 +3310,7 @@ st139:
 	if ( ++p == pe )
 		goto _test_eof139;
 goto case; case 139:
-#line 3295 "sam_alignment.d"
+#line 3313 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr14;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3306,7 +3324,7 @@ st140:
 	if ( ++p == pe )
 		goto _test_eof140;
 goto case; case 140:
-#line 3309 "sam_alignment.d"
+#line 3327 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr14;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3320,7 +3338,7 @@ st141:
 	if ( ++p == pe )
 		goto _test_eof141;
 goto case; case 141:
-#line 3323 "sam_alignment.d"
+#line 3341 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr14;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3334,7 +3352,7 @@ st142:
 	if ( ++p == pe )
 		goto _test_eof142;
 goto case; case 142:
-#line 3337 "sam_alignment.d"
+#line 3355 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr14;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3348,7 +3366,7 @@ st143:
 	if ( ++p == pe )
 		goto _test_eof143;
 goto case; case 143:
-#line 3351 "sam_alignment.d"
+#line 3369 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr14;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3362,7 +3380,7 @@ st144:
 	if ( ++p == pe )
 		goto _test_eof144;
 goto case; case 144:
-#line 3365 "sam_alignment.d"
+#line 3383 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr14;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3376,7 +3394,7 @@ st145:
 	if ( ++p == pe )
 		goto _test_eof145;
 goto case; case 145:
-#line 3379 "sam_alignment.d"
+#line 3397 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr14;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3390,7 +3408,7 @@ st146:
 	if ( ++p == pe )
 		goto _test_eof146;
 goto case; case 146:
-#line 3393 "sam_alignment.d"
+#line 3411 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr14;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3404,7 +3422,7 @@ st147:
 	if ( ++p == pe )
 		goto _test_eof147;
 goto case; case 147:
-#line 3407 "sam_alignment.d"
+#line 3425 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr14;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3418,7 +3436,7 @@ st148:
 	if ( ++p == pe )
 		goto _test_eof148;
 goto case; case 148:
-#line 3421 "sam_alignment.d"
+#line 3439 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr14;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3432,7 +3450,7 @@ st149:
 	if ( ++p == pe )
 		goto _test_eof149;
 goto case; case 149:
-#line 3435 "sam_alignment.d"
+#line 3453 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr14;
 	goto tr12;
@@ -3451,7 +3469,7 @@ st151:
 	if ( ++p == pe )
 		goto _test_eof151;
 goto case; case 151:
-#line 3454 "sam_alignment.d"
+#line 3472 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr5;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3465,7 +3483,7 @@ st152:
 	if ( ++p == pe )
 		goto _test_eof152;
 goto case; case 152:
-#line 3468 "sam_alignment.d"
+#line 3486 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr5;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3479,7 +3497,7 @@ st153:
 	if ( ++p == pe )
 		goto _test_eof153;
 goto case; case 153:
-#line 3482 "sam_alignment.d"
+#line 3500 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr5;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3493,7 +3511,7 @@ st154:
 	if ( ++p == pe )
 		goto _test_eof154;
 goto case; case 154:
-#line 3496 "sam_alignment.d"
+#line 3514 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr5;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3507,7 +3525,7 @@ st155:
 	if ( ++p == pe )
 		goto _test_eof155;
 goto case; case 155:
-#line 3510 "sam_alignment.d"
+#line 3528 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr5;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3521,7 +3539,7 @@ st156:
 	if ( ++p == pe )
 		goto _test_eof156;
 goto case; case 156:
-#line 3524 "sam_alignment.d"
+#line 3542 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr5;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3535,7 +3553,7 @@ st157:
 	if ( ++p == pe )
 		goto _test_eof157;
 goto case; case 157:
-#line 3538 "sam_alignment.d"
+#line 3556 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr5;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3549,7 +3567,7 @@ st158:
 	if ( ++p == pe )
 		goto _test_eof158;
 goto case; case 158:
-#line 3552 "sam_alignment.d"
+#line 3570 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr5;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3563,7 +3581,7 @@ st159:
 	if ( ++p == pe )
 		goto _test_eof159;
 goto case; case 159:
-#line 3566 "sam_alignment.d"
+#line 3584 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr5;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3577,7 +3595,7 @@ st160:
 	if ( ++p == pe )
 		goto _test_eof160;
 goto case; case 160:
-#line 3580 "sam_alignment.d"
+#line 3598 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr5;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3591,7 +3609,7 @@ st161:
 	if ( ++p == pe )
 		goto _test_eof161;
 goto case; case 161:
-#line 3594 "sam_alignment.d"
+#line 3612 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr5;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3605,7 +3623,7 @@ st162:
 	if ( ++p == pe )
 		goto _test_eof162;
 goto case; case 162:
-#line 3608 "sam_alignment.d"
+#line 3626 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr5;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3619,7 +3637,7 @@ st163:
 	if ( ++p == pe )
 		goto _test_eof163;
 goto case; case 163:
-#line 3622 "sam_alignment.d"
+#line 3640 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr5;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3633,7 +3651,7 @@ st164:
 	if ( ++p == pe )
 		goto _test_eof164;
 goto case; case 164:
-#line 3636 "sam_alignment.d"
+#line 3654 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr5;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3647,7 +3665,7 @@ st165:
 	if ( ++p == pe )
 		goto _test_eof165;
 goto case; case 165:
-#line 3650 "sam_alignment.d"
+#line 3668 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr5;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3661,7 +3679,7 @@ st166:
 	if ( ++p == pe )
 		goto _test_eof166;
 goto case; case 166:
-#line 3664 "sam_alignment.d"
+#line 3682 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr5;
 	if ( 48u <= (*p) && (*p) <= 57u )
@@ -3675,7 +3693,7 @@ st167:
 	if ( ++p == pe )
 		goto _test_eof167;
 goto case; case 167:
-#line 3678 "sam_alignment.d"
+#line 3696 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr5;
 	goto tr3;
@@ -3687,7 +3705,7 @@ st168:
 	if ( ++p == pe )
 		goto _test_eof168;
 goto case; case 168:
-#line 3690 "sam_alignment.d"
+#line 3708 "sam_alignment.d"
 	if ( (*p) == 9u )
 		goto tr206;
 	if ( (*p) > 63u ) {
@@ -3711,7 +3729,7 @@ st239:
 	if ( ++p == pe )
 		goto _test_eof239;
 goto case; case 239:
-#line 3714 "sam_alignment.d"
+#line 3732 "sam_alignment.d"
 	goto st0;
 st170:
 	if ( ++p == pe )
@@ -3728,7 +3746,7 @@ st240:
 	if ( ++p == pe )
 		goto _test_eof240;
 goto case; case 240:
-#line 3731 "sam_alignment.d"
+#line 3749 "sam_alignment.d"
 	goto st0;
 st171:
 	if ( ++p == pe )
@@ -3745,7 +3763,7 @@ st241:
 	if ( ++p == pe )
 		goto _test_eof241;
 goto case; case 241:
-#line 3748 "sam_alignment.d"
+#line 3766 "sam_alignment.d"
 	goto st0;
 st172:
 	if ( ++p == pe )
@@ -3762,7 +3780,7 @@ st242:
 	if ( ++p == pe )
 		goto _test_eof242;
 goto case; case 242:
-#line 3765 "sam_alignment.d"
+#line 3783 "sam_alignment.d"
 	goto st0;
 st173:
 	if ( ++p == pe )
@@ -3779,7 +3797,7 @@ st243:
 	if ( ++p == pe )
 		goto _test_eof243;
 goto case; case 243:
-#line 3782 "sam_alignment.d"
+#line 3800 "sam_alignment.d"
 	goto st0;
 st174:
 	if ( ++p == pe )
@@ -3796,7 +3814,7 @@ st244:
 	if ( ++p == pe )
 		goto _test_eof244;
 goto case; case 244:
-#line 3799 "sam_alignment.d"
+#line 3817 "sam_alignment.d"
 	goto st0;
 st175:
 	if ( ++p == pe )
@@ -3813,7 +3831,7 @@ st245:
 	if ( ++p == pe )
 		goto _test_eof245;
 goto case; case 245:
-#line 3816 "sam_alignment.d"
+#line 3834 "sam_alignment.d"
 	goto st0;
 st176:
 	if ( ++p == pe )
@@ -3830,7 +3848,7 @@ st246:
 	if ( ++p == pe )
 		goto _test_eof246;
 goto case; case 246:
-#line 3833 "sam_alignment.d"
+#line 3851 "sam_alignment.d"
 	goto st0;
 st177:
 	if ( ++p == pe )
@@ -3847,7 +3865,7 @@ st247:
 	if ( ++p == pe )
 		goto _test_eof247;
 goto case; case 247:
-#line 3850 "sam_alignment.d"
+#line 3868 "sam_alignment.d"
 	goto st0;
 st178:
 	if ( ++p == pe )
@@ -3864,7 +3882,7 @@ st248:
 	if ( ++p == pe )
 		goto _test_eof248;
 goto case; case 248:
-#line 3867 "sam_alignment.d"
+#line 3885 "sam_alignment.d"
 	goto st0;
 st179:
 	if ( ++p == pe )
@@ -3874,14 +3892,14 @@ goto case; case 179:
 		goto tr229;
 	goto st179;
 tr229:
-#line 238 "sam_alignment.rl"
+#line 251 "sam_alignment.rl"
 	{ p--; {if (true) goto st251;} }
 	goto st249;
 st249:
 	if ( ++p == pe )
 		goto _test_eof249;
 goto case; case 249:
-#line 3884 "sam_alignment.d"
+#line 3902 "sam_alignment.d"
 	goto st0;
 st180:
 	if ( ++p == pe )
@@ -3891,14 +3909,14 @@ goto case; case 180:
 		goto tr231;
 	goto st180;
 tr231:
-#line 395 "sam_alignment.rl"
+#line 408 "sam_alignment.rl"
 	{ p--; {if (true) goto st251;} }
 	goto st250;
 st250:
 	if ( ++p == pe )
 		goto _test_eof250;
 goto case; case 250:
-#line 3901 "sam_alignment.d"
+#line 3919 "sam_alignment.d"
 	goto st0;
 st181:
 	if ( ++p == pe )
@@ -4403,24 +4421,13 @@ goto case; case 251:
     }
 	break;
 	case 21: 
-#line 230 "sam_alignment.rl"
+#line 243 "sam_alignment.rl"
 	{
         buffer.shrink(rollback_size);
         for (size_t i = 0; i < l_seq; ++i)
             buffer.putUnsafe!ubyte(0xFF);
         rollback_size = buffer.length;
         p--; {if (true) goto st179;}
-    }
-	break;
-	case 191: 
-#line 240 "sam_alignment.rl"
-	{
-        if (buffer.length - rollback_size != l_seq) {
-            buffer.shrink(rollback_size);
-            for (size_t i = 0; i < l_seq; ++i)
-                buffer.putUnsafe!ubyte(0xFF);
-        }
-        rollback_size = buffer.length;
     }
 	break;
 	case 25: 
@@ -4458,18 +4465,36 @@ goto case; case 251:
 	case 57: 
 	case 58: 
 	case 59: 
-#line 390 "sam_alignment.rl"
+#line 403 "sam_alignment.rl"
 	{
         buffer.shrink(rollback_size); 
         p--; {if (true) goto st180;}
     }
 	break;
 	case 192: 
-#line 397 "sam_alignment.rl"
+#line 410 "sam_alignment.rl"
 	{ rollback_size = buffer.length; }
 	break;
+	case 191: 
+#line 236 "sam_alignment.rl"
+	{
+        // '*' may correspond either to a one-base long sequence
+        // or to absence of information
+        if (quals_length == 1 && quals_last_char == '*' && l_seq == 0)
+            buffer.shrink(rollback_size);
+    }
+#line 253 "sam_alignment.rl"
+	{
+        if (buffer.length - rollback_size != l_seq) {
+            buffer.shrink(rollback_size);
+            for (size_t i = 0; i < l_seq; ++i)
+                buffer.putUnsafe!ubyte(0xFF);
+        }
+        rollback_size = buffer.length;
+    }
+	break;
 	case 216: 
-#line 313 "sam_alignment.rl"
+#line 326 "sam_alignment.rl"
 	{ 
         {
         auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
@@ -4480,11 +4505,11 @@ goto case; case 251:
         buffer.putUnsafe!ubyte(0);
         }
     }
-#line 397 "sam_alignment.rl"
+#line 410 "sam_alignment.rl"
 	{ rollback_size = buffer.length; }
 	break;
 	case 215: 
-#line 324 "sam_alignment.rl"
+#line 337 "sam_alignment.rl"
 	{
         {
         auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
@@ -4495,7 +4520,7 @@ goto case; case 251:
         buffer.putUnsafe!ubyte(0);
         }
     }
-#line 397 "sam_alignment.rl"
+#line 410 "sam_alignment.rl"
 	{ rollback_size = buffer.length; }
 	break;
 	case 221: 
@@ -4518,7 +4543,7 @@ goto case; case 251:
 	case 238: 
 #line 30 "sam_alignment.rl"
 	{ int_value *= current_sign; current_sign = 1; }
-#line 272 "sam_alignment.rl"
+#line 285 "sam_alignment.rl"
 	{ 
         buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
@@ -4550,7 +4575,7 @@ goto case; case 251:
             }
         }
     }
-#line 397 "sam_alignment.rl"
+#line 410 "sam_alignment.rl"
 	{ rollback_size = buffer.length; }
 	break;
 	case 193: 
@@ -4573,7 +4598,7 @@ goto case; case 251:
 	case 210: 
 #line 30 "sam_alignment.rl"
 	{ int_value *= current_sign; current_sign = 1; }
-#line 349 "sam_alignment.rl"
+#line 362 "sam_alignment.rl"
 	{
         // here, we assume that compiler is smart enough to move switch out of loop.
         switch (arraytype) {
@@ -4590,7 +4615,7 @@ goto case; case 251:
             ++*ptr;
         }
     }
-#line 397 "sam_alignment.rl"
+#line 410 "sam_alignment.rl"
 	{ rollback_size = buffer.length; }
 	break;
 	case 217: 
@@ -4601,14 +4626,14 @@ goto case; case 251:
 	{ 
         float_value = to!float(line[float_beg .. p - line.ptr]);
     }
-#line 306 "sam_alignment.rl"
+#line 319 "sam_alignment.rl"
 	{ 
         buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('f');
         buffer.putUnsafe!float(float_value);
     }
-#line 397 "sam_alignment.rl"
+#line 410 "sam_alignment.rl"
 	{ rollback_size = buffer.length; }
 	break;
 	case 211: 
@@ -4619,7 +4644,7 @@ goto case; case 251:
 	{ 
         float_value = to!float(line[float_beg .. p - line.ptr]);
     }
-#line 366 "sam_alignment.rl"
+#line 379 "sam_alignment.rl"
 	{ 
         buffer.put!float(float_value);
         {
@@ -4627,10 +4652,10 @@ goto case; case 251:
             ++*ptr;
         }
     }
-#line 397 "sam_alignment.rl"
+#line 410 "sam_alignment.rl"
 	{ rollback_size = buffer.length; }
 	break;
-#line 4633 "sam_alignment.d"
+#line 4658 "sam_alignment.d"
 		default: break;
 	}
 	}
@@ -4638,7 +4663,7 @@ goto case; case 251:
 	_out: {}
 	}
 
-#line 464 "sam_alignment.rl"
+#line 480 "sam_alignment.rl"
 
     BamRead read;
     read.raw_data = buffer.data[];

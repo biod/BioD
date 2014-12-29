@@ -37,15 +37,16 @@ static byte[] _sam_alignment_actions = [
 	34, 1, 35, 1, 36, 1, 37, 1, 
 	39, 1, 40, 1, 41, 1, 42, 1, 
 	43, 1, 44, 1, 45, 1, 46, 1, 
-	47, 1, 48, 1, 49, 1, 51, 1, 
-	55, 1, 58, 1, 59, 1, 60, 1, 
-	61, 1, 62, 2, 1, 2, 2, 3, 
-	38, 2, 3, 56, 2, 5, 57, 2, 
+	48, 1, 49, 1, 51, 1, 53, 1, 
+	57, 1, 60, 1, 61, 1, 62, 1, 
+	63, 1, 64, 2, 1, 2, 2, 3, 
+	38, 2, 3, 58, 2, 5, 59, 2, 
 	6, 7, 2, 20, 23, 2, 24, 25, 
-	2, 26, 29, 2, 53, 62, 2, 54, 
-	62, 3, 3, 50, 62, 3, 3, 56, 
-	62, 3, 5, 52, 62, 3, 5, 57, 
-	62, 3, 26, 1, 2
+	2, 26, 29, 2, 47, 50, 2, 55, 
+	64, 2, 56, 64, 3, 3, 52, 64, 
+	3, 3, 58, 64, 3, 5, 54, 64, 
+	3, 5, 59, 64, 3, 26, 1, 2
+	
 ];
 
 static short[] _sam_alignment_key_offsets = [
@@ -409,7 +410,7 @@ static ubyte[] _sam_alignment_trans_actions = [
 	0, 49, 53, 51, 0, 53, 99, 59, 
 	57, 3, 59, 1, 1, 99, 63, 99, 
 	63, 102, 3, 63, 0, 67, 67, 67, 
-	67, 71, 0, 71, 75, 77, 89, 89, 
+	67, 71, 75, 71, 77, 79, 89, 89, 
 	0, 0, 0, 0, 0, 91, 0, 0, 
 	0, 0, 0, 0, 0, 93, 0, 93, 
 	83, 93, 0, 93, 87, 87, 87, 87, 
@@ -458,7 +459,7 @@ static ubyte[] _sam_alignment_trans_actions = [
 	117, 117, 3, 117, 117, 41, 117, 117, 
 	117, 117, 117, 3, 117, 117, 41, 117, 
 	117, 117, 117, 117, 117, 117, 41, 120, 
-	145, 41, 114, 3, 35, 114, 3, 35, 
+	148, 41, 114, 3, 35, 114, 3, 35, 
 	114, 3, 35, 114, 3, 35, 114, 3, 
 	35, 114, 3, 35, 114, 3, 35, 114, 
 	3, 35, 114, 3, 35, 114, 3, 35, 
@@ -480,31 +481,31 @@ static ubyte[] _sam_alignment_trans_actions = [
 	15, 17, 9, 0, 0, 11, 13, 0, 
 	19, 0, 27, 0, 33, 0, 37, 0, 
 	43, 0, 55, 0, 61, 0, 65, 0, 
-	73, 0, 79, 0, 95, 0, 0, 0, 
+	73, 0, 81, 0, 95, 0, 0, 0, 
 	0, 0, 0, 0, 0, 0, 39, 0, 
 	45, 0, 0, 0, 0, 0, 0, 0, 
-	0, 0, 81, 75, 77, 97, 93, 133, 
-	105, 3, 93, 133, 105, 3, 93, 133, 
-	105, 3, 93, 133, 105, 3, 93, 133, 
-	105, 3, 93, 133, 105, 3, 93, 133, 
-	105, 3, 93, 133, 105, 3, 93, 133, 
-	105, 3, 93, 133, 105, 3, 93, 133, 
-	105, 3, 93, 133, 105, 3, 93, 133, 
-	105, 3, 93, 133, 105, 3, 93, 133, 
-	105, 3, 93, 133, 105, 3, 93, 133, 
-	105, 3, 93, 133, 105, 93, 141, 108, 
-	0, 0, 0, 93, 141, 108, 0, 93, 
-	141, 108, 0, 0, 0, 0, 93, 141, 
-	108, 93, 126, 0, 0, 0, 93, 123, 
-	0, 93, 137, 0, 0, 0, 93, 137, 
-	0, 93, 137, 0, 0, 0, 0, 93, 
-	137, 93, 129, 3, 93, 129, 3, 93, 
-	129, 3, 93, 129, 3, 93, 129, 3, 
-	93, 129, 3, 93, 129, 3, 93, 129, 
-	3, 93, 129, 3, 93, 129, 3, 93, 
-	129, 3, 93, 129, 3, 93, 129, 3, 
-	93, 129, 3, 93, 129, 3, 93, 129, 
-	3, 93, 129, 3, 93, 129, 93, 0, 
+	0, 0, 123, 77, 79, 97, 93, 136, 
+	105, 3, 93, 136, 105, 3, 93, 136, 
+	105, 3, 93, 136, 105, 3, 93, 136, 
+	105, 3, 93, 136, 105, 3, 93, 136, 
+	105, 3, 93, 136, 105, 3, 93, 136, 
+	105, 3, 93, 136, 105, 3, 93, 136, 
+	105, 3, 93, 136, 105, 3, 93, 136, 
+	105, 3, 93, 136, 105, 3, 93, 136, 
+	105, 3, 93, 136, 105, 3, 93, 136, 
+	105, 3, 93, 136, 105, 93, 144, 108, 
+	0, 0, 0, 93, 144, 108, 0, 93, 
+	144, 108, 0, 0, 0, 0, 93, 144, 
+	108, 93, 129, 0, 0, 0, 93, 126, 
+	0, 93, 140, 0, 0, 0, 93, 140, 
+	0, 93, 140, 0, 0, 0, 0, 93, 
+	140, 93, 132, 3, 93, 132, 3, 93, 
+	132, 3, 93, 132, 3, 93, 132, 3, 
+	93, 132, 3, 93, 132, 3, 93, 132, 
+	3, 93, 132, 3, 93, 132, 3, 93, 
+	132, 3, 93, 132, 3, 93, 132, 3, 
+	93, 132, 3, 93, 132, 3, 93, 132, 
+	3, 93, 132, 3, 93, 132, 93, 0, 
 	0, 0, 0, 0, 0, 0, 0, 0, 
 	0, 0, 0, 0, 0, 0
 ];
@@ -512,7 +513,7 @@ static ubyte[] _sam_alignment_trans_actions = [
 static ubyte[] _sam_alignment_eof_actions = [
 	0, 11, 17, 17, 25, 25, 31, 31, 
 	35, 35, 41, 41, 53, 53, 59, 59, 
-	63, 63, 63, 71, 71, 77, 0, 0, 
+	63, 63, 63, 71, 71, 79, 0, 0, 
 	0, 93, 93, 93, 93, 93, 93, 93, 
 	93, 93, 93, 93, 93, 93, 93, 93, 
 	93, 93, 93, 93, 93, 93, 93, 93, 
@@ -533,13 +534,13 @@ static ubyte[] _sam_alignment_eof_actions = [
 	17, 17, 17, 17, 17, 17, 17, 17, 
 	11, 0, 0, 0, 0, 0, 0, 0, 
 	0, 0, 0, 0, 0, 0, 0, 0, 
-	0, 0, 0, 0, 0, 0, 0, 81, 
-	97, 133, 133, 133, 133, 133, 133, 133, 
-	133, 133, 133, 133, 133, 133, 133, 133, 
-	133, 133, 133, 141, 141, 141, 141, 126, 
-	123, 137, 137, 137, 137, 129, 129, 129, 
-	129, 129, 129, 129, 129, 129, 129, 129, 
-	129, 129, 129, 129, 129, 129, 129, 0, 
+	0, 0, 0, 0, 0, 0, 0, 123, 
+	97, 136, 136, 136, 136, 136, 136, 136, 
+	136, 136, 136, 136, 136, 136, 136, 136, 
+	136, 136, 136, 144, 144, 144, 144, 129, 
+	126, 140, 140, 140, 140, 132, 132, 132, 
+	132, 132, 132, 132, 132, 132, 132, 132, 
+	132, 132, 132, 132, 132, 132, 132, 0, 
 	0, 0, 0, 0, 0, 0, 0, 0, 
 	0, 0, 0, 0
 ];
@@ -574,7 +575,7 @@ static int sam_alignment_en_alignment_field_parsing_mandatoryfields_qual_parsing
 static int sam_alignment_en_alignment_tag_parsing = 251;
 
 
-#line 406 "sam_alignment.rl"
+#line 419 "sam_alignment.rl"
 
 
 import bio.sam.header;
@@ -609,6 +610,9 @@ BamRead parseAlignmentLine(string line, SamHeader header, OutBuffer buffer=null)
     uint cigar_op_len;   // length of CIGAR operation
     char cigar_op_chr;   // CIGAR operation
 
+    size_t quals_length;  // number of QUAL characters
+    char quals_last_char; // needed in order to handle '*' correctly
+
     size_t cigar_op_len_start; // position of start of CIGAR operation
     
     long int_value;                      // for storing temporary integers
@@ -632,14 +636,14 @@ BamRead parseAlignmentLine(string line, SamHeader header, OutBuffer buffer=null)
     int ref_id = -1;
 
     
-#line 635 "sam_alignment.d"
+#line 639 "sam_alignment.d"
 	{
 	cs = sam_alignment_start;
 	}
 
-#line 463 "sam_alignment.rl"
+#line 479 "sam_alignment.rl"
     
-#line 642 "sam_alignment.d"
+#line 646 "sam_alignment.d"
 	{
 	int _klen;
 	uint _trans;
@@ -988,13 +992,30 @@ _match:
 	{ p--; {cs = 190; if (true) goto _again;} }
 	break;
 	case 45:
-#line 226 "sam_alignment.rl"
+#line 223 "sam_alignment.rl"
 	{
-        buffer.putUnsafe!ubyte(cast(ubyte)((*p) - 33));
+        rollback_size = buffer.length;
     }
 	break;
 	case 46:
 #line 230 "sam_alignment.rl"
+	{
+        ++quals_length;
+        quals_last_char = (*p);
+        buffer.putUnsafe!ubyte(cast(ubyte)((*p) - 33));
+    }
+	break;
+	case 47:
+#line 236 "sam_alignment.rl"
+	{
+        // '*' may correspond either to a one-base long sequence
+        // or to absence of information
+        if (quals_length == 1 && quals_last_char == '*' && l_seq == 0)
+            buffer.shrink(rollback_size);
+    }
+	break;
+	case 48:
+#line 243 "sam_alignment.rl"
 	{
         buffer.shrink(rollback_size);
         for (size_t i = 0; i < l_seq; ++i)
@@ -1003,12 +1024,12 @@ _match:
         p--; {cs = 179; if (true) goto _again;}
     }
 	break;
-	case 47:
-#line 238 "sam_alignment.rl"
+	case 49:
+#line 251 "sam_alignment.rl"
 	{ p--; {cs = 251; if (true) goto _again;} }
 	break;
-	case 48:
-#line 240 "sam_alignment.rl"
+	case 50:
+#line 253 "sam_alignment.rl"
 	{
         if (buffer.length - rollback_size != l_seq) {
             buffer.shrink(rollback_size);
@@ -1018,8 +1039,8 @@ _match:
         rollback_size = buffer.length;
     }
 	break;
-	case 49:
-#line 265 "sam_alignment.rl"
+	case 51:
+#line 278 "sam_alignment.rl"
 	{ 
         buffer.capacity = buffer.length + 4;
         buffer.putUnsafe(tag_key);
@@ -1027,8 +1048,8 @@ _match:
         buffer.putUnsafe!char((*p)); 
     }
 	break;
-	case 50:
-#line 272 "sam_alignment.rl"
+	case 52:
+#line 285 "sam_alignment.rl"
 	{ 
         buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
@@ -1061,12 +1082,12 @@ _match:
         }
     }
 	break;
-	case 51:
-#line 304 "sam_alignment.rl"
+	case 53:
+#line 317 "sam_alignment.rl"
 	{ tagvalue_beg = p - line.ptr; }
 	break;
-	case 52:
-#line 306 "sam_alignment.rl"
+	case 54:
+#line 319 "sam_alignment.rl"
 	{ 
         buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
@@ -1074,8 +1095,8 @@ _match:
         buffer.putUnsafe!float(float_value);
     }
 	break;
-	case 53:
-#line 313 "sam_alignment.rl"
+	case 55:
+#line 326 "sam_alignment.rl"
 	{ 
         {
         auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
@@ -1087,8 +1108,8 @@ _match:
         }
     }
 	break;
-	case 54:
-#line 324 "sam_alignment.rl"
+	case 56:
+#line 337 "sam_alignment.rl"
 	{
         {
         auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
@@ -1100,8 +1121,8 @@ _match:
         }
     }
 	break;
-	case 55:
-#line 339 "sam_alignment.rl"
+	case 57:
+#line 352 "sam_alignment.rl"
 	{
         arraytype = (*p);
         buffer.capacity = buffer.length + 8;
@@ -1112,8 +1133,8 @@ _match:
         tag_array_length_offset = buffer.length - uint.sizeof;
     }
 	break;
-	case 56:
-#line 349 "sam_alignment.rl"
+	case 58:
+#line 362 "sam_alignment.rl"
 	{
         // here, we assume that compiler is smart enough to move switch out of loop.
         switch (arraytype) {
@@ -1131,8 +1152,8 @@ _match:
         }
     }
 	break;
-	case 57:
-#line 366 "sam_alignment.rl"
+	case 59:
+#line 379 "sam_alignment.rl"
 	{ 
         buffer.put!float(float_value);
         {
@@ -1141,30 +1162,30 @@ _match:
         }
     }
 	break;
-	case 58:
-#line 387 "sam_alignment.rl"
+	case 60:
+#line 400 "sam_alignment.rl"
 	{ tag_key_beg = p - line.ptr; }
 	break;
-	case 59:
-#line 388 "sam_alignment.rl"
+	case 61:
+#line 401 "sam_alignment.rl"
 	{ tag_key = cast(ubyte[])(line[tag_key_beg .. p - line.ptr]); }
 	break;
-	case 60:
-#line 390 "sam_alignment.rl"
+	case 62:
+#line 403 "sam_alignment.rl"
 	{
         buffer.shrink(rollback_size); 
         p--; {cs = 180; if (true) goto _again;}
     }
 	break;
-	case 61:
-#line 395 "sam_alignment.rl"
+	case 63:
+#line 408 "sam_alignment.rl"
 	{ p--; {cs = 251; if (true) goto _again;} }
 	break;
-	case 62:
-#line 397 "sam_alignment.rl"
+	case 64:
+#line 410 "sam_alignment.rl"
 	{ rollback_size = buffer.length; }
 	break;
-#line 1167 "sam_alignment.d"
+#line 1188 "sam_alignment.d"
 		default: break;
 		}
 	}
@@ -1240,8 +1261,17 @@ _again:
         p--; {cs = 178; if (true) goto _again;}
     }
 	break;
-	case 46:
-#line 230 "sam_alignment.rl"
+	case 47:
+#line 236 "sam_alignment.rl"
+	{
+        // '*' may correspond either to a one-base long sequence
+        // or to absence of information
+        if (quals_length == 1 && quals_last_char == '*' && l_seq == 0)
+            buffer.shrink(rollback_size);
+    }
+	break;
+	case 48:
+#line 243 "sam_alignment.rl"
 	{
         buffer.shrink(rollback_size);
         for (size_t i = 0; i < l_seq; ++i)
@@ -1250,8 +1280,8 @@ _again:
         p--; {cs = 179; if (true) goto _again;}
     }
 	break;
-	case 48:
-#line 240 "sam_alignment.rl"
+	case 50:
+#line 253 "sam_alignment.rl"
 	{
         if (buffer.length - rollback_size != l_seq) {
             buffer.shrink(rollback_size);
@@ -1261,8 +1291,8 @@ _again:
         rollback_size = buffer.length;
     }
 	break;
-	case 50:
-#line 272 "sam_alignment.rl"
+	case 52:
+#line 285 "sam_alignment.rl"
 	{ 
         buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
@@ -1295,8 +1325,8 @@ _again:
         }
     }
 	break;
-	case 52:
-#line 306 "sam_alignment.rl"
+	case 54:
+#line 319 "sam_alignment.rl"
 	{ 
         buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
@@ -1304,8 +1334,8 @@ _again:
         buffer.putUnsafe!float(float_value);
     }
 	break;
-	case 53:
-#line 313 "sam_alignment.rl"
+	case 55:
+#line 326 "sam_alignment.rl"
 	{ 
         {
         auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
@@ -1317,8 +1347,8 @@ _again:
         }
     }
 	break;
-	case 54:
-#line 324 "sam_alignment.rl"
+	case 56:
+#line 337 "sam_alignment.rl"
 	{
         {
         auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
@@ -1330,8 +1360,8 @@ _again:
         }
     }
 	break;
-	case 56:
-#line 349 "sam_alignment.rl"
+	case 58:
+#line 362 "sam_alignment.rl"
 	{
         // here, we assume that compiler is smart enough to move switch out of loop.
         switch (arraytype) {
@@ -1349,8 +1379,8 @@ _again:
         }
     }
 	break;
-	case 57:
-#line 366 "sam_alignment.rl"
+	case 59:
+#line 379 "sam_alignment.rl"
 	{ 
         buffer.put!float(float_value);
         {
@@ -1359,18 +1389,18 @@ _again:
         }
     }
 	break;
-	case 60:
-#line 390 "sam_alignment.rl"
+	case 62:
+#line 403 "sam_alignment.rl"
 	{
         buffer.shrink(rollback_size); 
         p--; {cs = 180; if (true) goto _again;}
     }
 	break;
-	case 62:
-#line 397 "sam_alignment.rl"
+	case 64:
+#line 410 "sam_alignment.rl"
 	{ rollback_size = buffer.length; }
 	break;
-#line 1373 "sam_alignment.d"
+#line 1403 "sam_alignment.d"
 		default: break;
 		}
 	}
@@ -1379,7 +1409,7 @@ _again:
 	_out: {}
 	}
 
-#line 464 "sam_alignment.rl"
+#line 480 "sam_alignment.rl"
 
     BamRead read;
     read.raw_data = buffer.data[];

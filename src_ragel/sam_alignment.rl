@@ -220,11 +220,24 @@
     }
     recover_from_invalid_seq := invalid_field '\t' @{ fhold; fgoto qual_parsing; } ;
 
-    seq = '*' | ([A-Za-z=.]+ > sequence_start % sequence_end) ;
+    action set_rollback_size {
+        rollback_size = buffer.length;
+    }
+
+    seq = ('*' % set_rollback_size) | ([A-Za-z=.]+ > sequence_start % sequence_end) ;
 
     ### 13. SET BASE QUALITIES ###
     action convert_next_character_to_prob {
+        ++quals_length;
+        quals_last_char = fc;
         buffer.putUnsafe!ubyte(cast(ubyte)(fc - 33));
+    }
+
+    action qual_end {
+        // '*' may correspond either to a one-base long sequence
+        // or to absence of information
+        if (quals_length == 1 && quals_last_char == '*' && l_seq == 0)
+            buffer.shrink(rollback_size);
     }
 
     action handle_invalid_qual {
@@ -245,7 +258,7 @@
         }
         rollback_size = buffer.length;
     }
-    qual = [!-~]+ $ convert_next_character_to_prob ;
+    qual = [!-~]+ $ convert_next_character_to_prob % qual_end ;
 
     ###### PARSE MANDATORY FIELDS #######
     mandatoryfields = qname_parsing: (qname $!handle_invalid_qname)
@@ -436,6 +449,9 @@ BamRead parseAlignmentLine(string line, SamHeader header, OutBuffer buffer=null)
 
     uint cigar_op_len;   // length of CIGAR operation
     char cigar_op_chr;   // CIGAR operation
+
+    size_t quals_length;  // number of QUAL characters
+    char quals_last_char; // needed in order to handle '*' correctly
 
     size_t cigar_op_len_start; // position of start of CIGAR operation
     
