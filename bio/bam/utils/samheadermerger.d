@@ -135,6 +135,7 @@ private:
             auto sequences = header.sequences.values;
             auto prev = sequences.front;
             addVerticeToDict(dict, prev);
+            g.addNode(prev.name);
             sequences.popFront();
             while (!sequences.empty) {
                 auto cur = sequences.front;
@@ -163,6 +164,12 @@ private:
         foreach (size_t i, header; _headers) {
             foreach (size_t j, SqLine sq; header.sequences) {
                 auto new_index = merged_header.sequences.getSequenceIndex(sq.name);
+                if (new_index < 0) {
+                  import std.stdio;
+                  stderr.writeln("merged header sequence dictionary: \n",
+                      merged_header.sequences.values);
+                  throw new Exception("BUG: " ~ sq.name ~ " is not in merged header dictionary");
+                }
                 ref_id_map[i][j] = to!size_t(new_index);
                 ref_id_reverse_map[i][to!size_t(new_index)] = j;
             }
@@ -365,6 +372,7 @@ unittest {
     
     // ------------------ merge these three headers ----------------------------
 
+    {
     auto merger = new SamHeaderMerger([h1, h2, h3]);
     auto h = merger.merged_header;
 
@@ -381,4 +389,16 @@ unittest {
 
     assert(equal(sort(array(map!"a.identifier"(h.read_groups.values))),
                  ["A", "A.1", "B", "C", "C.1"]));
+    }
+
+    // sambamba issue 110
+    {
+    auto h0 = new SamHeader();
+    h0.sorting_order = SortingOrder.coordinate;
+    h0.sequences.add(SqLine("A", 100));
+
+    auto merger = new SamHeaderMerger([h0]);
+    auto h = merger.merged_header;
+    assert(equal(h.sequences.values, h0.sequences.values));
+    }
 }
