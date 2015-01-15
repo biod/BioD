@@ -407,6 +407,10 @@ struct BamRead {
     /// ditto
     @property void is_duplicate(bool b)             { _setFlag(10, b); } 
 
+    /// Supplementary alignment
+    @property bool is_supplementary()         const nothrow { return cast(bool)(flag & 0x800); }
+    /// ditto
+    @property void is_supplementary(bool b)         { _setFlag(11, b); }
 
     /// Convenience function, returns '+' or '-' indicating the strand.
     @property char strand() const nothrow {
