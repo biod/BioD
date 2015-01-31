@@ -55,6 +55,12 @@ struct RoundBuf(T) {
         ++_taken;
     }
 
+    ///
+    auto ref back() @property {
+      enforce(!empty, "buffer is empty");
+      return _items[(_put - 1) % $];
+    }
+
     /// Output range primitive
     void put(T item) {
         enforce(!full, "buffer is full");

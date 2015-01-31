@@ -343,6 +343,7 @@ class BgzfInputStream : Stream {
 
         alias Task!(decompressBgzfBlock, BgzfBlock, BgzfBlockCache)
             DecompressionTask;
+        DecompressionTask[] _task_buf;
 
         static struct BlockAux {
             BgzfBlock block;
@@ -372,9 +373,15 @@ class BgzfInputStream : Stream {
                     import std.stdio;
                     stderr.writeln("[creating task] ", b.block.start_offset, " / ", b.skip_start, " / ", b.skip_end);
                 }
-                b.task = task!decompressBgzfBlock(b.block, _cache);
-                _pool.put(b.task);
+
+                DecompressionTask tmp = void;
+                tmp = scopedTask!decompressBgzfBlock(b.block, _cache);
+                auto t = _task_buf.ptr + _offset / _max_block_size;
+                import core.stdc.string : memcpy;
+                memcpy(t, &tmp, DecompressionTask.sizeof);
+                b.task = t;
                 _tasks.put(b);
+                _pool.put(b.task);
 
                 _offset += _max_block_size;
                 if (_offset == _data.length)
@@ -428,6 +435,7 @@ class BgzfInputStream : Stream {
             n_tasks = max(n_tasks, buffer_size / BGZF_MAX_BLOCK_SIZE);
 
         _tasks = RoundBuf!BlockAux(n_tasks);
+        _task_buf = uninitializedArray!(DecompressionTask[])(n_tasks);
 
         _data = uninitializedArray!(ubyte[])(n_tasks * _max_block_size);
 
