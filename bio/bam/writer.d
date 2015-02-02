@@ -202,6 +202,10 @@ final class BamWriter {
         _stream.flushCurrentBlock();
     }
 
+    private void indexingWriteHandler(ubyte[] uncomp, ubyte[] comp) {
+        indexBlock(uncomp, comp);
+    }
+
     /// Writes BAM read. Throws exception if read reference ID is out of range.
     void writeRecord(R)(R read) {
         enforce(read.ref_id == -1 || read.ref_id < _reference_sequences.length,
@@ -210,9 +214,7 @@ final class BamWriter {
         if (!_record_writing_mode) {
             if (_create_index) {
                 _record_writing_mode = true;
-                _stream.setWriteHandler((ubyte[] uncomp, ubyte[] comp) {
-                    indexBlock(uncomp, comp);
-                });
+                _stream.setWriteHandler(&indexingWriteHandler);
             } else {
                 _stream.setWriteHandler(null);
             }
