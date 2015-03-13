@@ -1,5 +1,5 @@
-BioD
-====
+### BioD
+
 BioD is a fast and memory efficient bioinformatics library written in the D programming language.
 BioD aims to:
 
@@ -10,21 +10,18 @@ BioD aims to:
 * Offer support for manipulating common biological data formats.
 * Write clear documented and maintainable codebase.
 
-Installation
-====
+### Installation
 
-Usage
-====
+### Usage
 
 
-BioD team
-====
-* Artem Tarasov
+
+#### BioD core
+     * Artem Tarasov
+     * Pjotr Prins
 
 
-License
-====
+##### License
 
 
-Citation
-===
+##### Citation
