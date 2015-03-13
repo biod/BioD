@@ -1,13 +1,13 @@
 BioD
 ====
+BioD is a fast bioinformatics library written in D programming language.
+The main aims of BioD are:
 
-Library goals are:
-
-* Support for most common formats of biological data
+* Support for reading and writing common biological data formats.
 * Fast and low-memory processing, that includes:
-    - Automatic parallelization where possible (e.g. BAM reading/writing)
-    - Avoiding unnecessary allocations to reduce GC overhead
+    - Automatic parallelization (e.g. BAM reading/writing)
+    - Reduce GC overhead by avoiding unnecessary allocations
     - Spending hours with profiler to optimize hot paths ;-)
 * Clear, documented, and maintainable codebase
-* Being suitable for one-off scripts, comparable in size with those written in Python/Ruby/Perl
-* Providing a platform for writing high-performance bioinformatics applications in D
+* Support for one-off scripts, comparable in size with those written in Python/Ruby/Perl
+* Provide a platform for writing high-performance bioinformatics applications in D
