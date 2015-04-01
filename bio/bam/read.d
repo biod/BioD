@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012-2014    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2015    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -1651,6 +1651,79 @@ bool compareReadNames(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
     if (isSomeString!R1 && isBamRead!R2)
 {
     return a1 < a2.name;
+}
+
+int mixedStrCompare(string a, string b) {
+  import std.ascii : isDigit;
+  while (!a.empty && !b.empty) {
+    if (a.front.isDigit && b.front.isDigit) {
+      // skip zeros
+      int za, zb;
+      while (!a.empty && a.front == '0') { ++za; a.popFront(); }
+      while (!b.empty && b.front == '0') { ++zb; b.popFront(); }
+
+      // skip equal digits
+      while (!a.empty && !b.empty && a.front.isDigit && a.front == b.front) {
+        a.popFront();
+        b.popFront();
+      }
+
+      if (!a.empty && !b.empty && a.front.isDigit && b.front.isDigit) {
+        // the number of leading digits in each string is non-zero
+        size_t i = 0, maxi = min(a.length, b.length);
+        while (i < maxi && a[i].isDigit && b[i].isDigit) ++i;
+        if (i < a.length && a[i].isDigit) return 1; // a contains more digits
+        if (i < b.length && b[i].isDigit) return -1; // b contains more digits
+        // the counts are equal, compare first digits
+        return cast(byte)a.front - cast(byte)b.front;
+      } else if (!a.empty && a.front.isDigit) return 1;
+        else if (!b.empty && b.front.isDigit) return -1;
+        else if (za != zb) return za - zb;  // order by the number of leading zeros
+    } else {
+      // lexicographical comparison for non-digits
+      if (a.front != b.front) return cast(byte)a.front - cast(byte)b.front;
+      a.popFront(); b.popFront();
+    }
+  }
+  return (!a.empty) ? 1 : (!b.empty) ? -1 : 0;
+}
+
+/// $(P Comparison function for 'queryname' sorting order as in Samtools
+/// (returns whether first read is 'less' than second in a 'mixed' order,
+///  i.e. numbers inside the strings are compared by their integer value))
+///
+/// $(P This function can be called on:
+///   $(UL
+///     $(LI two reads)
+///     $(LI read and string in any order)))
+bool mixedCompareReadNames(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
+    if (isBamRead!R1 && isBamRead!R2)
+{
+    return mixedStrCompare(a1.name, a2.name) < 0;
+}
+
+bool mixedCompareReadNames(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
+    if (isBamRead!R1 && isSomeString!R2)
+{
+    return mixedStrCompare(a1.name, a2) < 0;
+}
+
+bool mixedCompareReadNames(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
+    if (isSomeString!R1 && isBamRead!R2)
+{
+    return mixedStrCompare(a1, a2.name) < 0;
+}
+
+unittest {
+  assert(mixedStrCompare("BC0123", "BC01234") < 0);
+  assert(mixedStrCompare("BC0123", "BC0123Z") < 0);
+  assert(mixedStrCompare("BC01234", "BC01234") == 0);
+  assert(mixedStrCompare("BC0123DEF45", "BC01234DEF45") < 0);
+  assert(mixedStrCompare("BC01236DEF45", "BC01234DEF45") > 0);
+  assert(mixedStrCompare("BC012", "BC0012") < 0);
+  assert(mixedStrCompare("BC0012DE0034", "BC0012DE34") > 0);
+  assert(mixedStrCompare("BC12DE0034", "BC012DE34") < 0);
+  assert(mixedStrCompare("1235", "1234") > 0);
 }
 
 /// $(P Comparison function for 'coordinate' sorting order
