@@ -246,9 +246,17 @@ uint* get_crc_table();
 
 class ZlibException : Exception
 {
-    this(int errnum)
-    {   string msg;
+    this(int errnum) {
+        auto msg = "[zlib] " ~ messageFromErrnum(errnum);
+        super(msg);
+    }
 
+    this(string func, int errnum) {
+        auto msg = "[zlib/" ~ func ~ "] " ~ messageFromErrnum(errnum);
+        super(msg);
+    }
+
+    private string messageFromErrnum(int errnum) {
         switch (errnum)
         {
             case Z_STREAM_END:      msg = "stream end"; break;
@@ -261,8 +269,7 @@ class ZlibException : Exception
             case Z_VERSION_ERROR:   msg = "version error"; break;
             default:                msg = "unknown error";  break;
         }
-        msg = "[zlib] " ~ msg;
-        super(msg);
+        return msg;
     }
 }
 

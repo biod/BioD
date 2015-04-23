@@ -155,7 +155,7 @@ class BgzfOutputStream : Stream {
         offset += 2 * N;
         if (offset == _compression_buffer.length)
             offset = 0;
-        _buffer = _compression_buffer[offset .. offset + N];
+        _buffer = _compression_buffer[offset .. offset + _buffer.length];
         _tmp = _compression_buffer[offset + N .. offset + 2 * N];
         _current_size = 0;
 

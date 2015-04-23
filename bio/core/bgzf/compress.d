@@ -75,17 +75,17 @@ body
                                             /* memory usage level (default) */ 8, 
                                             /* default compression strategy */ Z_DEFAULT_STRATEGY);
     if (err != Z_OK) {
-        throw new ZlibException(err);
+        throw new ZlibException("deflateInit2", err);
     }
 
     err = bio.core.utils.zlib.deflate(&zs, Z_FINISH);
     if (err != Z_STREAM_END) {
-        throw new ZlibException(err);
+        throw new ZlibException("deflate", err);
     }
 
     err = bio.core.utils.zlib.deflateEnd(&zs);
     if (err != Z_OK) {
-        throw new ZlibException(err);
+        throw new ZlibException("deflateEnd", err);
     }
 
     // almost done, update buffer length

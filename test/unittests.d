@@ -464,6 +464,18 @@ unittest {
 
     foreach (cigar, md, expected_cigar; zip(cigars, md_ops, expected))
         assert(makeExtendedCigar(cigar, md).equal(expected_cigar));
+
+    /* https://github.com/lomereiter/sambamba/issues/137 */
+    {
+      fn = buildPath(dirName(__FILE__), "data", "b.sam");
+      auto sam = new SamReader(fn);
+      auto writer = new BamWriter("/dev/null", 0);
+      writer.writeSamHeader(sam.header);
+      writer.writeReferenceSequenceInfo(sam.reference_sequences);
+      foreach (r; sam.reads)
+        writer.writeRecord(r);
+      writer.finish();
+    }
 }
 
 void main() {
