@@ -1,4 +1,4 @@
-// run example: rdmd -I.. example6.d
+// run example: rdmd -I.. create_bam_from_scratch.d
 
 // this example shows how to create BAM files from scratch
 import bio.bam.read, bio.bam.referenceinfo, bio.sam.header;
