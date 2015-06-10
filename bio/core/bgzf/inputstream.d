@@ -43,7 +43,8 @@ class BgzfException : Exception {
 }
 
 bool fillBgzfBufferFromStream(Stream stream, bool is_seekable,
-                              BgzfBlock* block, ubyte* buffer)
+                              BgzfBlock* block, ubyte* buffer,
+                              size_t *number_of_bytes_read=null)
 {
     if (stream.eof())
         return false;
@@ -134,7 +135,10 @@ bool fillBgzfBufferFromStream(Stream stream, bool is_seekable,
                 }
             }
 
-            len += si1.sizeof + si2.sizeof + slen.sizeof + slen;
+            auto nbytes = si1.sizeof + si2.sizeof + slen.sizeof + slen;
+            if (number_of_bytes_read !is null)
+                *number_of_bytes_read += nbytes;
+            len += nbytes;
         } 
 
         if (len != gzip_extra_length) {
@@ -171,6 +175,9 @@ bool fillBgzfBufferFromStream(Stream stream, bool is_seekable,
         // version(extraVerbose) {stderr.writeln("[compressed] reading block crc32 and input size...");}
         stream.read(block.crc32);
         stream.read(block.input_size);
+
+        if (number_of_bytes_read !is null)
+            *number_of_bytes_read += 12 + cdata_size + block.crc32.sizeof + block.input_size.sizeof;
            
         // version(extraVerbose) {stderr.writeln("[compressed] read block input size: ", block.input_size);}
         block._buffer = buffer[0 .. max(block.input_size, cdata_size)];
@@ -202,6 +209,7 @@ class StreamSupplier : BgzfBlockSupplier {
     private {
         Stream _stream;
         bool _seekable;
+        size_t _start_offset;
         size_t _size;
         ushort _skip_start;
     }
@@ -218,7 +226,14 @@ class StreamSupplier : BgzfBlockSupplier {
     ///
     bool getNextBgzfBlock(BgzfBlock* block, ubyte* buffer,
                           ushort* skip_start, ushort* skip_end) {
-        auto result = fillBgzfBufferFromStream(_stream, _seekable, block, buffer);
+        auto curr_start_offset = _start_offset;
+
+        // updates _start_offset
+        auto result = fillBgzfBufferFromStream(_stream, _seekable, block, buffer,
+                                               &_start_offset);
+        if (!_seekable)
+            block.start_offset = curr_start_offset;
+
         *skip_start = _skip_start;
         _skip_start = 0;
         *skip_end = 0;
