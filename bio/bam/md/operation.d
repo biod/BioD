@@ -20,11 +20,11 @@ struct MdOperation {
 
     private {
         MdOperationType _type;
-        union {
-            uint _match; 
-            NucleotideSequence _deletion;
-            Base16 _mismatch;
-        }
+        ubyte[NucleotideSequence.sizeof] _data;
+        @property ref T _as(T)() inout { return *cast(T*)(_data.ptr); }
+        alias _match = _as!uint;
+        alias _deletion = _as!NucleotideSequence;
+        alias _mismatch = _as!Base16;
     }
 
     /// Operation type

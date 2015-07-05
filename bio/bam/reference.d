@@ -53,6 +53,7 @@ import std.array;
 
 ///
 struct ReferenceSequence {
+    private int _ref_id;
    
     /// Name
     string name() @property const {
@@ -216,6 +217,5 @@ struct ReferenceSequence {
 
 private:
     RandomAccessManager _manager;
-    int _ref_id;
     ReferenceSequenceInfo _info;
 }
