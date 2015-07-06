@@ -875,6 +875,8 @@ struct PileupChunkRange(C) {
                 _current_chunk = _chunks.front;
                 _chunks.popFront();
 
+                if (_current_chunk[0].ref_id < 0) continue;
+
                 _beg = _current_chunk[0].position;
                 if (_beg >= end_at) {
                     _empty = true;
@@ -906,12 +908,16 @@ struct PileupChunkRange(C) {
     void popFront() {
         _prev_chunk = _current_chunk;
 
-        if (_chunks.empty) {
-            _empty = true;
-            return;
+        while (true) {
+            if (_chunks.empty) {
+                _empty = true;
+                return;
+            }
+            _current_chunk = _chunks.front;
+            _chunks.popFront();
+
+            if (_current_chunk[0].ref_id >= 0) break;
         }
-        _current_chunk = _chunks.front;
-        _chunks.popFront();
 
         // if we changed reference, nullify prev_chunk
         if (_prev_chunk.length > 0 && 
