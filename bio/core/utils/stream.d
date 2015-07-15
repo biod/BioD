@@ -148,4 +148,19 @@ final class File: std.stream.File {
         readEOF = (size == 0);
         return size;
     }
+
+    override size_t writeBlock(const void* buffer, size_t size) {
+      assertWriteable();
+      auto hFile = handle();
+      version (Windows) {
+        auto dwSize = to!DWORD(size);
+        WriteFile(hFile, buffer, dwSize, &dwSize, null);
+        size = dwSize;
+      } else version (Posix) {
+        size = core.sys.posix.unistd.write(hFile, buffer, size);
+        if (size == -1)
+          throw new WriteException(to!string(strerror(errno)));
+      }
+      return size;
+    }
 }
