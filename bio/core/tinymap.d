@@ -309,8 +309,4 @@ mixin template TinyMapInterface(uint N, T=ubyte) if (isUnsigned!T) {
     T internal_code() @property const {
         return _code;
     }
-
-    invariant() {
-        assert(_code < ValueSetSize);
-    }
 }

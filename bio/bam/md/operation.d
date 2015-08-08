@@ -21,7 +21,7 @@ struct MdOperation {
     private {
         MdOperationType _type;
         union {
-            uint _match; 
+            uint _match;
             NucleotideSequence _deletion;
             Base16 _mismatch;
         }

@@ -249,8 +249,10 @@ class BamReader : IBamSamReader {
 
         bool empty() @property {
             auto result = _range.empty;
-            if (_finish_func !is null && result)
+            if (_finish_func !is null && !_called_finish_func && result) {
+                _called_finish_func = true;
                 _finish_func();
+            }
             return result;
         }
 
@@ -269,6 +271,7 @@ class BamReader : IBamSamReader {
         private size_t _bytes_read;
         private void delegate(lazy float p) _progress_bar_func;
         private void delegate() _finish_func;
+        private bool _called_finish_func = false;
     }
 
     /**

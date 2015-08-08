@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012-2014    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2015    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -34,8 +34,10 @@ import std.range;
 import std.conv;
 import std.parallelism;
 import std.array;
+import std.numeric : normalize, dotProduct;
 import std.exception;
 import std.typecons;
+import std.file : getSize;
 
 alias size_t FileId;
 
@@ -108,6 +110,21 @@ auto readRange(BamReader reader, SamHeaderMerger merger, FileId index,
 auto readRanges(BamReader[] readers, SamHeaderMerger merger) {
     return readers.zip(repeat(merger), iota(readers.length))
                   .map!(t => readRange(t[0], t[1], t[2]))();
+}
+
+auto readRangeWithProgress
+(BamReader reader, SamHeaderMerger merger, FileId index,
+ void delegate() f, void delegate(lazy float) u) {
+    return zip(reader.readsWithProgress(u, f).multiBamReads(index),
+               repeat(merger), repeat(index));
+}
+
+auto readRangesWithProgress
+(BamReader[] readers, SamHeaderMerger merger,
+ void delegate() f, void delegate(lazy float) delegate(size_t) u)
+{
+    return readers.zip(repeat(merger), iota(readers.length))
+                  .map!(t => readRangeWithProgress(t[0], t[1], t[2], f, u(t[2])))();
 }
 
 // ([BamReader], SamHeaderMerger, int, uint, uint) -> 
@@ -226,6 +243,34 @@ class MultiBamReader {
     auto reads() @property {
         return readRanges(_readers, _merger).adjustTags(task_pool, _adj_bufsz)
                                             .nWayUnion!compare().map!"a[0]"();
+    }
+
+    ///
+    auto readsWithProgress(void delegate(lazy float p) progressBarFunc,
+                           void delegate() finishFunc=null) 
+    {
+        size_t _running = _readers.length;
+        void innerFinishFunc() {
+            if (--_running == 0 && finishFunc)
+                finishFunc();
+        }
+
+        auto _progress = new float[_readers.length];
+        _progress[] = 0.0;
+        auto _weights = _readers.map!(r => r.filename.getSize.to!float).array;
+        normalize(_weights);
+
+        auto innerProgressBarFunc(size_t idx) {
+            return (lazy float p) {
+                _progress[idx] = p;
+                progressBarFunc(dotProduct(_progress, _weights));
+            };
+        }
+
+        return readRangesWithProgress(_readers, _merger,
+                                      &innerFinishFunc, &innerProgressBarFunc)
+                         .adjustTags(task_pool, _adj_bufsz)
+                         .nWayUnion!compare().map!"a[0]"();
     }
 
     ///

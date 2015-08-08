@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2015    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -314,7 +314,7 @@ class HeaderLineDictionary(T) {
     }
 
     ///
-    T opIndex(string id) const {
+    ref inout(T) opIndex(string id) inout {
         return _dict[id];
     }
 
@@ -424,7 +424,7 @@ class HeaderLineDictionary(T) {
 final class SqLineDictionary : HeaderLineDictionary!SqLine
 {
     ///
-    SqLine getSequence(size_t index) const {
+    ref inout(SqLine) getSequence(size_t index) inout {
         return _dict[_index_to_id[index]];
     }
 
