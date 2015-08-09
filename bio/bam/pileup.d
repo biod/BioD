@@ -229,7 +229,7 @@ struct PileupRead(Read=bio.bam.read.EagerBamRead) {
 }
 
 static assert(isBamRead!(PileupRead!BamRead));
-static assert(isBamRead!(PileupRead!(EagerBamRead!BamRead)));
+//static assert(isBamRead!(PileupRead!(EagerBamRead!BamRead)));
 
 /// Represents a single pileup column
 struct PileupColumn(R) {
