@@ -1234,6 +1234,7 @@ private:
         }
     }
 
+public:
     // Calculates bin number.
     void _recalculate_bin() {
         _bin = reg2bin(position, position + basesCovered());

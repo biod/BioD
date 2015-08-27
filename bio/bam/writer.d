@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2015    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -219,6 +219,8 @@ final class BamWriter {
                 _stream.setWriteHandler(null);
             }
         }
+
+        read._recalculate_bin();
 
         auto read_size = read.size_in_bytes;
         if (read_size + _current_size > BGZF_BLOCK_SIZE) {
