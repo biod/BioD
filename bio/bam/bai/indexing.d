@@ -262,10 +262,10 @@ struct IndexBuilder {
             enforce(read.ref_id == _prev_read.ref_id && 
                     read.position >= _prev_read.position,
                     "BAM file is not coordinate-sorted: " ~
-                    "read '" ~ read.name ~ "'" ~
-                    " must be before read '" ~ _prev_read.name ~ 
-                    "' (at virtual offset " ~ 
-                    to!string(_prev_read.start_virtual_offset) ~ ")");
+                    "read '" ~ read.name ~ "' (" ~ read.ref_id.to!string ~ ":" ~ read.position.to!string ~ ")" ~
+                    " must be after read '" ~ _prev_read.name ~ "' (" ~ _prev_read.ref_id.to!string ~ ":" ~ _prev_read.position.to!string ~ ")" ~
+                    "' (at virtual offsets " ~ 
+                    to!string(_prev_read.start_virtual_offset) ~ ", " ~ read.start_virtual_offset.to!string ~ ")");
         }
     }
 
@@ -310,8 +310,6 @@ struct IndexBuilder {
 
         checkThatBinIsCorrect(read);
 
-        scope(exit) updateLastReadInfo(read);
-
         // new reference, so write data for previous one(s)
         if (read.ref_id > _prev_read.ref_id) {
             updateLinearIndex();
@@ -328,6 +326,8 @@ struct IndexBuilder {
             if (read.bin.id != _prev_read.bin.id)
                 updateChunks();
         }
+
+        updateLastReadInfo(read);
     }
 
     /// Closes the stream

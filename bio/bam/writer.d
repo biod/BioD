@@ -138,23 +138,62 @@ final class BamWriter {
 
         IndexBuilder _index_builder;
 
+        VirtualOffset _start_vo, _end_vo;
+        ubyte[] _pending_read_data_buf;
+        ubyte[] _pending_read_data;
+
+        void appendReadData(ubyte[] data) {
+            auto required = _pending_read_data.length + data.length;
+            if (_pending_read_data_buf.length < required)
+                _pending_read_data_buf.length = max(required, _pending_read_data_buf.length * 2);
+            _pending_read_data_buf[_pending_read_data.length .. $][0 .. data.length] = data;
+            _pending_read_data = _pending_read_data_buf[0 .. required];
+        }
+
+        size_t _len;
+
         void indexBlock(ubyte[] uncompressed, ubyte[] compressed) {
             ushort inner_offset = 0;
-            while (uncompressed.length > 0) {
-                auto len = *cast(int*)(uncompressed.ptr); // assume LE...
-                auto read_data = uncompressed[int.sizeof .. int.sizeof + len];
-                uncompressed = uncompressed[int.sizeof + len .. $];
-                auto read = BamRead(read_data);
-                VirtualOffset start_vo, end_vo;
-                start_vo = VirtualOffset(_bytes_written, inner_offset);
-                inner_offset += len + int.sizeof;
+
+            void indexRead(ubyte[] data) {
+                auto read = BamRead(data);
                 if (uncompressed.length > 0) {
-                    end_vo = VirtualOffset(_bytes_written, inner_offset);
+                    _end_vo = VirtualOffset(_bytes_written, inner_offset);
                 } else {
-                    end_vo = VirtualOffset(_bytes_written + compressed.length, 0);
+                    _end_vo = VirtualOffset(_bytes_written + compressed.length, 0);
                 }
-                auto read_block = BamReadBlock(start_vo, end_vo, read);
+                auto read_block = BamReadBlock(_start_vo, _end_vo, read);
                 _index_builder.put(read_block);
+            }
+
+            if (_pending_read_data !is null) {
+                if (uncompressed.length < _len) {
+                    appendReadData(uncompressed);
+                    _len -= uncompressed.length;
+                    uncompressed = null;
+                } else {
+                    appendReadData(uncompressed[0 .. _len]);
+                    uncompressed = uncompressed[_len .. $];
+                    inner_offset = cast(ushort)_len;
+                    indexRead(_pending_read_data);
+                    _pending_read_data = null;
+                }
+            }
+
+            while (uncompressed.length > 0) {
+                _len = *cast(int*)(uncompressed.ptr); // assume LE...
+                _start_vo = VirtualOffset(_bytes_written, inner_offset);
+                if (_len + int.sizeof <= uncompressed.length) {
+                    _pending_read_data = null;
+                    auto read_data = uncompressed[int.sizeof .. int.sizeof + _len];
+                    uncompressed = uncompressed[int.sizeof + _len .. $];
+                    inner_offset += _len + int.sizeof;
+                    indexRead(read_data);
+                } else { // read spans multiple BGZF blocks
+                    appendReadData(uncompressed[int.sizeof .. $]);
+                    _len -= _pending_read_data.length;
+                    break;
+                }
             }
             _bytes_written += compressed.length;
         }
