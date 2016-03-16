@@ -220,7 +220,7 @@ class StreamSupplier : BgzfBlockSupplier {
         _seekable = _stream.seekable;
         _skip_start = skip_start;
         if (_seekable)
-            _size = _stream.size;
+            _size = cast(size_t)(_stream.size);
     }
 
     ///

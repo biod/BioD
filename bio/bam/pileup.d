@@ -963,7 +963,7 @@ struct PileupChunkRange(C) {
         // positions of _prev_chunk[j + 1 .. $] are more or equal to pos.
         
         while (i <= j) { 
-            auto m = (i + j) / 2;
+            auto m = cast(size_t)(i + j) / 2;
             assert(m < _prev_chunk.length);
             auto p = _prev_chunk[m].position;
             if (p >= pos) {
@@ -973,7 +973,7 @@ struct PileupChunkRange(C) {
             }
         }
 
-        _prev_chunk = _prev_chunk[i .. $];
+        _prev_chunk = _prev_chunk[cast(size_t)i .. $];
     }
 }
 

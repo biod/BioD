@@ -94,13 +94,13 @@ struct ByLineFast {
 
         long pos = strBuffer.indexOf('\n');
         if (pos != -1) {
-            if (pos != 0 && strBuffer[pos-1] == '\r') {
-                line = strBuffer[0 .. (pos-1)];
+            if (pos != 0 && strBuffer[cast(size_t)pos-1] == '\r') {
+                line = strBuffer[0 .. cast(size_t)(pos-1)];
             } else {
-                line = strBuffer[0 .. pos];
+                line = strBuffer[0 .. cast(size_t)pos];
             }
             //Pop the line, skipping the terminator:
-            strBuffer = strBuffer[(pos+1) .. $];
+            strBuffer = strBuffer[cast(size_t)(pos+1) .. $];
         } else {
             //More needs to be read here. Copy the tail of the buffer
             //to the beginning, and try to read with the empty part of
