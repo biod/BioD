@@ -38,7 +38,7 @@ struct ReferenceSequenceInfo {
 
     /// Reference sequence name
     /// (null byte is guaranteed to follow the returned slice)
-    string name() @property const {
+    string name() @property const nothrow {
         return _name[0 .. $ - 1];
     }
    

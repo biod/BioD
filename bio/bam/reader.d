@@ -197,7 +197,7 @@ class BamReader : IBamSamReader {
     /**
         Returns: information about reference sequences
      */
-    const(bio.bam.referenceinfo.ReferenceSequenceInfo)[] reference_sequences() @property const {
+    const(bio.bam.referenceinfo.ReferenceSequenceInfo)[] reference_sequences() @property const nothrow {
         return _reference_sequences;
     }
 

@@ -36,7 +36,7 @@ interface IBamSamReader {
     bio.sam.header.SamHeader header() @property;
 
     /// Information about reference sequences
-    const(bio.bam.referenceinfo.ReferenceSequenceInfo)[] reference_sequences() @property const;
+    const(bio.bam.referenceinfo.ReferenceSequenceInfo)[] reference_sequences() @property const nothrow;
 
     /// All reads in the file
     std.range.InputRange!(bio.bam.read.BamRead) allReads() @property;

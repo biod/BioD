@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012-2015    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2016    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -312,6 +312,9 @@ struct BamRead {
     /// ditto
     @property   void ref_id(int n)                    { _dup(); _refID = n; }
 
+    /// Reference sequence name ('*' for unmapped reads)
+    @property string ref_name()         const nothrow { return _ref_id_to_string(ref_id); }
+
     /// 0-based leftmost coordinate of the first matching base
     @property    int position()         const nothrow { return _pos; }
     /// ditto
@@ -339,6 +342,9 @@ struct BamRead {
     @property    int mate_ref_id()      const nothrow { return _next_refID; }
     /// ditto
     @property   void mate_ref_id(int n)               { _dup(); _next_refID = n; }
+
+    /// Mate reference sequence name ('*' for unmapped mates)
+    @property string mate_ref_name()    const nothrow { return _ref_id_to_string(_next_refID); }
 
     /// Mate position
     @property    int mate_position()    const nothrow { return _next_pos; }
@@ -1112,6 +1118,14 @@ private:
     }
 
     IBamSamReader _reader;
+
+    string _ref_id_to_string(int ref_id) const nothrow {
+        if (_reader is null)
+            return "?";
+        if (ref_id < 0)
+            return "*";
+        return _reader.reference_sequences[ref_id].name;
+    }
 
     // Official field names from SAM/BAM specification.
     // For internal use only

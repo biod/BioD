@@ -274,7 +274,7 @@ class MultiBamReader {
     }
 
     ///
-    const(ReferenceSequenceInfo)[] reference_sequences() @property const {
+    const(ReferenceSequenceInfo)[] reference_sequences() @property const nothrow {
         return _reference_sequences;
     }
 
