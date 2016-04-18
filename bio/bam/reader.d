@@ -576,7 +576,7 @@ private:
         int l_text;
         _bam.read(l_text);
 
-        _headertext = to!string(_bam.readString(l_text));
+        _headertext = cast(string)(_bam.readString(l_text));
     }
 
     // initialize _reference_sequences

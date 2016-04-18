@@ -57,6 +57,11 @@ private {
          */
         char[] result;
         foreach (t; F) {
+          static if (t.FieldType.stringof == "string")
+            result ~= `case "`~t.abbr~`":`~
+                        `record.`~t.name~`=cast(string)(contents);`~
+                      `break;`.dup;
+          else
             result ~= `case "`~t.abbr~`":`~
                         `record.`~t.name~`=to!(`~t.FieldType.stringof~`)(contents);`~
                       `break;`.dup;
@@ -458,14 +463,15 @@ class SamHeader {
 
     /// Parse SAM header given in plain text.
     this(string header_text) {
-        this();
+        read_groups = new RgLineDictionary();
+        programs = new PgLineDictionary();
+        format_version = DEFAULT_FORMAT_VERSION;
 
-        // lots of allocations are going to occur
         import core.memory;
         core.memory.GC.disable();
-        scope(exit) core.memory.GC.enable();
 
         bool parsed_first_line = false;
+        size_t n_sq_lines = 0;
 
         foreach (line; splitter(header_text, '\n')) {
             if (line.length < 3) {
@@ -489,10 +495,7 @@ class SamHeader {
             switch (line[1]) {
                 case 'S':
                     enforce(line[2] == 'Q');
-                    auto sq_line = SqLine.parse(line);
-                    if (!sequences.add(sq_line)) {
-                        stderr.writeln("duplicating @SQ line ",  sq_line.name);
-                    }
+                    ++n_sq_lines;
                     break;
                 case 'R':
                     enforce(line[2] == 'G');
@@ -525,6 +528,12 @@ class SamHeader {
         if (!parsed_first_line) {
             format_version = DEFAULT_FORMAT_VERSION;
         }
+
+        _header_text = header_text;
+        if (n_sq_lines <= 1000000)
+            _parseSqLines(); // parse immediately for typical files
+
+        core.memory.GC.enable();
     }
        
     /// Format version
@@ -535,7 +544,39 @@ class SamHeader {
 
     /// Dictionary of @SQ lines. 
     /// Removal is not allowed, you can only replace the whole dictionary.
-    SqLineDictionary sequences;
+    SqLineDictionary sequences() @property {
+        if (_sequences is null)
+            _parseSqLines();
+        return _sequences;
+    }
+
+    void sequences(SqLineDictionary dict) @property {
+        _sequences = dict;
+    }
+
+    private SqLineDictionary _sequences;
+    private string _header_text;
+    private void _parseSqLines() {
+        import core.memory;
+        core.memory.GC.disable();
+
+        _sequences = new SqLineDictionary();
+
+        foreach (line; splitter(_header_text, '\n')) {
+            if (line.length < 3)
+                continue;
+            if (line[0 .. 3] != "@SQ")
+                continue;
+
+            auto sq_line = SqLine.parse(line);
+            if (!_sequences.add(sq_line)) {
+                stderr.writeln("duplicating @SQ line ",  sq_line.name);
+            }
+        }
+
+        _header_text = null;
+        core.memory.GC.enable();
+    }
 
     /// Dictionary of @RG lines
     RgLineDictionary read_groups;
@@ -680,11 +721,12 @@ class SamHeader {
     /// $(BR)
     /// Dictionary keys are the same as in SAM format.
     void toMsgpack(Packer)(ref Packer packer) const {
+        enforce(_sequences !is null, "failed to call msgpack");
         packer.beginArray(5);
         packer.pack(format_version);
         packer.pack(to!string(sorting_order));
-        packer.beginArray(sequences.length);
-        foreach (sq; sequences)
+        packer.beginArray(_sequences.length);
+        foreach (sq; _sequences)
             packer.pack(sq);
         packer.beginArray(read_groups.length);
         foreach (rg; read_groups)

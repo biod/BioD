@@ -57,7 +57,7 @@ struct ReferenceSequenceInfo {
     this(ref Stream stream) {
         int l_name; // length of the reference name plus one
         stream.read(l_name);
-        _name = stream.readString(l_name).idup; // keep '\0' at the end
+        _name = cast(string)stream.readString(l_name); // keep '\0' at the end
         stream.read(_length);
     }
 }
