@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012-2015    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2016    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -56,9 +56,15 @@ struct MultiBamRead(R=BamRead) {
 }
 
 // ((MultiBamRead, SamHeaderMerger), (MultiBamRead, SamHeaderMerger)) -> bool
-bool compare(T)(const auto ref T r1, const auto ref T r2) {
+bool compare(T)(auto ref T r1, auto ref T r2) {
     assert(r1[1] == r2[1]);
-    auto sorting_order = r1[1].merged_header.sorting_order;
+
+    SortingOrder sorting_order;
+    if (r1[1] is null)
+        sorting_order = r1[0].read.reader.header.sorting_order;
+    else
+        sorting_order = r1[1].merged_header.sorting_order;
+
     if (sorting_order == SortingOrder.coordinate)
         return compareCoordinates(r1[0], r2[0]);
     else if (sorting_order == SortingOrder.queryname)
@@ -85,7 +91,9 @@ auto readRange(BamReader reader, SamHeaderMerger merger, FileId index) {
 auto readRange(BamReader reader, SamHeaderMerger merger, FileId index,
                int ref_id, uint start, uint end) 
 {
-    auto old_ref_id = cast(int)merger.ref_id_reverse_map[index][ref_id];
+    int old_ref_id = ref_id;
+    if (merger !is null)
+        old_ref_id = cast(int)merger.ref_id_reverse_map[index][ref_id];
     auto reads = reader.reference(old_ref_id)[start .. end];
     return zip(reads.multiBamReads(index), repeat(merger), repeat(index));
 }
@@ -94,7 +102,11 @@ auto readRange(BamReader reader, SamHeaderMerger merger, FileId index,
 //                                    [(MultiBamRead, SamHeaderMerger, FileId)]
 auto readRange(BamReader reader, SamHeaderMerger merger, FileId index,
                BamRegion[] regions) {
-    auto old_regions = regions.dup;
+    if (merger is null) // single reader => no fiddling with ref_id
+        return zip(reader.getReadsOverlapping(regions).multiBamReads(index),
+                   repeat(merger), repeat(index));
+
+    auto old_regions = merger is null ? regions : regions.dup;
     foreach (j; 0 .. regions.length) {
         auto new_ref_id = regions[j].ref_id;
         if (new_ref_id != -1) {
@@ -164,6 +176,11 @@ auto adjustTagsInRange(R)(R read_with_aux_info) if (!isInputRange!R) {
     auto merger = read_with_aux_info[1];
     auto file_id = read_with_aux_info[2];
 
+    if (merger is null) {
+        assert(file_id == 0);
+        return tuple(read, merger);
+    }
+
     with (merger) {
         assert(file_id < ref_id_map.length);
 
@@ -203,16 +220,21 @@ class MultiBamReader {
     ///
     this(BamReader[] readers) {
         _readers = readers;
-        _merger = new SamHeaderMerger(readers.map!(r => r.header)().array());
-        enforce(_merger.strategy == SamHeaderMerger.Strategy.simple, "NYI"); // TODO
 
-        auto n_references = _merger.merged_header.sequences.length;
-        _reference_sequences = new ReferenceSequenceInfo[n_references];
-        size_t i;
-        foreach (line; _merger.merged_header.sequences) {
-            _reference_sequences[i] = ReferenceSequenceInfo(line.name, line.length);
-            _reference_sequence_dict[line.name] = i++;
-        } 
+        enforce(_readers.length >= 1, "MultiBamReader requires at least one BAM file");
+
+        if (_readers.length > 1) {
+            _merger = new SamHeaderMerger(readers.map!(r => r.header)().array());
+            enforce(_merger.strategy == SamHeaderMerger.Strategy.simple, "NYI"); // TODO
+
+            auto n_references = _merger.merged_header.sequences.length;
+            _reference_sequences = new ReferenceSequenceInfo[n_references];
+            size_t i;
+            foreach (line; _merger.merged_header.sequences) {
+                _reference_sequences[i] = ReferenceSequenceInfo(line.name, line.length);
+                _reference_sequence_dict[line.name] = i++;
+            }
+        }
 
         // TODO: maybe try to guess optimal size, based on the number of files?
         setBufferSize(1_048_576);
@@ -236,7 +258,7 @@ class MultiBamReader {
 
     ///
     SamHeader header() @property {
-        return _merger.merged_header;
+        return _readers.length > 1 ? _merger.merged_header : _readers[0].header;
     }
 
     /// Input range of MultiBamRead instances
@@ -247,7 +269,7 @@ class MultiBamReader {
 
     ///
     auto readsWithProgress(void delegate(lazy float p) progressBarFunc,
-                           void delegate() finishFunc=null) 
+                           void delegate() finishFunc=null)
     {
         size_t _running = _readers.length;
         void innerFinishFunc() {
@@ -275,14 +297,20 @@ class MultiBamReader {
 
     ///
     const(ReferenceSequenceInfo)[] reference_sequences() @property const nothrow {
-        return _reference_sequences;
+        if (_readers.length > 1)
+            return _reference_sequences;
+        else
+            return _readers[0].reference_sequences;
     }
 
     /**
       Check if reference named $(I ref_name) is presented in BAM header.
      */
     bool hasReference(string ref_name) {
-        return null != (ref_name in _reference_sequence_dict);
+        if (_readers.length > 1)
+            return null != (ref_name in _reference_sequence_dict);
+        else
+            return _readers[0].hasReference(ref_name);
     }
 
     /**
@@ -297,19 +325,24 @@ class MultiBamReader {
      */
     MultiBamReference reference(int ref_id) {
         enforce(ref_id >= 0, "Invalid reference index");
-        enforce(ref_id < _reference_sequences.length, "Invalid reference index");
+        enforce(ref_id < reference_sequences.length, "Invalid reference index");
         return MultiBamReference(_readers, _merger, task_pool, _adj_bufsz,
-                                 _reference_sequences[ref_id], ref_id);
+                                 reference_sequences[ref_id], ref_id);
     }
 
     /**
       Returns reference sequence named $(I ref_name).
      */
     MultiBamReference opIndex(string ref_name) {
-        enforce(hasReference(ref_name), 
+        enforce(hasReference(ref_name),
                 "Reference with name " ~ ref_name ~ " does not exist");
-        auto ref_id = cast(int)_reference_sequence_dict[ref_name];
-        return reference(ref_id);
+        if (_readers.length > 1) {
+            auto ref_id = cast(int)_reference_sequence_dict[ref_name];
+            return reference(ref_id);
+        } else {
+            auto ref_id = _readers[0][ref_name].id;
+            return reference(ref_id);
+        }
     }
 
     /// Sets buffer size for all readers (default is 1MB)
@@ -358,9 +391,9 @@ struct MultiBamReference {
         size_t _adj_bufsz;
     }
 
-    this(BamReader[] readers, SamHeaderMerger merger, 
+    this(BamReader[] readers, SamHeaderMerger merger,
          TaskPool task_pool, size_t adj_bufsize,
-         ReferenceSequenceInfo info, int ref_id) 
+         ReferenceSequenceInfo info, int ref_id)
     {
         _readers = readers;
         _merger = merger;

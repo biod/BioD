@@ -1068,7 +1068,7 @@ struct BamRead {
     }
 
     /// Associated BAM/SAM reader.
-    bio.bam.abstractreader.IBamSamReader reader() @property {
+    inout(bio.bam.abstractreader.IBamSamReader) reader() @property inout {
         return _reader;
     }
 
