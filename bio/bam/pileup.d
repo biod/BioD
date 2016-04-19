@@ -407,7 +407,9 @@ class PileupRange(R, alias TColumn=PileupColumn) {
 
         while (!_reads.empty) {
             read = _reads.front;
-            if (read.position == _column._position) {
+            if (read.ref_id == _column.ref_id &&
+                read.position == _column._position)
+            {
                 add(read);
                 ++n;
                 _reads.popFront();
