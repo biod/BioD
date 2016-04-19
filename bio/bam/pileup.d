@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012-2014    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2016    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -8,10 +8,10 @@
     the rights to use, copy, modify, merge, publish, distribute, sublicense,
     and/or sell copies of the Software, and to permit persons to whom the
     Software is furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,7 +22,7 @@
 
 */
 /// $(P This module is used for iterating over columns of alignment.)
-/// $(P The function makePileup is called on 
+/// $(P The function makePileup is called on
 /// a range of coordinate-sorted reads mapped to the same reference.
 /// It returns an input range of columns.)
 /// $(P This returned range can then be iterated with $(D foreach).
@@ -31,13 +31,13 @@
 /// $(BR)
 /// Each $(D popFront) operation advances current position on the
 /// reference. The default behaviour is to exclude sites with zero coverage
-/// from the iteration.) 
+/// from the iteration.)
 /// $(P Each column keeps set of reads that overlap corresponding position
 /// on the reference.
 /// If reads contain MD tags, and makePileup was asked
 /// to use them, reference base at the column is also available.)
 /// $(BR)
-/// Each read preserves all standard read properties 
+/// Each read preserves all standard read properties
 /// but also keeps column-related information, namely
 /// <ul>
 ///     $(LI number of bases consumed from the read sequence so far)
@@ -87,7 +87,7 @@ struct PileupRead(Read=bio.bam.read.EagerBamRead) {
     Read read; ///
     alias read this;
     private alias read _read;
-  
+
     /// Current CIGAR operation. One of 'M', '=', 'X', 'D', 'N.
     /// Use $(D cigar_after)/$(D cigar_before) to determine insertions.
     bio.bam.read.CigarOperation cigar_operation() @property const {
@@ -158,7 +158,7 @@ struct PileupRead(Read=bio.bam.read.EagerBamRead) {
         return r;
     }
 
-    private {    
+    private {
         // index of current CIGAR operation in _read.cigar
         uint _cur_op_index;
 
@@ -179,7 +179,7 @@ struct PileupRead(Read=bio.bam.read.EagerBamRead) {
             for (_cur_op_index = 0; _cur_op_index < cigar.length; ++_cur_op_index) {
                 _cur_op = cigar[_cur_op_index];
                 if (_cur_op.is_reference_consuming) {
-                    if (_cur_op.type != 'N') {     
+                    if (_cur_op.type != 'N') {
                         break;
                     }
                 } else if (_cur_op.is_query_consuming) {
@@ -221,7 +221,7 @@ struct PileupRead(Read=bio.bam.read.EagerBamRead) {
         }
 
         void assertCigarIndexIsValid() {
-            assert(_cur_op_index < _read.cigar.length, "Invalid read " ~ _read.name 
+            assert(_cur_op_index < _read.cigar.length, "Invalid read " ~ _read.name
                                                        ~ " - CIGAR " ~ _read.cigarString()
                                                        ~ ", sequence " ~ to!string(_read.sequence));
         }
@@ -308,7 +308,7 @@ class PileupRange(R, alias TColumn=PileupColumn) {
     protected {
         // This is extracted into a method not only to reduce duplication
         // (not so much of it), but to allow to override it!
-        // For that reason it is not marked as final. Overhead of virtual 
+        // For that reason it is not marked as final. Overhead of virtual
         // function is negligible compared to computations in EagerBamRead
         // constructor together with inserting new element into appender.
         void add(ref Raw read) {
@@ -367,15 +367,15 @@ class PileupRange(R, alias TColumn=PileupColumn) {
                                       // or in the loop below
 
         if (!_reads.empty) {
-            if (_reads.front.ref_id != _column._ref_id && 
+            if (_reads.front.ref_id != _column._ref_id &&
                 survived == 0) // processed all reads aligned to the previous reference
             {
                 initNewReference();
             } else {
                 size_t n = 0;
-                while (!_reads.empty && 
-                        _reads.front.position == pos && 
-                        _reads.front.ref_id == _column._ref_id) 
+                while (!_reads.empty &&
+                        _reads.front.position == pos &&
+                        _reads.front.ref_id == _column._ref_id)
                 {
                     auto read = _reads.front;
                     add(read);
@@ -387,7 +387,7 @@ class PileupRange(R, alias TColumn=PileupColumn) {
                 // handle option of skipping sites with zero coverage
                 if (survived == 0 && n == 0 && _skip_zero_coverage) {
                     // the name might be misleading but it does the trick
-                    initNewReference(); 
+                    initNewReference();
                 }
             }
         }
@@ -444,7 +444,7 @@ struct AbstractPileup(R, S) {
     }
 
     /// $(D end_at) parameter provided to a pileup function
-    ulong end_position() @property const { 
+    ulong end_position() @property const {
         return _end_position;
     }
 
@@ -516,8 +516,8 @@ auto pileupColumns(R)(R reads, bool use_md_tag=false, bool skip_zero_coverage=tr
 }
 
 /// Tracks current reference base
-final static class PileupRangeUsingMdTag(R) : 
-    PileupRange!(R, PileupColumn) 
+final static class PileupRangeUsingMdTag(R) :
+    PileupRange!(R, PileupColumn)
 {
     // The code is similar to that in reconstruct.d but here we can't make
     // an assumption about any particular read having non-zero length on reference.
@@ -531,8 +531,8 @@ final static class PileupRangeUsingMdTag(R) :
 
     // next read from which we will extract reference chunk
     //
-    // More precisely, 
-    // _next_chunk_provider = argmax (read => read.end_position) 
+    // More precisely,
+    // _next_chunk_provider = argmax (read => read.end_position)
     //                 {reads overlapping current column}
     private Read _next_chunk_provider;
 
@@ -552,7 +552,7 @@ final static class PileupRangeUsingMdTag(R) :
     alias Unqual!(ElementType!R) Raw;
 
     //  Checks length of the newly added read and tracks the read which
-    //  end position on the reference is the largest. 
+    //  end position on the reference is the largest.
     //
     //  When reconstructed reference chunk will become empty, next one will be
     //  constructed from that read. This algorithm allows to minimize the number
@@ -659,7 +659,7 @@ final static class PileupRangeUsingMdTag(R) :
 /// (One might argue that in this case it would be better to use opApply,
 /// but typically one would use $(D std.algorithm.map) on pileup columns
 /// to obtain some numeric characteristics.)
-/// 
+///
 /// Params:
 ///     use_md_tag =  if true, use MD tag together with CIGAR
 ///                   to recover reference bases
@@ -669,19 +669,19 @@ final static class PileupRangeUsingMdTag(R) :
 ///     end_at     =  position before which to stop
 ///
 /// $(BR)
-/// That is, the range of positions is half-open interval 
+/// That is, the range of positions is half-open interval
 /// $(BR)
-/// [max(start_from, first mapped read start position), 
+/// [max(start_from, first mapped read start position),
 /// $(BR)
 ///  min(end_at, last mapped end position among all reads))
 ///
 ///     skip_zero_coverage = if true, skip sites with zero coverage
 ///
-auto makePileup(R)(R reads, 
+auto makePileup(R)(R reads,
                    bool use_md_tag=false,
-                   ulong start_from=0, 
+                   ulong start_from=0,
                    ulong end_at=ulong.max,
-                   bool skip_zero_coverage=true) 
+                   bool skip_zero_coverage=true)
 {
     if (use_md_tag) {
         return pileupInstance!PileupRangeUsingMdTag(reads, start_from, end_at, skip_zero_coverage);
@@ -713,18 +713,18 @@ unittest {
                       "TCATCATCATCGTCACCCTGTGTTGAGGACAGAAGTAATTTCCCTTTCTTGGCT",
                       "TCATCATCATCATCACCACCACCACCCTGTGTTGAGGACAGAAGTAATATCCCT",
                       "CACCACCACCCTGTGTTGAGGACAGAAGTAATTTCCCTTTCTTGGCTGGTCACC"];
-    
+
 // multiple sequence alignment:
-//                                                            ***   
-// ATTATGGACATTGTTTCCGTTATCATCATCATCATCATCATCATCATTATCATC                       
-//       GACATTGTTTCCGTTATCATCATCATCATCATCATCATCATCATCATCATCAT---C                      
-//          ATTGTTTCCGTTATCATCATCATCATCATCATCATCATCATCATCATCATCACC                   
-//            TGTTTCCGTTATCATCATCATCATCATCATCATCATCATCATCATCAT---CACCAC                    
-//                TCCGTTATCATCATCATCATCATCATCATCATCATCATCATCAT---CACCACCACC                   
-//                   GTTATCATCATCATCATCATCATCATCATCATCATCATCAT---CATCGTCACCCTG                    
-//                            ATCATCATCATAATCATCATCATCATCATCAT---CATCGTCACCCTGTGTTGAG                    
+//                                                            ***
+// ATTATGGACATTGTTTCCGTTATCATCATCATCATCATCATCATCATTATCATC
+//       GACATTGTTTCCGTTATCATCATCATCATCATCATCATCATCATCATCATCAT---C
+//          ATTGTTTCCGTTATCATCATCATCATCATCATCATCATCATCATCATCATCACC
+//            TGTTTCCGTTATCATCATCATCATCATCATCATCATCATCATCATCAT---CACCAC
+//                TCCGTTATCATCATCATCATCATCATCATCATCATCATCATCAT---CACCACCACC
+//                   GTTATCATCATCATCATCATCATCATCATCATCATCATCAT---CATCGTCACCCTG
+//                            ATCATCATCATAATCATCATCATCATCATCAT---CATCGTCACCCTGTGTTGAG
 //                                      TCATCATCATCGTCAC------------------CCTGTGTTGAGGACAGAAGTAATTTCCCTTTCTTGGCT
-//                                               TCATCATCATCATCACCACCACCACCCTGTGTTGAGGACAGAAGTAATATCCCT             
+//                                               TCATCATCATCATCACCACCACCACCCTGTGTTGAGGACAGAAGTAATATCCCT
 //                                                            ---CACCACCACCCTGTGTTGAGGACAGAAGTAATTTCCCTTTCTTGGCTGGTCACC
 //   *         *         *         *         *         *            *         *        *         *
 //  760       770       780       790       800       810          820       830      840       850
@@ -742,7 +742,7 @@ unittest {
 
     auto positions = [758, 764, 767, 769, 773, 776, 785, 795, 804, 817];
 
-    auto md_tags = ["47C6", "54", "51", "50T3", "46T7", "45A0C7", "11C24A0C14", 
+    auto md_tags = ["47C6", "54", "51", "50T3", "46T7", "45A0C7", "11C24A0C14",
                     "11A3T0^CATCATCATCACCAC38", "15T29T5", "2T45T5"];
 
     BamRead[] reads = new BamRead[10];
@@ -849,7 +849,7 @@ unittest {
     reads[3]["MD"] = "54";
     reads[3].ref_id = 0;
 
-    assert(equal(dna(reads), 
+    assert(equal(dna(reads),
                  map!(c => c.reference_base)(makePileup(reads, true, 0, ulong.max, false))));
 }
 
@@ -864,7 +864,7 @@ struct PileupChunkRange(C) {
     private ulong _end_at;
 
     this(C chunks, bool use_md_tag, ulong start_from, ulong end_at) {
-        _chunks = chunks; 
+        _chunks = chunks;
         _use_md_tag = use_md_tag;
         _start_from = start_from;
         _end_at = end_at;
@@ -899,8 +899,8 @@ struct PileupChunkRange(C) {
         auto end_pos = _current_chunk[$-1].position;
         if (_chunks.empty || _chunks.front[0].ref_id != _current_chunk[$-1].ref_id)
             end_pos += _current_chunk[$-1].basesCovered();
-        
-        return makePileup(chain(_prev_chunk, _current_chunk), 
+
+        return makePileup(chain(_prev_chunk, _current_chunk),
                           _use_md_tag,
                           max(_beg, _start_from), min(end_pos, _end_at));
     }
@@ -920,7 +920,7 @@ struct PileupChunkRange(C) {
         }
 
         // if we changed reference, nullify prev_chunk
-        if (_prev_chunk.length > 0 && 
+        if (_prev_chunk.length > 0 &&
             _prev_chunk[$ - 1].ref_id == _current_chunk[0].ref_id)
         {
             _beg = _prev_chunk[$-1].position;
@@ -930,7 +930,7 @@ struct PileupChunkRange(C) {
         }
 
         // keep only those reads in _prev_chunk that have overlap with the last one
-        
+
         // 1) estimate read length
         enum sampleSize = 15;
         int[sampleSize] buf = void;
@@ -961,8 +961,8 @@ struct PileupChunkRange(C) {
         long j = _prev_chunk.length - 1;
         // positions of _prev_chunk[0 .. i] are less than pos,
         // positions of _prev_chunk[j + 1 .. $] are more or equal to pos.
-        
-        while (i <= j) { 
+
+        while (i <= j) {
             auto m = cast(size_t)(i + j) / 2;
             assert(m < _prev_chunk.length);
             auto p = _prev_chunk[m].position;
@@ -979,10 +979,10 @@ struct PileupChunkRange(C) {
 
 /// This function constructs range of non-overlapping consecutive pileups from a range of reads
 /// so that these pileups can be processed in parallel.
-/// 
+///
 /// It's allowed to pass ranges of sorted reads with different ref. IDs,
 /// they won't get mixed in any chunk.
-/// 
+///
 /// Params:
 ///   use_md_tag =   recover reference bases from MD tag and CIGAR
 ///
@@ -995,7 +995,7 @@ struct PileupChunkRange(C) {
 ///
 /// $(BR)
 /// WARNING:     block size should be big enough so that every block will share
-///              some reads only with adjacent blocks. 
+///              some reads only with adjacent blocks.
 ///              $(BR)
 ///              As such, it is not recommended to reduce the $(I block_size).
 ///              But there might be a need to increase it in case of very high coverage.
