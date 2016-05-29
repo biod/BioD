@@ -6,6 +6,7 @@ import core.stdc.errno;
 import core.stdc.string;
 import core.sys.posix.sys.select;
 import std.conv;
+import std.string : toStringz;
 
 version(Posix){
     private import core.sys.posix.unistd;
@@ -54,7 +55,7 @@ final class File: std.stream.File {
             auto file = fopen(toStringz(filename), toStringz(mode));
             if (file == null) {
                 throw new OpenException(cast(string) ("Cannot open or create file '"
-                                                      ~ filename ~ "' : ") ~ 
+                                                      ~ filename ~ "' : ") ~
                                         to!string(strerror(errno)));
             }
             super(core.stdc.stdio.fileno(file), toFileMode(mode));
@@ -95,7 +96,7 @@ final class File: std.stream.File {
           uint low = SetFilePointer(hFile, cast(int)offset, &hi, rel);
           if ((low == INVALID_SET_FILE_POINTER) && (GetLastError() != 0))
             throw new SeekException("unable to move file pointer");
-          ulong result = (cast(ulong)hi << 32) + low; 
+          ulong result = (cast(ulong)hi << 32) + low;
         } else version (Posix) {
           // Phobos casts offset to int, leading to throwing an exception
           // on large files
