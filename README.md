@@ -20,6 +20,6 @@ See the [examples directory](https://github.com/biod/BioD/tree/master/examples) 
 
 
 ##### License
-This library is licensed under the GNU GPL license. Please see the license file for more details
+This library is licensed under the MIT license. Please see the license file for more details
 
 ##### Citation

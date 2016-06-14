@@ -6,7 +6,7 @@
 	],
 	"description": "Bioinformatics library in D (utils for working with SAM, BAM, SFF formats)",
 	"copyright": "Copyright © 2016, BioD developers",
-	"license": "GPL",
+	"license": "MIT",
 	"sourcePaths": ["bio"],
 	"importPaths": ["bio"]
 }
