@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2013    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2013-2016    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -8,10 +8,10 @@
     the rights to use, copy, modify, merge, publish, distribute, sublicense,
     and/or sell copies of the Software, and to permit persons to whom the
     Software is furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -48,7 +48,7 @@ bool fillBgzfBufferFromStream(Stream stream, bool is_seekable,
 {
     if (stream.eof())
         return false;
-    
+
     ulong start_offset;
     void throwBgzfException(string msg) {
         throw new BgzfException("Error reading BGZF block starting from offset " ~
@@ -57,24 +57,23 @@ bool fillBgzfBufferFromStream(Stream stream, bool is_seekable,
 
     if (is_seekable)
         start_offset = stream.position;
-    
+
     try {
-        uint bgzf_magic = void;
-           
-        // TODO: fix byte order if needed
+        ubyte[4] bgzf_magic = void;
+
         size_t bytes_read;
-        while (bytes_read < uint.sizeof) {
-            auto buf = (cast(ubyte*)&bgzf_magic)[bytes_read .. uint.sizeof];
-            auto read_ = stream.read(buf);
+        while (bytes_read < 4) {
+            auto buf = bgzf_magic.ptr + bytes_read;
+            auto read_ = stream.read(buf[0 .. 4 - bytes_read]);
             if (read_ == 0)
                 return false;
             bytes_read += read_;
         }
 
-        if (bgzf_magic != BGZF_MAGIC) { 
+        if (bgzf_magic != BGZF_MAGIC) {
             throwBgzfException("wrong BGZF magic");
         }
-        
+
         ushort gzip_extra_length = void;
 
         if (is_seekable) {
@@ -89,7 +88,7 @@ bool fillBgzfBufferFromStream(Stream stream, bool is_seekable,
         }
 
         stream.read(gzip_extra_length);
-          
+
         ushort bsize = void; // total Block SIZE minus 1
         bool found_block_size = false;
 
@@ -99,16 +98,16 @@ bool fillBgzfBufferFromStream(Stream stream, bool is_seekable,
             ubyte si1 = void;    // Subfield Identifier1
             ubyte si2 = void;    // Subfield Identifier2
             ushort slen = void;  // Subfield LENgth
-                
-            stream.read(si1);    
-            stream.read(si2);    
-            stream.read(slen);   
 
-            if (si1 == BAM_SI1 && si2 == BAM_SI2) { 
+            stream.read(si1);
+            stream.read(si2);
+            stream.read(slen);
+
+            if (si1 == BAM_SI1 && si2 == BAM_SI2) {
                 // found 'BC' as subfield identifier
-                    
+
                 if (slen != 2) {
-                    throwBgzfException("wrong BC subfield length: " ~ 
+                    throwBgzfException("wrong BC subfield length: " ~
                                        to!string(slen) ~ "; expected 2");
                 }
 
@@ -117,7 +116,7 @@ bool fillBgzfBufferFromStream(Stream stream, bool is_seekable,
                 }
 
                 // read block size
-                stream.read(bsize); 
+                stream.read(bsize);
                 found_block_size = true;
 
                 // skip the rest
@@ -139,11 +138,11 @@ bool fillBgzfBufferFromStream(Stream stream, bool is_seekable,
             if (number_of_bytes_read !is null)
                 *number_of_bytes_read += nbytes;
             len += nbytes;
-        } 
+        }
 
         if (len != gzip_extra_length) {
-            throwBgzfException("total length of subfields in bytes (" ~ 
-                               to!string(len) ~ 
+            throwBgzfException("total length of subfields in bytes (" ~
+                               to!string(len) ~
                                ") is not equal to gzip_extra_length (" ~
                                to!string(gzip_extra_length) ~ ")");
         }
@@ -151,7 +150,7 @@ bool fillBgzfBufferFromStream(Stream stream, bool is_seekable,
         if (!found_block_size) {
             throwBgzfException("block size was not found in any subfield");
         }
-           
+
         // read compressed data
         auto cdata_size = bsize - gzip_extra_length - 19;
         if (cdata_size > BGZF_MAX_BLOCK_SIZE) {
@@ -178,7 +177,7 @@ bool fillBgzfBufferFromStream(Stream stream, bool is_seekable,
 
         if (number_of_bytes_read !is null)
             *number_of_bytes_read += 12 + cdata_size + block.crc32.sizeof + block.input_size.sizeof;
-           
+
         // version(extraVerbose) {stderr.writeln("[compressed] read block input size: ", block.input_size);}
         block._buffer = buffer[0 .. max(block.input_size, cdata_size)];
         block.start_offset = start_offset;
@@ -213,7 +212,7 @@ class StreamSupplier : BgzfBlockSupplier {
         size_t _size;
         ushort _skip_start;
     }
-    
+
     ///
     this(Stream stream, ushort skip_start=0) {
         _stream = stream;
@@ -267,7 +266,7 @@ class StreamChunksSupplier : BgzfBlockSupplier {
             }
         }
     }
-    
+
     this(Stream stream, bio.core.bgzf.chunk.Chunk[] chunks) {
         _stream = stream;
         assert(_stream.seekable);
@@ -485,7 +484,7 @@ class BgzfInputStream : Stream {
             setEOF();
             return 0;
         }
-        
+
         auto buffer = cast(ubyte*)buf;
 
         auto len = min(size, _read_buffer.length);
