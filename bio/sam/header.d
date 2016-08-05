@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012-2015    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2016    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -224,7 +224,7 @@ mixin HeaderLineStruct!("SqLine", "@SQ", "name",
           Field!("md5", "M5"),
           Field!("species", "SP"),
           Field!("uri", "UR"),
-          Field!("AlternateHaplotype", "AH"));
+          Field!("alternate_haplotype", "AH"));
 
 mixin HeaderLineStruct!("RgLine", "@RG", "identifier",
           Field!("identifier", "ID"),
