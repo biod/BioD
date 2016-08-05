@@ -223,7 +223,8 @@ mixin HeaderLineStruct!("SqLine", "@SQ", "name",
           Field!("assembly", "AS"),
           Field!("md5", "M5"),
           Field!("species", "SP"),
-          Field!("uri", "UR"));
+          Field!("uri", "UR"),
+          Field!("AlternateHaplotype", "AH"));
 
 mixin HeaderLineStruct!("RgLine", "@RG", "identifier",
           Field!("identifier", "ID"),
