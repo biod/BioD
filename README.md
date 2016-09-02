@@ -1,4 +1,4 @@
-### BioD
+### BioD [![Build Status](https://travis-ci.org/biod/BioD.svg?branch=master)](https://travis-ci.org/biod/BioD)
 
 [BioD](https://github.com/biod/BioD) is a fast and memory efficient bioinformatics library written in the [D programming language](http://dlang.org).
 BioD aims to:
@@ -20,6 +20,6 @@ See the [examples directory](https://github.com/biod/BioD/tree/master/examples) 
 
 
 ##### License
-This library is licensed under the GNU GPL license. Please see the license file for more details
+This library is licensed under the MIT license. Please see the license file for more details
 
 ##### Citation

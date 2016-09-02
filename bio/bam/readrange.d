@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012-2014    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2016    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -8,10 +8,10 @@
     the rights to use, copy, modify, merge, publish, distribute, sublicense,
     and/or sell copies of the Software, and to permit persons to whom the
     Software is furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -28,11 +28,11 @@ import bio.bam.abstractreader;
 import bio.bam.reader;
 import bio.core.bgzf.inputstream;
 import bio.core.bgzf.virtualoffset;
-import bio.core.utils.switchendianness;
 
 import std.stream;
 import std.algorithm;
 import std.system;
+import std.bitmanip;
 
 /// Read + its start/end virtual offsets
 struct BamReadBlock {
@@ -54,7 +54,7 @@ mixin template withOffsets() {
                  plus the current read itself.
      */
     BamReadBlock front() @property {
-        return BamReadBlock(_start_voffset, 
+        return BamReadBlock(_start_voffset,
                             _stream.virtualTell(),
                             _current_record);
     }
@@ -79,8 +79,8 @@ mixin template withoutOffsets() {
 }
 
 /// $(D front) return type is determined by $(I IteratePolicy)
-struct BamReadRange(alias IteratePolicy) 
-{ 
+struct BamReadRange(alias IteratePolicy)
+{
     /// Create new range from BgzfInputStream.
     this(BgzfInputStream stream, BamReader reader=null) {
         _stream = stream;
@@ -95,7 +95,7 @@ struct BamReadRange(alias IteratePolicy)
     }
 
     mixin IteratePolicy;
-   
+
     ///
     void popFront() {
         readNext();
@@ -126,21 +126,18 @@ private:
             _empty = true;
             return;
         }
-     
+
         // In order to get the right virtual offset, we need to do it here.
         version(extraVerbose) {
             // import std.stdio; stderr.writeln("record v.o. = ", _stream.virtualTell());
         }
         beforeNextBamReadLoad();
 
-        // (FIXME: that won't work on Big Endian systems!)
-        
         // Here's where _empty is really set!
-        int block_size = void;
-        ubyte* ptr = cast(ubyte*)(&block_size);
+        ubyte[int.sizeof] tmp = void;
         auto _read = 0;
         while (_read < int.sizeof) {
-            auto _actually_read = _endian_stream.readBlock(ptr, int.sizeof - _read);
+            auto _actually_read = _endian_stream.readBlock(tmp.ptr + _read, int.sizeof - _read);
             if (_actually_read == 0) {
                 version(development) {
                     import std.stdio;
@@ -150,16 +147,13 @@ private:
                 return;
             }
             _read += _actually_read;
-            ptr += _actually_read;
-        } 
+        }
+
+        int block_size = littleEndianToNative!int(tmp);
 
         version(extraVerbose) {
             import std.stdio;
             stderr.writeln("[uncompressed] record size: ", block_size);
-        }
-
-        if (std.system.endian != Endian.littleEndian) {
-            switchEndianness(&block_size, int.sizeof);
         }
 
         ubyte[] data = void;

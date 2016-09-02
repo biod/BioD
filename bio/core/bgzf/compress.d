@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012-2014    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2016    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -8,10 +8,10 @@
     the rights to use, copy, modify, merge, publish, distribute, sublicense,
     and/or sell copies of the Software, and to permit persons to whom the
     Software is furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -28,20 +28,20 @@ import bio.core.utils.zlib;
 
 import std.array;
 import std.system;
-import core.bitop;
+import std.bitmanip: nativeToLittleEndian;
 
 /// Returns BGZF block containing compressed $(D chunk).
 /// If $(D buffer) is provided, it will be used for storing the block.
 ///
-/// Params: 
+/// Params:
 ///         chunk =  chunk of memory to be compressed
 ///         level =  compression level, see zlib documentation
 ///         buffer = optional buffer which will be used for storing
 ///                  decompressed data
 ///
 /// For uncompressed BAM output, use level = 0.
-ubyte[] bgzfCompress(ubyte[] chunk, int level=-1, ubyte[] buffer=null) 
-in 
+ubyte[] bgzfCompress(ubyte[] chunk, int level=-1, ubyte[] buffer=null)
+in
 {
     assert(-1 <= level && level <= 9);
 }
@@ -70,9 +70,9 @@ body
     zs.avail_out = cast(int)(buffer.length - BLOCK_HEADER_LENGTH - BLOCK_FOOTER_LENGTH);
 
     auto err = bio.core.utils.zlib.deflateInit2(&zs, /* compression level */ level,
-                                            /* deflated compression method */ Z_DEFLATED, 
-                                            /* winbits (no header) */ -15, 
-                                            /* memory usage level (default) */ 8, 
+                                            /* deflated compression method */ Z_DEFLATED,
+                                            /* winbits (no header) */ -15,
+                                            /* memory usage level (default) */ 8,
                                             /* default compression strategy */ Z_DEFAULT_STRATEGY);
     if (err != Z_OK) {
         throw new ZlibException("deflateInit2", err);
@@ -94,20 +94,10 @@ body
     // Write (block length - 1) in BC subfield.
     // Why -1? To fit the value into 2 bytes (it's assumed to be in range 1-65536).
     ushort len = cast(ushort)(buffer.length - 1);
-    buffer[BLOCK_HEADER_LENGTH - 2] = len & 0xFF;         // little endian
-    buffer[BLOCK_HEADER_LENGTH - 1] = len >> 8;
+    buffer[BLOCK_HEADER_LENGTH - 2 .. $][0 .. 2] = nativeToLittleEndian(len);
 
     // Write the footer
-    *(cast(uint*)(buffer.ptr + buffer.length - 8)) = crc32(0, chunk);
-    *(cast(uint*)(buffer.ptr + buffer.length - 4)) = cast(uint)chunk.length;
-
-    uint* ptr;
-    if (std.system.endian != Endian.littleEndian) {
-        ptr = cast(uint*)(buffer.ptr + buffer.length - 8);
-        *ptr = bswap(*ptr);
-        ptr = cast(uint*)(buffer.ptr + buffer.length - 4);
-        *ptr = bswap(*ptr);
-    }
-
+    buffer[$ - 8 .. $ - 4] = nativeToLittleEndian(crc32(0, chunk));
+    buffer[$- 4 .. $] = nativeToLittleEndian(cast(uint)chunk.length);
     return buffer;
 }

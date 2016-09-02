@@ -8,10 +8,10 @@
     the rights to use, copy, modify, merge, publish, distribute, sublicense,
     and/or sell copies of the Software, and to permit persons to whom the
     Software is furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -32,7 +32,6 @@ import bio.bam.readrange;
 import bio.core.bgzf.outputstream;
 import bio.core.bgzf.virtualoffset;
 import bio.core.utils.stream;
-import bio.core.utils.switchendianness;
 
 import std.parallelism;
 import std.exception;
@@ -41,6 +40,7 @@ import std.traits;
 import std.system;
 import std.algorithm;
 import std.array;
+import std.bitmanip;
 
 /** Class for outputting BAM.
     $(BR)
@@ -73,12 +73,12 @@ final class BamWriter {
     ///     compression_level  = compression level, must be in range -1..9
     ///     task_pool          = task pool to use for parallel compression
     ///     buffer_size        = size of BgzfOutputStream buffer
-    this(std.stream.Stream stream, 
+    this(std.stream.Stream stream,
          int compression_level=-1,
          std.parallelism.TaskPool task_pool=std.parallelism.taskPool,
-         size_t buffer_size=0) 
+         size_t buffer_size=0)
     {
-        _stream = new BgzfOutputStream(stream, compression_level, 
+        _stream = new BgzfOutputStream(stream, compression_level,
                                        task_pool, buffer_size);
         _stream.setWriteHandler((ubyte[] uncompressed, ubyte[] compressed) {
             _bytes_written += compressed.length;
@@ -120,13 +120,8 @@ final class BamWriter {
 
     package void writeInteger(T)(T integer) if (isIntegral!T)
     {
-        T num = integer;
-        static if (T.sizeof != 1) {
-            if (std.system.endian != Endian.littleEndian) {
-                switchEndianness(&num, T.sizeof);
-            }
-        }
-        _stream.writeExact(&num, T.sizeof);
+        ubyte[T.sizeof] buf = nativeToLittleEndian(integer);
+        _stream.writeExact(buf.ptr, buf.length);
     }
 
     private {

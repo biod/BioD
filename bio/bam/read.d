@@ -71,6 +71,7 @@ import std.exception;
 import std.system;
 import std.traits;
 import std.array;
+import std.bitmanip;
 import std.c.stdlib;
 
 /**
@@ -704,7 +705,7 @@ struct BamRead {
     /*
       Constructs the struct from memory chunk
       */
-    this(ubyte[] chunk) {
+    this(ubyte[] chunk, bool fix_byte_order=true) {
 
         // Switching endianness lazily is not a good idea:
         //
@@ -720,7 +721,7 @@ struct BamRead {
         _chunk = chunk;
         this._is_slice = true;
 
-        if (std.system.endian != Endian.littleEndian) {
+        if (fix_byte_order && std.system.endian != Endian.littleEndian) {
             switchChunkEndianness();
 
             // Dealing with tags is the responsibility of TagStorage.
