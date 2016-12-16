@@ -1579,6 +1579,7 @@ unittest {
 
     {
     import std.typecons;
+    static import bio.bam.thirdparty.msgpack;
     auto packer = bio.bam.thirdparty.msgpack.packer(Appender!(ubyte[])());
     read.toMsgpack(packer);
     auto data = packer.stream.data;

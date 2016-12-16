@@ -344,7 +344,7 @@ struct PackerImpl(Stream) if (isOutputRange!(Stream, ubyte) && isOutputRange!(St
      * Params:
      *  withFieldName = serialize class / struct with field name
      */
-    this(bool withFieldName = false)
+    this(bool withFieldName)
     {
         withFieldName_ = withFieldName;
     }
@@ -3145,7 +3145,7 @@ struct Value
      *  type  = the type of value.
      */
     @safe
-    this(Type type = Type.nil)
+    this(Type type)
     {
         this.type = type;
     }
@@ -3617,7 +3617,7 @@ struct Value
                         ret ^= value.toHash();
                     }
                     return ret;
-                } catch assert(0);
+                } catch (Exception) assert(0);
         }
     }
 }
@@ -4656,7 +4656,7 @@ mixin template MessagePackable(Members...)
             if (withFieldName) {
                 packer.beginMap(this.tupleof.length);
                 foreach (i, member; this.tupleof) {
-                    pack(getFieldName!(typeof(this), i));
+                    packer.pack(getFieldName!(typeof(this), i));
                     packer.pack(member);
                 }
             } else {

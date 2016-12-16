@@ -50,6 +50,7 @@ import std.traits;
 import std.exception;
 import std.container;
 import std.parallelism;
+static import std.file;
 
 debug {
     import std.stdio;

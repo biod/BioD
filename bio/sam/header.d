@@ -707,7 +707,7 @@ class SamHeader {
 
         JSONValue json;
         json.object = result;
-        sink.write(toJSON(&json));
+        sink.write(toJSON(json));
     }
 
     /// Packs message in the following format:

@@ -11,5 +11,6 @@
 	"importPaths": ["bio"],
     "dependencies": {
         "undead": "~>1.0.6"
-    }
+    },
+    "buildRequirements": ["allowWarnings"]
 }

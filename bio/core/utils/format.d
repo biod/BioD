@@ -36,6 +36,7 @@ module bio.core.utils.format;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
+static import core.stdc.string;
 import std.string;
 import std.traits;
 import std.array;

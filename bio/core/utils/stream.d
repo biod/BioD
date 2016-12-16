@@ -135,7 +135,6 @@ final class File: undead.stream.File {
                         if (ret <= 0) {
                             size = 0;
                             throw new ReadException("read timeout");
-                            break;
                         }
                     } else {
                         throw new ReadException(to!string(strerror(errno)));
