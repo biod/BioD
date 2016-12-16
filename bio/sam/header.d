@@ -707,7 +707,10 @@ class SamHeader {
 
         JSONValue json;
         json.object = result;
-        sink.write(toJSON(json));
+        static if (__VERSION__ < 2072)
+            sink.write(toJSON(&json));
+        else
+            sink.write(toJSON(json));
     }
 
     /// Packs message in the following format:
