@@ -93,7 +93,7 @@ class OutBuffer {
     /// Responsibility that there's enough capacity is on the user
     void putUnsafe(T)(T bytes) if (is(T == ubyte[])) {
         _heap_ptr[_heap_used .. _heap_used + bytes.length] = bytes[];
-        _heap_used += bytes.length;;
+        _heap_used += bytes.length;
     }
 
     /// ditto

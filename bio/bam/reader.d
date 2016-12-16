@@ -94,8 +94,8 @@ class BamReader : IBamSamReader {
       }
       -------------------------------------------
      */
-    this(std.stream.Stream stream, 
-         std.parallelism.TaskPool task_pool = std.parallelism.taskPool) {
+    this(undead.stream.Stream stream,
+         TaskPool task_pool = taskPool) {
         _source_stream = new EndianStream(stream, Endian.littleEndian);
         _task_pool = task_pool;
 

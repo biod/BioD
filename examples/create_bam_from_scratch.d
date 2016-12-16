@@ -3,7 +3,7 @@
 // this example shows how to create BAM files from scratch
 import bio.bam.read, bio.bam.referenceinfo, bio.sam.header;
 import bio.bam.reader, bio.bam.writer;
-import std.stream, std.stdio;
+import undead.stream, std.stdio;
 
 void main() {
     auto header = new SamHeader(); // First, create SAM header 

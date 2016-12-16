@@ -1,3 +1,9 @@
 language: d
-script:
-- rdmd -unittest -d test/unittests.d
+
+os:
+  - linux
+  - osx
+
+d:
+  - dmd
+  - ldc

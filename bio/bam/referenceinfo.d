@@ -23,7 +23,7 @@
 */
 module bio.bam.referenceinfo;
 
-import std.stream;
+import undead.stream;
 import std.exception;
 import std.array;
 

@@ -296,7 +296,7 @@ string injectOpCast() {
     }
 
     cs ~= `(is(T == string)) {` ~
-          `  if (is_string) {`
+          `  if (is_string) {` ~
           `    return bam_typeid == 'Z' ? u.Z : u.H;`~
           `  } else if (is_integer || is_float || is_character) {`~
           `    `~injectSwitchPrimitive("string")~

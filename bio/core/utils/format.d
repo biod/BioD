@@ -34,8 +34,9 @@
  */
 module bio.core.utils.format;
 
-import std.c.stdio;
-import std.c.stdlib;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+static import core.stdc.string;
 import std.string;
 import std.traits;
 import std.array;
@@ -161,7 +162,7 @@ private {
         if (isSomeString!T)
     {
         auto str = cast(const(char)[])s;
-        std.c.string.memcpy(sink, str.ptr, str.length);
+        core.stdc.string.memcpy(sink, str.ptr, str.length);
         sink += str.length;
     }
 

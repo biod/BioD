@@ -30,12 +30,12 @@ import bio.bam.constants;
 import bio.bam.bai.bin;
 import bio.core.bgzf.chunk;
 
-import std.stream;
+import undead.stream;
 import std.array;
 import std.algorithm;
 import std.system;
 import std.exception;
-import std.c.string;
+import core.stdc.string;
 
 // Suppose we have an alignment which covers bases on a reference,
 // starting from one position and ending at another position.

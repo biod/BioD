@@ -8,10 +8,10 @@
     the rights to use, copy, modify, merge, publish, distribute, sublicense,
     and/or sell copies of the Software, and to permit persons to whom the
     Software is furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -117,7 +117,7 @@ private {
     mixin template toSamMethod(string line_prefix, Field...) {
         void toSam(Sink)(auto ref Sink sink) const if (isSomeSink!Sink) {
             sink.write(line_prefix);
-            mixin(serializeFields!Field());    
+            mixin(serializeFields!Field());
         }
     }
 
@@ -132,9 +132,9 @@ private {
 
     mixin template toHashMethod(string struct_name, string id_field, Field...) {
         static if (id_field != null) {
-            hash_t toHash() const {
+            hash_t toHash() const nothrow @safe{
                 hash_t result = 1;
-                mixin(generateHashExpression!Field());    
+                mixin(generateHashExpression!Field());
                 return result;
             }
 
@@ -195,12 +195,12 @@ private {
         }
     }
 
-    mixin template HeaderLineStruct(string struct_name, 
+    mixin template HeaderLineStruct(string struct_name,
                                     string line_prefix,
                                     string id_field,
-                                    Field...) 
+                                    Field...)
     {
-         mixin(`struct `~struct_name~`{ 
+         mixin(`struct `~struct_name~`{
                     mixin structFields!Field;
                     mixin parseStaticMethod!(struct_name, Field);
                     mixin toSamMethod!(line_prefix, Field);
@@ -359,7 +359,7 @@ class HeaderLineDictionary(T) {
             _index_to_id.length = _index_to_id.length - 1;
 
             _dict.remove(id);
-            _id_to_index.remove(id); 
+            _id_to_index.remove(id);
 
             return true;
         }
@@ -484,7 +484,7 @@ class SamHeader {
                     try {
                         sorting_order = to!SortingOrder(header_line.sorting_order);
                     } catch (ConvException e) {
-                        sorting_order = SortingOrder.unknown; 
+                        sorting_order = SortingOrder.unknown;
                         // FIXME: should we do that silently?
                     }
                 } else {
@@ -536,14 +536,14 @@ class SamHeader {
 
         core.memory.GC.enable();
     }
-       
+
     /// Format version
     string format_version;
 
     /// Sorting order
     SortingOrder sorting_order = SortingOrder.unknown;
 
-    /// Dictionary of @SQ lines. 
+    /// Dictionary of @SQ lines.
     /// Removal is not allowed, you can only replace the whole dictionary.
     SqLineDictionary sequences() @property {
         if (_sequences is null)
@@ -624,7 +624,7 @@ class SamHeader {
             sink.write(to!string(sorting_order));
         }
         sink.write('\n');
-       
+
         for (size_t i = 0; i < sequences.length; i++) {
             auto sq_line = getSequence(i);
             sq_line.toSam(sink);
@@ -707,13 +707,16 @@ class SamHeader {
 
         JSONValue json;
         json.object = result;
-        sink.write(toJSON(&json));
+        static if (__VERSION__ < 2072)
+            sink.write(toJSON(&json));
+        else
+            sink.write(toJSON(json));
     }
 
     /// Packs message in the following format:
     /// $(BR)
     /// MsgPack array with elements
-    ///   $(OL 
+    ///   $(OL
     ///     $(LI format version - string)
     ///     $(LI sorting order - string)
     ///     $(LI @SQ lines - array of dictionaries)
@@ -789,7 +792,7 @@ unittest {
     dict["zzz"] = zzz;
     header.sequences = dict;
 
-    assert(header.text == 
+    assert(header.text ==
       "@HD\tVN:1.4\tSO:coordinate\n@SQ\tSN:yay\tLN:111\n@SQ\tSN:zzz\tLN:222\tUR:ftp://nyan.cat\n");
     assert(header.sequences == dict);
 
