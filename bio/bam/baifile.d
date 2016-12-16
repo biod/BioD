@@ -28,7 +28,7 @@ public import bio.bam.bai.bin;
 import bio.core.bgzf.virtualoffset;
 import bio.bam.constants;
 
-import std.stream;
+import undead.stream;
 import std.system;
 import std.exception;
 import std.algorithm;

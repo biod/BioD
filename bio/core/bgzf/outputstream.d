@@ -28,7 +28,7 @@ import bio.core.bgzf.compress;
 
 import bio.core.utils.roundbuf;
 
-import std.stream;
+import undead.stream;
 import std.exception;
 import std.parallelism;
 import std.array;

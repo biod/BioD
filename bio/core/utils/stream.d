@@ -1,6 +1,6 @@
 module bio.core.utils.stream;
 
-public import std.stream;
+public import undead.stream;
 import core.stdc.stdio;
 import core.stdc.errno;
 import core.stdc.string;
@@ -48,7 +48,7 @@ FileMode toFileMode(string mode) {
     return result;
 }
 
-final class File: std.stream.File {
+final class File: undead.stream.File {
     this(string filename, string mode="rb") {
         version (Posix) {
             // Issue 8528 workaround

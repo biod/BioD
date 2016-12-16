@@ -30,7 +30,7 @@ import bio.core.bgzf.chunk;
 import bio.bam.constants;
 import bio.core.utils.roundbuf;
 
-import std.stream;
+import undead.stream;
 import std.exception;
 import std.conv;
 import std.parallelism;

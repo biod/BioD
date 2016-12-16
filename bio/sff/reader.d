@@ -29,7 +29,7 @@ import bio.sff.readrange;
 import bio.sff.constants;
 
 import bio.core.utils.stream;
-import std.stream;
+import undead.stream;
 import std.system;
 import std.range;
 import std.exception;

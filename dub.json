@@ -8,5 +8,8 @@
 	"copyright": "Copyright © 2016, BioD developers",
 	"license": "MIT",
 	"sourcePaths": ["bio"],
-	"importPaths": ["bio"]
+	"importPaths": ["bio"],
+    "dependencies": {
+        "undead": "~>1.0.6"
+    }
 }

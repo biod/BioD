@@ -49,7 +49,7 @@ import bio.core.utils.roundbuf;
 import std.path;
 import std.range;
 import std.stdio;
-import std.stream;
+import undead.stream;
 import std.algorithm;
 import std.array;
 import std.conv;
