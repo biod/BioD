@@ -15,7 +15,7 @@ version(Posix){
 version(Windows) {
     private import std.file;
     private import std.utf;
-    private import std.c.windows.windows;
+    private import core.stdc.windows.windows;
     extern (Windows) {
         DWORD GetFileType(HANDLE hFile);
     }

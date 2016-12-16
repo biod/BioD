@@ -6,7 +6,7 @@ module bio.core.utils.bylinefast;
 
 import std.stdio;
 import std.string: indexOf;
-import std.c.string: memmove;
+import core.stdc.string: memmove;
 
 /**
    Reads by line in an efficient way (10 times faster than File.byLine from std.stdio).

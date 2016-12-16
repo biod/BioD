@@ -35,7 +35,7 @@ import std.array;
 import std.algorithm;
 import std.system;
 import std.exception;
-import std.c.string;
+import core.stdc.string;
 
 // Suppose we have an alignment which covers bases on a reference,
 // starting from one position and ending at another position.

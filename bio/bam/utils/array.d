@@ -23,7 +23,7 @@
 */
 module bio.bam.utils.array;
 
-import std.c.string;
+import core.stdc.string;
 import std.traits;
 
 /// Modifies array in-place so that $(D slice) is replaced by

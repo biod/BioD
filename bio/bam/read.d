@@ -72,7 +72,7 @@ import std.system;
 import std.traits;
 import std.array;
 import std.bitmanip;
-import std.c.stdlib;
+import core.stdc.stdlib;
 
 /**
   Represents single CIGAR operation

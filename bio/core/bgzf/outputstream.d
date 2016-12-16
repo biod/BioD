@@ -34,7 +34,7 @@ import std.parallelism;
 import std.array;
 import std.algorithm : max;
 import std.typecons;
-import std.c.stdlib;
+import core.stdc.stdlib;
 
 alias void delegate(ubyte[], ubyte[]) BlockWriteHandler;
 
@@ -88,7 +88,7 @@ class BgzfOutputStream : Stream {
 
         // 1 extra block to which we can write while n_tasks are executed
         auto comp_buf_size = (2 * n_tasks + 2) * max_block_size;
-        auto p = cast(ubyte*)std.c.stdlib.malloc(comp_buf_size);
+        auto p = cast(ubyte*)core.stdc.stdlib.malloc(comp_buf_size);
         _compression_buffer = p[0 .. comp_buf_size];
         _buffer = _compression_buffer[0 .. block_size];
         _tmp = _compression_buffer[max_block_size .. max_block_size * 2];
@@ -210,7 +210,7 @@ class BgzfOutputStream : Stream {
         _stream.close();
 
         writeable = false;
-        std.c.stdlib.free(_compression_buffer.ptr);
+        core.stdc.stdlib.free(_compression_buffer.ptr);
     }
 
     /// Adds EOF block. This function is called in close() method.

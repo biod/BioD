@@ -59,7 +59,7 @@ else
 // for Converting Endian using ntohs and ntohl;
 version(Windows)
 {
-    import std.c.windows.winsock;
+    import core.stdc.windows.winsock;
 }
 else
 {
@@ -82,7 +82,7 @@ static if (real.sizeof == double.sizeof) {
     import std.numeric;
 }
 
-version(unittest) import std.file, std.c.string;
+version(unittest) import std.file, core.stdc.string;
 
 
 @trusted:
