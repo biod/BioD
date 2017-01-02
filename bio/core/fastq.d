@@ -1,28 +1,34 @@
 /*
-    This file is part of BioD.
-    Copyright (C) 2016   George Githinji <biorelated@gmail.com>
-    Permission is hereby granted, free of charge, to any person obtaining a
-    copy of this software and associated documentation files (the "Software"),
-    to deal in the Software without restriction, including without limitation
-    the rights to use, copy, modify, merge, publish, distribute, sublicense,
-    and/or sell copies of the Software, and to permit persons to whom the
-    Software is furnished to do so, subject to the following conditions:
+   This file is part of BioD.
+   Copyright (C) 2016   George Githinji <biorelated@gmail.com>
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the "Software"),
+   to deal in the Software without restriction, including without limitation
+   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in
-    all copies or substantial portions of the Software.
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-    DEALINGS IN THE SOFTWARE.
-*/
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+ */
+
+/*
+   This work is based from a question I posted on forums.dlang.org.
+   I have bundled the answer as a module to support parsing fastq files with D.
+   Credit should go to rikki cattermole.
+ */
 
 module bio.core.fastq;
 
-struct FastQRecord {
+struct FastqRecord {
     const(char)[] id;
     const(char)[] seq;
     const(char)[] qual;
@@ -31,7 +37,7 @@ struct FastQRecord {
         struct Result {
             private {
                 const(char)[] source;
-                FastQRecord value;
+                FastqRecord value;
                 bool isEmpty;
             }
 
@@ -41,7 +47,7 @@ struct FastQRecord {
             }
 
             @property {
-                FastQRecord front() {
+                FastqRecord front() {
                     return value;
                 }
 
@@ -138,7 +144,7 @@ unittest {
         !''*((((***+))%%%++)(%%%%).1***-+*''))**55CCF>>>>>>CCCCCCC65
         """[1 .. $];
 
-    foreach(record; FastQRecord.read(input)) {
+    foreach(record; FastqRecord.read(input)) {
         import std.stdio;
         writeln(record);
     }
