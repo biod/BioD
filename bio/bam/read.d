@@ -72,7 +72,7 @@ import std.system;
 import std.traits;
 import std.array;
 import std.bitmanip;
-import std.c.stdlib;
+import core.stdc.stdlib;
 
 /**
   Represents single CIGAR operation
@@ -1579,6 +1579,7 @@ unittest {
 
     {
     import std.typecons;
+    static import bio.bam.thirdparty.msgpack;
     auto packer = bio.bam.thirdparty.msgpack.packer(Appender!(ubyte[])());
     read.toMsgpack(packer);
     auto data = packer.stream.data;

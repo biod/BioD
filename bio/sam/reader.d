@@ -49,7 +49,7 @@ import std.typecons;
 import std.parallelism;
 import std.process;
 import std.exception;
-import std.c.string;
+import core.stdc.string;
 
 BamRead _parseSamRecord(Tuple!(char[], SamReader, OutBuffer) t) {
     auto r = parseAlignmentLine(cast(string)t[0], t[1]._header, t[2]);

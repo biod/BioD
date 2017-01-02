@@ -864,6 +864,11 @@ struct PileupChunkRange(C) {
     private bool _use_md_tag;
     private ulong _start_from;
     private ulong _end_at;
+    private int _chunk_right_end;
+
+    private int computeRightEnd(ref ElementType!C chunk) {
+        return chunk.map!(r => r.position + r.basesCovered()).reduce!max;
+    }
 
     this(C chunks, bool use_md_tag, ulong start_from, ulong end_at) {
         _chunks = chunks;
@@ -885,10 +890,9 @@ struct PileupChunkRange(C) {
                     break;
                 }
 
-                auto last_read = _current_chunk[$-1];
-                if (last_read.position + last_read.basesCovered() > start_from) {
+                _chunk_right_end = computeRightEnd(_current_chunk);
+                if (_chunk_right_end > start_from)
                     break;
-                }
             }
         }
     }
@@ -900,7 +904,7 @@ struct PileupChunkRange(C) {
     auto front() @property {
         auto end_pos = _current_chunk[$-1].position;
         if (_chunks.empty || _chunks.front[0].ref_id != _current_chunk[$-1].ref_id)
-            end_pos += _current_chunk[$-1].basesCovered();
+            end_pos = _chunk_right_end;
 
         return makePileup(chain(_prev_chunk, _current_chunk),
                           _use_md_tag,
@@ -920,6 +924,8 @@ struct PileupChunkRange(C) {
 
             if (_current_chunk[0].ref_id >= 0) break;
         }
+
+        _chunk_right_end = computeRightEnd(_current_chunk);
 
         // if we changed reference, nullify prev_chunk
         if (_prev_chunk.length > 0 &&

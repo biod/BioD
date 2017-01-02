@@ -47,7 +47,7 @@ import bio.bam.region;
 import bio.bam.randomaccessmanager;
 import bio.core.bgzf.virtualoffset;
 
-import std.stream;
+import undead.stream;
 import std.exception;
 import std.array;
 

@@ -1,5 +1,5 @@
 /**
-  (Almost) a copy-paste from std/stream.d
+  (Almost) a copy-paste from undead.stream.d
 */
 module bio.core.utils.switchendianness;
 

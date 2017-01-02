@@ -1,6 +1,6 @@
 module bio.core.utils.stream;
 
-public import std.stream;
+public import undead.stream;
 import core.stdc.stdio;
 import core.stdc.errno;
 import core.stdc.string;
@@ -15,7 +15,7 @@ version(Posix){
 version(Windows) {
     private import std.file;
     private import std.utf;
-    private import std.c.windows.windows;
+    private import core.stdc.windows.windows;
     extern (Windows) {
         DWORD GetFileType(HANDLE hFile);
     }
@@ -48,7 +48,7 @@ FileMode toFileMode(string mode) {
     return result;
 }
 
-final class File: std.stream.File {
+final class File: undead.stream.File {
     this(string filename, string mode="rb") {
         version (Posix) {
             // Issue 8528 workaround
@@ -135,7 +135,6 @@ final class File: std.stream.File {
                         if (ret <= 0) {
                             size = 0;
                             throw new ReadException("read timeout");
-                            break;
                         }
                     } else {
                         throw new ReadException(to!string(strerror(errno)));

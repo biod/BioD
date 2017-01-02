@@ -5,7 +5,7 @@ module bio.bam.snpcallers.maq;
  */
 
 import core.stdc.math;
-import std.math : LN2, LN10, isnan;
+import std.math : LN2, LN10, isNaN;
 import std.traits;
 import std.range;
 import std.algorithm;
