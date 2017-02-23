@@ -8,10 +8,10 @@
     the rights to use, copy, modify, merge, publish, distribute, sublicense,
     and/or sell copies of the Software, and to permit persons to whom the
     Software is furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,7 +31,7 @@
 /// ...
 /// assert(!read.is_unmapped);              // check flag
 /// assert(read.ref_id != -1);              // access field
-/// 
+///
 /// int edit_distance = to!int(read["NM"]); // access tag
 /// read["NM"] = 0;                         // modify tag
 /// read["NM"] = null;                      // remove tag
@@ -82,14 +82,14 @@ struct CigarOperation {
     /*
         WARNING!
 
-      It is very essential that the size of 
+      It is very essential that the size of
       this struct is EXACTLY equal to uint.sizeof!
 
       The reason is to avoid copying of arrays during alignment parsing.
 
       Namely, when some_pointer points to raw cigar data,
       we can just do a cast. This allows to access those data
-      directly, not doing any memory allocations. 
+      directly, not doing any memory allocations.
     */
 
     private uint raw; // raw data from BAM
@@ -121,7 +121,7 @@ struct CigarOperation {
     uint length() @property const nothrow {
         return raw >> 4;
     }
-  
+
     /// CIGAR operation as one of MIDNSHP=X.
     /// Absent or invalid operation is represented by '?'
     char type() @property const nothrow {
@@ -153,7 +153,7 @@ struct CigarOperation {
         return ((raw & 0xF) >> 1) == 2; // 4 or 5
     }
 
-    private void toSam(Sink)(auto ref Sink sink) const 
+    private void toSam(Sink)(auto ref Sink sink) const
         if (isSomeSink!Sink)
     {
         sink.write(length);
@@ -170,7 +170,7 @@ struct CigarOperation {
 struct ExtendedCigarRange(CigarOpRange, MdOpRange) {
     static assert(isInputRange!CigarOpRange && is(Unqual!(ElementType!CigarOpRange) == CigarOperation));
     static assert(isInputRange!MdOpRange && is(Unqual!(ElementType!MdOpRange) == MdOperation));
-  
+
     private {
         CigarOpRange _cigar;
         MdOpRange _md_ops;
@@ -199,7 +199,7 @@ struct ExtendedCigarRange(CigarOpRange, MdOpRange) {
             import std.stdio;
             writeln(_front_cigar_op, " - ", _front_md_op);
         }
-        
+
         if (_front_cigar_op.type != 'M')
             return _front_cigar_op;
 
@@ -208,7 +208,7 @@ struct ExtendedCigarRange(CigarOpRange, MdOpRange) {
             uint len = min(_front_md_op.match, _front_cigar_op.length);
             return CigarOperation(len, '=');
         }
-    
+
         assert(_front_md_op.is_mismatch);
         return CigarOperation(min(_n_mismatches, _front_cigar_op.length), 'X');
     }
@@ -237,7 +237,7 @@ struct ExtendedCigarRange(CigarOpRange, MdOpRange) {
         auto len = _front_cigar_op.length;
         if (_n_mismatches > 0) {
             enforce(_front_md_op.is_mismatch);
-      
+
             if (len > _n_mismatches) {
                 _front_cigar_op = CigarOperation(len - _n_mismatches, 'M');
                 _n_mismatches = 0;
@@ -252,7 +252,7 @@ struct ExtendedCigarRange(CigarOpRange, MdOpRange) {
         } else {
             enforce(_front_md_op.is_match);
             auto n_matches = _front_md_op.match;
-      
+
             if (len > n_matches) {
                 _front_cigar_op = CigarOperation(len - n_matches, 'M');
                 fetchNextMdOp();
@@ -265,14 +265,14 @@ struct ExtendedCigarRange(CigarOpRange, MdOpRange) {
             }
         }
     }
-  
+
     private {
         void fetchNextCigarOp() {
             if (_cigar.empty) {
                 _empty = true;
                 return;
             }
-        
+
             _front_cigar_op = _cigar.front;
             _cigar.popFront();
         }
@@ -282,7 +282,7 @@ struct ExtendedCigarRange(CigarOpRange, MdOpRange) {
                 return;
 
             _n_mismatches = 0;
-      
+
             _front_md_op = _md_ops.front;
             _md_ops.popFront();
 
@@ -301,7 +301,7 @@ auto makeExtendedCigar(CigarOpRange, MdOpRange)(CigarOpRange cigar, MdOpRange md
     return ExtendedCigarRange!(CigarOpRange, MdOpRange)(cigar, md_ops);
 }
 
-/** 
+/**
   BAM record representation.
 */
 struct BamRead {
@@ -377,42 +377,42 @@ struct BamRead {
     /// Next segment in the template unmapped
     @property bool mate_is_unmapped()         const nothrow { return cast(bool)(flag & 0x8); }
     /// ditto
-    @property void mate_is_unmapped(bool b)         { _setFlag( 3, b); } 
+    @property void mate_is_unmapped(bool b)         { _setFlag( 3, b); }
 
     /// Sequence being reverse complemented
     @property bool is_reverse_strand()        const nothrow { return cast(bool)(flag & 0x10); }
     /// ditto
-    @property void is_reverse_strand(bool b)        { _setFlag( 4, b); } 
+    @property void is_reverse_strand(bool b)        { _setFlag( 4, b); }
 
     /// Sequence of the next segment in the template being reversed
     @property bool mate_is_reverse_strand()   const nothrow { return cast(bool)(flag & 0x20); }
     /// ditto
-    @property void mate_is_reverse_strand(bool b)   { _setFlag( 5, b); } 
+    @property void mate_is_reverse_strand(bool b)   { _setFlag( 5, b); }
 
     /// The first segment in the template
     @property bool is_first_of_pair()         const nothrow { return cast(bool)(flag & 0x40); }
     /// ditto
-    @property void is_first_of_pair(bool b)         { _setFlag( 6, b); } 
+    @property void is_first_of_pair(bool b)         { _setFlag( 6, b); }
 
     /// The last segment in the template
     @property bool is_second_of_pair()        const nothrow { return cast(bool)(flag & 0x80); }
     /// ditto
-    @property void is_second_of_pair(bool b)        { _setFlag( 7, b); } 
+    @property void is_second_of_pair(bool b)        { _setFlag( 7, b); }
 
     /// Secondary alignment
     @property bool is_secondary_alignment()   const nothrow { return cast(bool)(flag & 0x100); }
     /// ditto
-    @property void is_secondary_alignment(bool b)   { _setFlag( 8, b); } 
+    @property void is_secondary_alignment(bool b)   { _setFlag( 8, b); }
 
     /// Not passing quality controls
     @property bool failed_quality_control()   const nothrow { return cast(bool)(flag & 0x200); }
     /// ditto
-    @property void failed_quality_control(bool b)   { _setFlag( 9, b); } 
+    @property void failed_quality_control(bool b)   { _setFlag( 9, b); }
 
     /// PCR or optical duplicate
     @property bool is_duplicate()             const nothrow { return cast(bool)(flag & 0x400); }
     /// ditto
-    @property void is_duplicate(bool b)             { _setFlag(10, b); } 
+    @property void is_duplicate(bool b)             { _setFlag(10, b); }
 
     /// Supplementary alignment
     @property bool is_supplementary()         const nothrow { return cast(bool)(flag & 0x800); }
@@ -438,10 +438,10 @@ struct BamRead {
 
     /// ditto
     @property void name(string new_name) {
-        enforce(new_name.length >= 1 && new_name.length <= 255, 
+        enforce(new_name.length >= 1 && new_name.length <= 255,
                 "name length must be in 1-255 range");
         _dup();
-        bio.bam.utils.array.replaceSlice(_chunk, 
+        bio.bam.utils.array.replaceSlice(_chunk,
                  _chunk[_read_name_offset .. _read_name_offset + _l_read_name - 1],
                  cast(ubyte[])new_name);
         _l_read_name = cast(ubyte)(new_name.length + 1);
@@ -449,7 +449,7 @@ struct BamRead {
 
     /// List of CIGAR operations
     @property const(CigarOperation)[] cigar() const nothrow {
-        return cast(const(CigarOperation)[])(_chunk[_cigar_offset .. _cigar_offset + 
+        return cast(const(CigarOperation)[])(_chunk[_cigar_offset .. _cigar_offset +
                                              _n_cigar_op * CigarOperation.sizeof]);
     }
 
@@ -534,32 +534,32 @@ struct BamRead {
             return opIndex(_len - 1);
         }
 
-        /* 
+        /*
         I have no fucking idea why this tiny piece of code
         does NOT get inlined by stupid DMD compiler.
 
-        Therefore I use string mixin instead. 
+        Therefore I use string mixin instead.
         (hell yeah! Back to the 90s! C macros rulez!)
 
         private size_t _getActualPosition(size_t index) const
         {
             if (_use_first_4_bits) {
                 // [0 1] [2 3] [4 5] [6 7] ...
-                //            |               
-                //            V               
-                //   0     1     2     3      
+                //            |
+                //            V
+                //   0     1     2     3
                 return index >> 1;
             } else {
                 // [. 0] [1 2] [3 4] [5 6] ...
-                //            |               
-                //            V               
-                //   0     1     2     3      
+                //            |
+                //            V
+                //   0     1     2     3
                 return (index >> 1) + (index & 1);
             }
-        }*/ 
+        }*/
 
         private static string _getActualPosition(string index) {
-            return "((" ~ index ~") >> 1) + " ~ 
+            return "((" ~ index ~") >> 1) + " ~
                    "(_use_first_4_bits ? 0 : ((" ~ index ~ ") & 1))";
         }
 
@@ -574,15 +574,15 @@ struct BamRead {
 
         ///
         @property SequenceResult save() const {
-            return SequenceResult(_data[mixin(_getActualPosition("_index")) .. $], 
-                                  _len - _index, 
+            return SequenceResult(_data[mixin(_getActualPosition("_index")) .. $],
+                                  _len - _index,
                                   _useFirst4Bits(_index));
         }
 
         ///
         SequenceResult opSlice(size_t i, size_t j) const {
-            return SequenceResult(_data[mixin(_getActualPosition("_index + i")) .. $], 
-                                  j - i, 
+            return SequenceResult(_data[mixin(_getActualPosition("_index + i")) .. $],
+                                  j - i,
                                   _useFirst4Bits(_index + i));
         }
 
@@ -668,7 +668,7 @@ struct BamRead {
     static assert(isRandomAccessRange!(ReturnType!sequence));
 
     /// Sets query sequence. Sets all base qualities to 255 (i.e. unknown).
-    @property void sequence(string seq) 
+    @property void sequence(string seq)
     {
         _dup();
 
@@ -683,8 +683,8 @@ struct BamRead {
                 replacement[i] |= cast(ubyte)(Base(seq[2 * i + 1]).internal_code);
         }
 
-        bio.bam.utils.array.replaceSlice(_chunk, 
-                     _chunk[_seq_offset .. _tags_offset], 
+        bio.bam.utils.array.replaceSlice(_chunk,
+                     _chunk[_seq_offset .. _tags_offset],
                      replacement);
 
         _l_seq = cast(int)seq.length;
@@ -715,7 +715,7 @@ struct BamRead {
         // 3) the code will be too complicated, whereas there're
         //    not so many users of big-endian systems
         //
-        // In summa, BAM is little-endian format, so big-endian 
+        // In summa, BAM is little-endian format, so big-endian
         // users will suffer anyway, it's unavoidable.
 
         _chunk = chunk;
@@ -727,33 +727,33 @@ struct BamRead {
             // Dealing with tags is the responsibility of TagStorage.
             fixTagStorageByteOrder();
         }
-    } 
+    }
 
-    // Doesn't touch tags, only fields. 
+    // Doesn't touch tags, only fields.
     // @@@TODO: NEEDS TESTING@@@
     private void switchChunkEndianness() {
-        // First 8 fields are 32-bit integers:                 
-        //                                                     
-        // 0) refID                int                         
-        // 1) pos                  int                         
-        // 2) bin_mq_nl           uint                         
-        // 3) flag_nc             uint                         
-        // 4) l_seq                int                         
-        // 5) next_refID           int                         
-        // 6) next_pos             int                         
-        // 7) tlen                 int                         
+        // First 8 fields are 32-bit integers:
+        //
+        // 0) refID                int
+        // 1) pos                  int
+        // 2) bin_mq_nl           uint
+        // 3) flag_nc             uint
+        // 4) l_seq                int
+        // 5) next_refID           int
+        // 6) next_pos             int
+        // 7) tlen                 int
         // ----------------------------------------------------
-        // (after them name follows which is string)      
-        //                                                     
+        // (after them name follows which is string)
+        //
         switchEndianness(_chunk.ptr, 8 * uint.sizeof);
 
         // Then we need to switch endianness of CIGAR data:
-        switchEndianness(_chunk.ptr + _cigar_offset, 
+        switchEndianness(_chunk.ptr + _cigar_offset,
                          _n_cigar_op * uint.sizeof);
     }
- 
-    private size_t calculateChunkSize(string read_name, 
-                                      string sequence, 
+
+    private size_t calculateChunkSize(string read_name,
+                                      string sequence,
                                       in CigarOperation[] cigar)
     {
         return 8 * int.sizeof
@@ -776,7 +776,7 @@ struct BamRead {
         if (this._chunk is null) {
             this._chunk = new ubyte[calculateChunkSize(read_name, sequence, cigar)];
         }
-        
+
         this._refID      =  -1;         // set default values
         this._pos        =  -1;         // according to SAM/BAM
         this._mapq       = 255;         // specification
@@ -817,7 +817,7 @@ struct BamRead {
         return result;
     }
 
-    /// Compare two alignments, including tags 
+    /// Compare two alignments, including tags
     /// (the tags must follow in the same order for equality).
     bool opEquals(BamRead other) const pure nothrow {
         // don't forget about _is_slice trick
@@ -835,7 +835,7 @@ struct BamRead {
     @property size_t size_in_bytes() const {
         return int.sizeof + _chunk.length;
     }
-   
+
     package void write(BamWriter writer) {
         writer.writeInteger(cast(int)(_chunk.length));
 
@@ -858,7 +858,7 @@ struct BamRead {
     /// Packs message in the following format:
     /// $(BR)
     /// MsgPack array with elements
-    ///   $(OL 
+    ///   $(OL
     ///     $(LI name - string)
     ///     $(LI flag - ushort)
     ///     $(LI reference sequence id - int)
@@ -916,9 +916,9 @@ struct BamRead {
             throw new FormatException("unknown format specifier");
         }
     }
-    
+
     /// ditto
-    void toSam(Sink)(auto ref Sink sink) const 
+    void toSam(Sink)(auto ref Sink sink) const
         if (isSomeSink!Sink)
     {
         sink.write(name);
@@ -1025,10 +1025,10 @@ struct BamRead {
         } else {
             sink.writeJson(_reader.reference_sequences[mate_ref_id].name);
         }
-        
+
         sink.write(`,"pnext":`); sink.write(mate_position + 1);
         sink.write(`,"tlen":`); sink.write(template_length);
-     
+
         sink.write(`,"seq":"`);
         if (sequence_length == 0)
             sink.write('*');
@@ -1041,7 +1041,7 @@ struct BamRead {
         sink.writeJson(base_qualities);
 
         sink.write(`,"tags":{`);
-   
+
         bool not_first = false;
         foreach (k, v; this) {
             if (not_first)
@@ -1087,8 +1087,8 @@ struct BamRead {
     void raw_data(ubyte[] data) @property {
         _chunk = data;
     }
-    
-    package ubyte[] _chunk; // holds all the data, 
+
+    package ubyte[] _chunk; // holds all the data,
                     // the access is organized via properties
                     // (see below)
 
@@ -1130,36 +1130,36 @@ private:
 
     // Official field names from SAM/BAM specification.
     // For internal use only
-    @property  int _refID()      const nothrow { 
-        return *(cast( int*)(_chunk.ptr + int.sizeof * 0)); 
+    @property  int _refID()      const nothrow {
+        return *(cast( int*)(_chunk.ptr + int.sizeof * 0));
     }
 
-    @property  int _pos()        const nothrow { 
-        return *(cast( int*)(_chunk.ptr + int.sizeof * 1)); 
+    @property  int _pos()        const nothrow {
+        return *(cast( int*)(_chunk.ptr + int.sizeof * 1));
     }
 
-    @property uint _bin_mq_nl()  const nothrow pure @system { 
-        return *(cast(uint*)(_chunk.ptr + int.sizeof * 2)); 
+    @property uint _bin_mq_nl()  const nothrow pure @system {
+        return *(cast(uint*)(_chunk.ptr + int.sizeof * 2));
     }
 
-    @property uint _flag_nc()    const nothrow { 
-        return *(cast(uint*)(_chunk.ptr + int.sizeof * 3)); 
+    @property uint _flag_nc()    const nothrow {
+        return *(cast(uint*)(_chunk.ptr + int.sizeof * 3));
     }
 
-    @property  int _l_seq()      const nothrow { 
-        return *(cast( int*)(_chunk.ptr + int.sizeof * 4)); 
+    @property  int _l_seq()      const nothrow {
+        return *(cast( int*)(_chunk.ptr + int.sizeof * 4));
     }
 
     @property  int _next_refID() const nothrow {
-        return *(cast( int*)(_chunk.ptr + int.sizeof * 5)); 
+        return *(cast( int*)(_chunk.ptr + int.sizeof * 5));
     }
 
-    @property  int _next_pos()   const nothrow { 
-        return *(cast( int*)(_chunk.ptr + int.sizeof * 6)); 
+    @property  int _next_pos()   const nothrow {
+        return *(cast( int*)(_chunk.ptr + int.sizeof * 6));
     }
 
     @property  int _tlen()       const nothrow {
-        return *(cast( int*)(_chunk.ptr + int.sizeof * 7)); 
+        return *(cast( int*)(_chunk.ptr + int.sizeof * 7));
     }
 
     // Setters, also only for internal use
@@ -1176,29 +1176,29 @@ private:
     //
     //             The layout of bin_mq_nl and flag_nc is as follows
     //                     (upper bits -------> lower bits):
-    // 
+    //
     // bin_mq_nl [ { bin (16b) }  { mapping quality (8b) } { read name length (8b) } ]
     //
     // flag_nc   [ { flag (16b) } { n_cigar_op (16b) } ]
     //
-    @property ushort _bin()         const nothrow { 
-        return _bin_mq_nl >> 16; 
+    @property ushort _bin()         const nothrow {
+        return _bin_mq_nl >> 16;
     }
-    @property  ubyte _mapq()        const nothrow { 
-        return (_bin_mq_nl >> 8) & 0xFF; 
+    @property  ubyte _mapq()        const nothrow {
+        return (_bin_mq_nl >> 8) & 0xFF;
     }
-    @property  ubyte _l_read_name() const nothrow pure { 
-        return _bin_mq_nl & 0xFF; 
+    @property  ubyte _l_read_name() const nothrow pure {
+        return _bin_mq_nl & 0xFF;
     }
-    @property ushort _flag()        const nothrow { 
-        return _flag_nc >> 16; 
+    @property ushort _flag()        const nothrow {
+        return _flag_nc >> 16;
     }
-    @property ushort _n_cigar_op()  const nothrow { 
-        return _flag_nc & 0xFFFF; 
+    @property ushort _n_cigar_op()  const nothrow {
+        return _flag_nc & 0xFFFF;
     }
-  
+
     // Setters for those properties
-    @property void _bin(ushort n)         { _bin_mq_nl = (_bin_mq_nl &  0xFFFF) | (n << 16); } 
+    @property void _bin(ushort n)         { _bin_mq_nl = (_bin_mq_nl &  0xFFFF) | (n << 16); }
     @property void _mapq(ubyte n)         { _bin_mq_nl = (_bin_mq_nl & ~0xFF00) | (n << 8); }
     @property void _l_read_name(ubyte n)  { _bin_mq_nl = (_bin_mq_nl & ~0xFF  ) | n; }
     @property void _flag(ushort n)        { _flag_nc   = (_flag_nc   &  0xFFFF) | (n << 16); }
@@ -1207,24 +1207,24 @@ private:
     // Offsets of various arrays in bytes.
     // Currently, are computed each time, so if speed will be an issue,
     // they can be made fields instead of properties.
-    @property size_t _read_name_offset() const nothrow pure { 
-        return 8 * int.sizeof; 
+    @property size_t _read_name_offset() const nothrow pure {
+        return 8 * int.sizeof;
     }
 
-    @property size_t _cigar_offset()     const nothrow pure { 
-        return _read_name_offset + _l_read_name * char.sizeof; 
+    @property size_t _cigar_offset()     const nothrow pure {
+        return _read_name_offset + _l_read_name * char.sizeof;
     }
 
-    @property size_t _seq_offset()       const nothrow { 
-        return _cigar_offset + _n_cigar_op * uint.sizeof; 
+    @property size_t _seq_offset()       const nothrow {
+        return _cigar_offset + _n_cigar_op * uint.sizeof;
     }
 
-    @property size_t _qual_offset()      const nothrow { 
+    @property size_t _qual_offset()      const nothrow {
         return _seq_offset + (_l_seq + 1) / 2;
     }
 
     // Offset of auxiliary data
-    @property size_t _tags_offset()      const nothrow { 
+    @property size_t _tags_offset()      const nothrow {
         return _qual_offset + _l_seq;
     }
 
@@ -1257,7 +1257,7 @@ public:
 }
 
 
-/// Lazy tag storage. 
+/// Lazy tag storage.
 ///
 ///   Provides hash-like access and opportunity to iterate
 ///   storage like an associative array.
@@ -1298,7 +1298,7 @@ mixin template TagStorage() {
         auto __tags_chunk = _tags_chunk; // _tags_chunk is evaluated lazily
         if (__tags_chunk.length < 4)
             return Value(null);
-        
+
        size_t offset = 0;
        while (offset + 1 < __tags_chunk.length) {
            if (__tags_chunk[offset .. offset + 2] == key) {
@@ -1313,8 +1313,8 @@ mixin template TagStorage() {
     }
 
     /// ditto
-    void opIndexAssign(T)(T value, string key) 
-        if (is(T == Value) || __traits(compiles, GetTypeId!T)) 
+    void opIndexAssign(T)(T value, string key)
+        if (is(T == Value) || __traits(compiles, GetTypeId!T))
     {
         static if(is(T == Value)) {
             enforce(key.length == 2, "Key length must be 2");
@@ -1378,7 +1378,7 @@ mixin template TagStorage() {
         auto __tags_chunk = _tags_chunk;
         skipValue(offset, __tags_chunk); // now offset is updated and points to the end
         auto end = offset;
-        
+
         prepareSlice(_chunk, __tags_chunk[begin .. end], sizeInBytes(value));
 
         emplaceValue(_chunk.ptr + _tags_offset + begin, value);
@@ -1428,9 +1428,9 @@ mixin template TagStorage() {
         if (std.system.endian == Endian.littleEndian) {
             writer.writeByteArray(_tags_chunk[]);
         } else {
-            fixTagStorageByteOrder();                                
+            fixTagStorageByteOrder();
             writer.writeByteArray(_tags_chunk[]);
-            fixTagStorageByteOrder();                                
+            fixTagStorageByteOrder();
         }
     }
 
@@ -1486,7 +1486,7 @@ mixin template TagStorage() {
                         p += size;
                     }
                 } else {
-                    // skip 
+                    // skip
                     p += length;
                 }
             } else {
@@ -1509,8 +1509,8 @@ unittest {
     import std.math;
 
     writeln("Testing BamRead behaviour...");
-    auto read = BamRead("readname", 
-                        "AGCTGACTACGTAATAGCCCTA", 
+    auto read = BamRead("readname",
+                        "AGCTGACTACGTAATAGCCCTA",
                         [CigarOperation(22, 'M')]);
     assert(read.sequence_length == 22);
     assert(read.cigar.length == 1);
@@ -1522,7 +1522,7 @@ unittest {
     assert(read.name == "anothername");
     assert(read.cigarString() == "22M");
 
-    read.base_qualities = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 
+    read.base_qualities = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
                            13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
     assert(reduce!"a+b"(0, read.base_qualities) == 253);
 
@@ -1602,7 +1602,7 @@ unittest {
 /// $(P The idea is that this should be a drop-in replacement for BamRead in algorithms,
 /// as the struct uses 'alias this' construction for the wrapped read.)
 struct EagerBamRead(R=BamRead) {
-    /// 
+    ///
     this(R read) {
         this.read = read;
         this.end_position = read.position + read.basesCovered();
@@ -1612,7 +1612,7 @@ struct EagerBamRead(R=BamRead) {
     R read;
     ///
     alias read this;
- 
+
     /// End position on the reference, computed as position + basesCovered().
     int end_position;
 
@@ -1629,11 +1629,11 @@ template isBamRead(T)
 {
     static if (is(Unqual!T : BamRead))
         enum isBamRead = true;
-    else 
-        enum isBamRead = __traits(compiles, 
+    else
+        enum isBamRead = __traits(compiles,
         {
             T t; bool p;
-            p = t.ref_id == 1;          p = t.position == 2;          p = t.bin.id == 3;  
+            p = t.ref_id == 1;          p = t.position == 2;          p = t.bin.id == 3;
             p = t.mapping_quality == 4; p = t.flag == 5;              p = t.sequence_length == 6;
             p = t.mate_ref_id == 7;     p = t.mate_position == 8;     p = t.template_length == 9;
             p = t.is_paired;            p = t.proper_pair;            p = t.is_unmapped;
@@ -1649,22 +1649,22 @@ template isBamRead(T)
 /// (return whether first read is 'less' than second))
 ///
 /// $(P This function can be called on:
-///   $(UL 
+///   $(UL
 ///     $(LI two reads)
 ///     $(LI read and string in any order)))
-bool compareReadNames(R1, R2)(const auto ref R1 a1, const auto ref R2 a2) 
+bool compareReadNames(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
     if (isBamRead!R1 && isBamRead!R2)
 {
     return a1.name < a2.name;
 }
 
-bool compareReadNames(R1, R2)(const auto ref R1 a1, const auto ref R2 a2) 
+bool compareReadNames(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
     if (isBamRead!R1 && isSomeString!R2)
 {
     return a1.name < a2;
 }
 
-bool compareReadNames(R1, R2)(const auto ref R1 a1, const auto ref R2 a2) 
+bool compareReadNames(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
     if (isSomeString!R1 && isBamRead!R2)
 {
     return a1 < a2.name;
@@ -1747,10 +1747,12 @@ unittest {
 /// (returns whether first read is 'less' than second))
 ///
 /// $(P This function can be called on:
-///   $(UL 
+///   $(UL
 ///     $(LI two reads (in this case, reference IDs are also taken into account))
 ///     $(LI read and integer in any order)))
-bool compareCoordinates(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
+
+/// This function takes read direction into account (used for original samtools style sorting)
+bool compareCoordinatesAndStrand(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
     if (isBamRead!R1 && isBamRead!R2)
 {
     if (a1.ref_id == -1) return false; // unmapped reads should be last
@@ -1760,6 +1762,16 @@ bool compareCoordinates(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
     if (a1.position < a2.position) return true;
     if (a1.position > a2.position) return false;
     return !a1.is_reverse_strand && a2.is_reverse_strand;
+}
+
+bool compareCoordinates(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
+    if (isBamRead!R1 && isBamRead!R2)
+{
+    if (a1.ref_id == -1) return false; // unmapped reads should be last
+    if (a2.ref_id == -1) return true;
+    if (a1.ref_id < a2.ref_id) return true;
+    if (a1.ref_id > a2.ref_id) return false;
+    return (a1.position < a2.position);
 }
 
 bool compareCoordinates(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
