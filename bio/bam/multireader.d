@@ -8,10 +8,10 @@
     the rights to use, copy, modify, merge, publish, distribute, sublicense,
     and/or sell copies of the Software, and to permit persons to whom the
     Software is furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -66,7 +66,7 @@ bool compare(T)(auto ref T r1, auto ref T r2) {
         sorting_order = r1[1].merged_header.sorting_order;
 
     if (sorting_order == SortingOrder.coordinate)
-        return compareCoordinates(r1[0], r2[0]);
+        return compareCoordinatesAndStrand(r1[0], r2[0]);
     else if (sorting_order == SortingOrder.queryname)
         return compareReadNames(r1[0], r2[0]);
     else
@@ -86,10 +86,10 @@ auto readRange(BamReader reader, SamHeaderMerger merger, FileId index) {
     return zip(reader.reads.multiBamReads(index), repeat(merger), repeat(index));
 }
 
-// (BamReader, SamHeaderMerger, FileId, int, uint, uint) -> 
+// (BamReader, SamHeaderMerger, FileId, int, uint, uint) ->
 //                                    [(MultiBamRead, SamHeaderMerger, FileId)]
 auto readRange(BamReader reader, SamHeaderMerger merger, FileId index,
-               int ref_id, uint start, uint end) 
+               int ref_id, uint start, uint end)
 {
     int old_ref_id = ref_id;
     if (merger !is null)
@@ -139,12 +139,12 @@ auto readRangesWithProgress
                   .map!(t => readRangeWithProgress(t[0], t[1], t[2], f, u(t[2])))();
 }
 
-// ([BamReader], SamHeaderMerger, int, uint, uint) -> 
+// ([BamReader], SamHeaderMerger, int, uint, uint) ->
 //                                    [[(MultiBamRead, SamHeaderMerger, FileId)]]
-auto readRanges(BamReader[] readers, SamHeaderMerger merger, 
-                int ref_id, uint start, uint end) 
+auto readRanges(BamReader[] readers, SamHeaderMerger merger,
+                int ref_id, uint start, uint end)
 {
-    return readers.zip(repeat(merger), iota(readers.length), 
+    return readers.zip(repeat(merger), iota(readers.length),
                        repeat(ref_id), repeat(start), repeat(end))
                   .map!(t => readRange(t[0], t[1], t[2], t[3], t[4], t[5]))();
 }
@@ -160,8 +160,8 @@ auto readRanges(BamReader[] readers, SamHeaderMerger merger, BamRegion[] regions
 
 // tweaks RG and PG tags, and reference sequence ID
 // [[(BamRead, SamHeaderMerger, size_t)]] -> [[MultiBamRead]]
-auto adjustTags(R)(R reads_with_aux_info, TaskPool pool, size_t bufsize) 
-    if (isInputRange!R) 
+auto adjustTags(R)(R reads_with_aux_info, TaskPool pool, size_t bufsize)
+    if (isInputRange!R)
 {
   alias R2 = typeof(pool.map!adjustTagsInRange(reads_with_aux_info.front, 1));
   R2[] result;
@@ -189,7 +189,7 @@ auto adjustTagsInRange(R)(R read_with_aux_info) if (!isInputRange!R) {
             auto new_ref_id = to!int(ref_id_map[file_id][old_ref_id]);
             if (new_ref_id != old_ref_id)
                 read.ref_id = new_ref_id;
-        } 
+        }
 
         auto program = read["PG"];
         if (!program.is_nothing) {
@@ -216,7 +216,7 @@ auto adjustTagsInRange(R)(R read_with_aux_info) if (!isInputRange!R) {
 
 ///
 class MultiBamReader {
-  
+
     ///
     this(BamReader[] readers) {
         _readers = readers;
