@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2012-2013    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2012-2017    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -117,15 +117,17 @@ struct IndexBuilder {
         void updateMetadata(ref BamReadBlock read) {
             if (read.ref_id == -1) {
                 ++_no_coord;
-            } else if (read.is_unmapped) {
-                ++_unmapped;
             } else {
-                ++_mapped;
-            }
+                if (read.is_unmapped) {
+                    ++_unmapped;
+                } else {
+                    ++_mapped;
+                }
 
-            if (_beg_vo == -1UL)
-                _beg_vo = cast(ulong)read.start_virtual_offset;
-            _end_vo = cast(ulong)read.end_virtual_offset;
+                if (_beg_vo == -1UL)
+                    _beg_vo = cast(ulong)read.start_virtual_offset;
+                _end_vo = cast(ulong)read.end_virtual_offset;
+            }
         }
 
         void updateLinearIndex() {
