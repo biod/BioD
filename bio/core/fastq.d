@@ -21,9 +21,15 @@
  */
 
 /*
+<<<<<<< HEAD
    This work is based from a question I posted on forums.dlang.org.
    I have bundled the answer as a module to support parsing fastq files with D.
    Credit should go to rikki cattermole.
+=======
+   This work is based from a question I posted on forums.dlang.org. 
+   I have bundled the answer as a module to support parsing fastq files with D. 
+   Credit should go to rikki cattermole. 
+>>>>>>> c379972f2138e4860e1764a748f8457a4bd2c0f0
  */
 
 module bio.core.fastq;
@@ -141,7 +147,11 @@ unittest {
         @SEQ_ID
         GATTTGGGGTTCAAAGCAGTATCGATCAAATAGTAAATCCATTTGTTCAACTCACAGTTT
         +
+<<<<<<< HEAD
         !''*((((***+))%%%++)(%%%%).1***-+*''))**55CCF>>>>>>CCCCCCC65
+=======
+        !''*((((***+))%%%++)(%%%%).1***-+*''))**55CCF>>>>>>CCCCCCC65        
+>>>>>>> c379972f2138e4860e1764a748f8457a4bd2c0f0
         """[1 .. $];
 
     foreach(record; FastqRecord.read(input)) {
