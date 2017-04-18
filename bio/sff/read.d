@@ -22,5 +22,5 @@ struct SffRead {
     ushort clip_adapter_right;
 
     /// Record start offset in the file
-    size_t file_offset;
+    ulong file_offset;
 }
