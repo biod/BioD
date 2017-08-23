@@ -190,11 +190,14 @@ class BgzfOutputStream : Stream {
     /// Flush all remaining BGZF blocks and underlying stream.
     override void flush() {
         flushCurrentBlock();
-        foreach (task; _compression_tasks) {
-            auto block = task.yieldForce();
-	    writeResult(block);
-        }
 
+	while (!_compression_tasks.empty) {
+            auto task = _compression_tasks.front;
+            auto block = task.yieldForce();
+            writeResult(block);
+            _compression_tasks.popFront();
+        }
+	
         _stream.flush();
         _current_size = 0;
     }
