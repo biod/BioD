@@ -1,6 +1,6 @@
 /*
     This file is part of BioD.
-    Copyright (C) 2013    Artem Tarasov <lomereiter@gmail.com>
+    Copyright (C) 2013-2017    Artem Tarasov <lomereiter@gmail.com>
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -79,7 +79,7 @@ class OutBuffer {
             do {
                 _heap_capacity = _heap_capacity * 3 / 2;
             } while (_heap_capacity < needed);
-            capacity = _heap_capacity;
+            _heap.length = _heap_capacity;
         }
         _heap_ptr[_heap_used .. _heap_used + bytes.length] = bytes[];
         _heap_used = needed;
