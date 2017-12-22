@@ -95,14 +95,18 @@ struct CigarOperation {
         raw = (length << 4) | char2op(operation_type);
     }
 
+    this(uint _raw) {
+        raw = _raw;
+    }
+
     /// Operation length
-    uint length() @property const nothrow {
+    uint length() @property const nothrow @nogc {
         return raw >> 4;
     }
 
     /// CIGAR operation as one of MIDNSHP=X.
     /// Absent or invalid operation is represented by '?'
-    char type() @property const nothrow {
+    char type() @property const nothrow @nogc {
         return "MIDNSHP=X????????"[raw & 0xF];
     }
 
@@ -112,22 +116,22 @@ struct CigarOperation {
     private static immutable uint CIGAR_TYPE = 0b11_11_00_00_01_10_10_01_11;
 
     /// True iff operation is one of M, =, X, I, S
-    bool is_query_consuming() @property const {
+    bool is_query_consuming() @property const nothrow @nogc {
         return ((CIGAR_TYPE >> ((raw & 0xF) * 2)) & 1) != 0;
     }
 
     /// True iff operation is one of M, =, X, D, N
-    bool is_reference_consuming() @property const {
+    bool is_reference_consuming() @property const nothrow @nogc {
         return ((CIGAR_TYPE >> ((raw & 0xF) * 2)) & 2) != 0;
     }
 
     /// True iff operation is one of M, =, X
-    bool is_match_or_mismatch() @property const {
+    bool is_match_or_mismatch() @property const nothrow @nogc {
         return ((CIGAR_TYPE >> ((raw & 0xF) * 2)) & 3) == 3;
     }
 
     /// True iff operation is one of 'S', 'H'
-    bool is_clipping() @property const {
+    bool is_clipping() @property const nothrow @nogc {
         return ((raw & 0xF) >> 1) == 2; // 4 or 5
     }
 
@@ -141,6 +145,12 @@ struct CigarOperation {
     void toString(scope void delegate(const(char)[]) sink) const {
         toSam(sink);
     }
+}
+
+alias CigarOperation[] CigarOperations;
+
+bool is_unavailable(CigarOperations cigar) @property nothrow @nogc {
+  return (cigar.length == 1 && cigar[0].raw == '*');
 }
 
 /// Forward range of extended CIGAR operations, with =/X instead of M
