@@ -35,7 +35,7 @@ import std.bitmanip: nativeToLittleEndian;
 ///
 /// Params:
 ///         chunk =  chunk of memory to be compressed
-///         level =  compression level, see zlib documentation
+///         level =  compression level, see zlib documentation (https://github.com/madler/zlib/blob/master/zlib.h)
 ///         buffer = optional buffer which will be used for storing
 ///                  decompressed data
 ///

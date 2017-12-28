@@ -8,10 +8,10 @@
     the rights to use, copy, modify, merge, publish, distribute, sublicense,
     and/or sell copies of the Software, and to permit persons to whom the
     Software is furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,6 +23,7 @@
 */
 module bio.bam.md.reconstruct;
 
+import bio.bam.cigar;
 import bio.bam.read;
 import bio.bam.md.core;
 
@@ -34,7 +35,7 @@ import std.range;
 
 /// Reconstruct read DNA.
 /// Returns lazy sequence.
-auto dna(T)(T read) 
+auto dna(T)(T read)
     if(isBamRead!(Unqual!T))
 {
 
@@ -56,14 +57,14 @@ auto dna(T)(T read)
             _seq = seq;
             _ops = ops;
         }
-    
+
         auto front() @property {
             auto op = _ops.front;
             return QueryChunk!S(_seq[0 .. op.length], op);
         }
 
         bool empty() @property {
-            return _ops.empty;    
+            return _ops.empty;
         }
 
         void popFront() {
@@ -81,7 +82,7 @@ auto dna(T)(T read)
 
     // Get read sequence chunks corresponding to query-consuming operations in read.sequence
     static auto queryChunks(ref T read) {
-        
+
 
         return getQueryChunksResult(read.sequence, filter!"a.is_query_consuming"(read.cigar));
     }
@@ -95,13 +96,13 @@ auto dna(T)(T read)
             debug {
                 _initial_qseq = to!string(query_sequence);
             }
-            _qseq = query_sequence; 
+            _qseq = query_sequence;
             _md = md_operations;
             _fetchNextMdOperation();
         }
 
         bool empty() @property {
-            return _empty;            
+            return _empty;
         }
 
         /*
@@ -177,23 +178,23 @@ auto dna(T)(T read)
             }
             R _qseq;
             M _md;
-      
+
             bool _empty;
             MdOperation _cur_md_op;
         }
     }
-  
+
     auto md = _read["MD"];
     string md_str;
     if (!md.is_nothing) {
         md_str = cast(string)_read["MD"];
     }
-    
+
     static auto getResult(R, M)(ref T read, R query, M md_ops) {
         return Result!(R, M)(read, query, md_ops);
     }
 
-    auto result =  getResult(_read, 
+    auto result =  getResult(_read,
                              joiner(map!"a.sequence"(filter!"a.operation.is_reference_consuming"(query_chunks))),
                              mdOperations(md_str));
 
@@ -314,19 +315,19 @@ auto dna(R)(R reads)
 
             /*
              * If current chunk is empty, get the next one.
-             *                                                                  
-             * Here's the reference:                                            
+             *
+             * Here's the reference:
              * .........................*.......................................
-             *                          _reference_pos (we are here)            
-             * Last chunk ended just now:                                       
-             *              [..........]                                        
-             * Go through subsequent reads while their leftmost position is     
-             * less or equal to _reference_pos, select the one which covers     
-             * more bases to the right of _reference_pos.                       
-             *               [...............]                                  
-             *                [....]                                            
-             *                  [..........]                                    
-             *                        [.........]  <- this one is the best      
+             *                          _reference_pos (we are here)
+             * Last chunk ended just now:
+             *              [..........]
+             * Go through subsequent reads while their leftmost position is
+             * less or equal to _reference_pos, select the one which covers
+             * more bases to the right of _reference_pos.
+             *               [...............]
+             *                [....]
+             *                  [..........]
+             *                        [.........]  <- this one is the best
              */
             if (_chunk.empty) {
                 if (_reads.empty) {
@@ -377,7 +378,7 @@ auto dna(R)(R reads)
                 debug {
                     /*
                     import std.stdio;
-                    writeln("_reference_pos = ", _reference_pos, 
+                    writeln("_reference_pos = ", _reference_pos,
                             "; best_read.position = ", best_read.position,
                             "; _chunk length = ", best_read.basesCovered());
                             */
@@ -400,7 +401,7 @@ auto dna(R)(R reads)
 
 unittest {
 
-    // reads are taken from HG00110.chrom20.ILLUMINA.bwa.GBR.exome.20111114.bam 
+    // reads are taken from HG00110.chrom20.ILLUMINA.bwa.GBR.exome.20111114.bam
 
     auto r1 = BamRead("r1",
                       "AGGTTTTGTGAGTGGGACAGTTGCAGCAAAACACAACCATAGGTGCCCATCCACCAAGGCAGGCTCTCCATCTTGCTCAGAGTGGCTCTA",
@@ -415,7 +416,7 @@ unittest {
                        CigarOperation(7, 'S')]);
     r2.position = 60252;
     r2["MD"] = "82T0";
-    
+
     auto r3 = BamRead("r3",
                       "CATAGGTGCCCATCCACCAAGGCAGGCTCTCCATCTTGCTCAGAGTGGCTCTAGCCCTTGCTGACTGCTGGGCAGGGAGAGAGCAGAGCT",
                       [CigarOperation(90, 'M')]);

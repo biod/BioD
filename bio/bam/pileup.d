@@ -69,6 +69,7 @@
 /// ---------------------------------------------------------
 module bio.bam.pileup;
 
+import bio.bam.cigar;
 import bio.bam.read;
 import bio.bam.md.reconstruct;
 import bio.bam.splitter;
