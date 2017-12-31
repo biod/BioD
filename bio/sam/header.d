@@ -251,12 +251,12 @@ unittest {
     import std.algorithm;
     import std.stdio;
 
-    writeln("Testing @HD line parsing...");
+    stderr.writeln("Testing @HD line parsing...");
     auto hd_line = HdLine.parse("@HD\tVN:1.0\tSO:coordinate");
     assert(hd_line.format_version == "1.0");
     assert(hd_line.sorting_order == "coordinate");
 
-    writeln("Testing @SQ line parsing...");
+    stderr.writeln("Testing @SQ line parsing...");
     auto sq_line = SqLine.parse("@SQ\tSN:NC_007605\tLN:171823\tM5:6743bd63b3ff2b5b8985d8933c53290a\tUR:ftp://.uk/vol1/ftp/technical/reference/phase2_reference_assembly_sequence/hs37d5.fa.gz\tAS:NCBI37\tSP:HUMAN");
     assert(sq_line.name == "NC_007605");
     assert(sq_line.length == 171823);
@@ -265,7 +265,7 @@ unittest {
     assert(sq_line.assembly == "NCBI37");
     assert(sq_line.species == "HUMAN");
 
-    writeln("Testing @RG line parsing...");
+    stderr.writeln("Testing @RG line parsing...");
     auto rg_line = RgLine.parse("@RG\tID:ERR016155\tLB:HUMgdtRAGDIAAPE\tSM:HG00125\tPI:488\tCN:BGI\tPL:ILLUMINA\tDS:SRP001294");
     assert(rg_line.identifier == "ERR016155");
     assert(rg_line.library == "HUMgdtRAGDIAAPE");
@@ -275,7 +275,7 @@ unittest {
     assert(rg_line.platform == "ILLUMINA");
     assert(rg_line.description == "SRP001294");
 
-    writeln("Testing @PG line parsing...");
+    stderr.writeln("Testing @PG line parsing...");
     auto pg_line = PgLine.parse("@PG\tID:bam_calculate_bq\tPN:samtools\tPP:bam_recalibrate_quality_scores\tVN:0.1.17 (r973:277)\tCL:samtools calmd -Erb $bam_file $reference_fasta > $bq_bam_file");
     assert(pg_line.identifier == "bam_calculate_bq");
     assert(pg_line.name == "samtools");
