@@ -46,24 +46,26 @@ struct RoundBuf(T) {
 
     /// ditto
     auto ref front() @property {
-        enforce(!empty, "buffer is empty");
+        enforce(!empty, "roundbuffer is empty");
         return _items[_taken % $];
     }
 
     /// ditto
     void popFront() {
+        enforce(!empty, "roundbuffer is empty");
         ++_taken;
     }
 
     ///
     auto ref back() @property {
-      enforce(!empty, "buffer is empty");
+      enforce(!empty, "roundbuffer is empty");
       return _items[(_put - 1) % $];
     }
 
     /// Output range primitive
     void put(T item) {
-        enforce(!full, "buffer is full");
+        enforce(!full, "roundbuffer is full");
+        enforce(_put < _put.max, "ringbuffer overflow");
         _items[_put % $] = item;
         ++_put;
     }
