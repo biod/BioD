@@ -64,7 +64,8 @@ CigarOperation[] cigarFromString(string cigar) {
 
 unittest {
 
-    stderr.writeln("Testing extracting SAM header...");
+    stderr.writeln("Running unittests...");
+    // stderr.writeln("Testing extracting SAM header...");
     auto fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
     auto bf = new BamReader(fn);
     assert(bf.header.format_version == "1.3");
@@ -82,7 +83,7 @@ unittest {
     assert(bf.header.sequences["small"].length == 65536);
 
     {
-    stderr.writeln("Testing alignment parsing...");
+    // stderr.writeln("Testing alignment parsing...");
     fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
     bf = new BamReader(fn);
     auto reads = bf.reads;
@@ -104,7 +105,7 @@ unittest {
 
     assert(bf.reads.front.name == "EAS56_57:6:190:289:82");
 
-    stderr.writeln("Testing tag parsing...");
+    // stderr.writeln("Testing tag parsing...");
     fn = buildPath(dirName(__FILE__), "data", "tags.bam");
     bf = new BamReader(fn);
     foreach (alignment; bf.reads) {
@@ -126,7 +127,7 @@ unittest {
         assert(name == value);
     }
 
-    stderr.writeln("Testing exception handling...");
+    // stderr.writeln("Testing exception handling...");
     fn = buildPath(dirName(__FILE__), "data", "duplicated_block_size.bam");
     assertThrown!BgzfException(new BamReader(fn));
     fn = buildPath(dirName(__FILE__), "data", "no_block_size.bam");
@@ -139,7 +140,7 @@ unittest {
     import bio.core.utils.zlib;
     assertThrown!ZlibException(walkLength((new BamReader(fn)).reads));
 
-    stderr.writeln("Testing random access...");
+    // stderr.writeln("Testing random access...");
     fn = buildPath(dirName(__FILE__), "data", "bins.bam");
     bf = new BamReader(fn);
 
@@ -196,7 +197,7 @@ unittest {
         assert(fst_read_large.name == "large:r1:0..1:len1:bin4681:hexbin0x1249");
     }
 
-    stderr.writeln("Testing Value code...");
+    // stderr.writeln("Testing Value code...");
     Value v = 5;
     assert(v.is_integer);
     assert(v.toSam() == "i:5");
@@ -247,7 +248,7 @@ unittest {
     assert(v.is_hexadecimal_string);    
     assert(v == "0eabcf123");
 
-    stderr.writeln("Testing parseAlignmentLine/toSam functions...");
+    // stderr.writeln("Testing parseAlignmentLine/toSam functions...");
     fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
     bf = new BamReader(fn);
     foreach (read; bf.reads) {
@@ -274,7 +275,7 @@ unittest {
         assert(read == read2 || !isValid(read));
     }
 
-    stderr.writeln("Testing BAM writing...");
+    // stderr.writeln("Testing BAM writing...");
     fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
     bf = new BamReader(fn);
     {
@@ -296,14 +297,14 @@ unittest {
     stream.close();
     }
 
-    stderr.writeln("Testing SAM reading...");
+    // stderr.writeln("Testing SAM reading...");
     {
     auto sf = new SamReader(buildPath(dirName(__FILE__), "data", "ex1_header.sam"));
     assert(sf.reads.front.ref_id == 0);
     assert(equal(sf.reads, bf.reads!withoutOffsets));
     }
 
-    stderr.writeln("Testing pileup (high-level aspects)...");
+    // stderr.writeln("Testing pileup (high-level aspects)...");
     {
         // All of pileup functions should automatically filter out unmapped reads.
 
@@ -359,7 +360,7 @@ unittest {
         }
     }
 
-    stderr.writeln("Testing basesWith functionality...");
+    // stderr.writeln("Testing basesWith functionality...");
     {
         fn = buildPath(dirName(__FILE__), "data", "mg1655_chunk.bam");
         bf = new BamReader(fn);
@@ -430,7 +431,7 @@ unittest {
         }
     }
 
-    stderr.writeln("Testing extended CIGAR conversion...");
+    // stderr.writeln("Testing extended CIGAR conversion...");
 
     auto cigars = ["2M1D7M1D6M1D13M1D5M1D12M2D7M1D10M1D17M1D12M3D23M",
                    "12M2D9M1D14M1D16M2D7M1D4M1D12M1D9M1D15M1D6M1D14M1S",

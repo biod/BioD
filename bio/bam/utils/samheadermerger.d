@@ -304,7 +304,7 @@ unittest {
     import std.stdio;
     import std.algorithm;
 
-    stderr.writeln("Testing SAM header merging...");
+    // stderr.writeln("Testing SAM header merging...");
     auto h1 = new SamHeader();
     auto h2 = new SamHeader();
     auto h3 = new SamHeader();

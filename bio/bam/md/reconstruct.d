@@ -216,7 +216,7 @@ auto dna(T)(T read)
 unittest {
 
     import std.stdio;
-    stderr.writeln("Testing reconstruction of reference from MD tags and CIGAR");
+    // stderr.writeln("Testing reconstruction of reference from MD tags and CIGAR");
 
     // Test reference reconstruction from MD and CIGAR.
     // (Tests are taken from http://davetang.org/muse/2011/01/28/perl-and-sam/)

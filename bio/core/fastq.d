@@ -146,6 +146,6 @@ unittest {
 
     foreach(record; FastqRecord.read(input)) {
         import std.stdio;
-        stderr.writeln(record);
+        // stderr.writeln(record); -> should be an assert statement
     }
 }
