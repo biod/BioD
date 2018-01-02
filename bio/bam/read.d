@@ -1282,7 +1282,7 @@ unittest {
     import std.stdio;
     import std.math;
 
-    writeln("Testing BamRead behaviour...");
+    // stderr.writeln("Testing BamRead behaviour...");
     auto read = BamRead("readname",
                         "AGCTGACTACGTAATAGCCCTA",
                         [CigarOperation(22, 'M')]);
