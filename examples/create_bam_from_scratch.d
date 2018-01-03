@@ -1,4 +1,9 @@
-// run example: rdmd -I.. create_bam_from_scratch.d
+// BioD dependes on stream.d which is no longer included with phobos.
+// To run this example from this directory,
+// Clone the undead repository with
+// git clone https://  /undead/undead.git at the appropriate location and ensure
+// it is available on your path
+// Run example: rdmd -I.. -I../location_of_undead/src create_bam_from_scratch.d
 
 // this example shows how to create BAM files from scratch
 import bio.bam.read, bio.bam.referenceinfo, bio.sam.header;
