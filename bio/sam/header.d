@@ -651,66 +651,65 @@ class SamHeader {
     void toJson(Sink)(auto ref Sink sink) if (isSomeSink!Sink) {
         JSONValue[string] result;
 
-        result["format_version"].str = format_version;
+        result["format_version"] = format_version;
 
         if (sorting_order != SortingOrder.unknown) {
-            result["sorting_order"].str = sorting_order.to!string;
+          result["sorting_order"] = sorting_order.to!string;
         }
 
         auto tmp = new JSONValue[sequences.length];
-
         for (auto i = 0; i < sequences.length; i++) {
-            auto line = getSequence(i);
-            JSONValue[string] sq;
-            sq["sequence_name"].str = line.name;
-            sq["sequence_length"].uinteger = line.length;
-            sq["assembly"].str = line.assembly;
-            sq["md5"].str = line.md5;
-            sq["species"].str = line.species;
-            sq["uri"].str = line.uri;
-            tmp[i].object = sq;
+          auto line = getSequence(i);
+          JSONValue[string] sq;
+          sq["sequence_name"] = line.name;
+          sq["sequence_length"] = line.length;
+          sq["assembly"] = line.assembly;
+          sq["md5"] = line.md5;
+          sq["species"] = line.species;
+          sq["uri"] = line.uri;
+          tmp[i].object = sq;
         }
-        result["sq_lines"].array = tmp.dup;
+        result["sq_lines"] = tmp.dup;
+        tmp = null;
 
-        tmp.length = read_groups.length;
-        size_t i = 0;
-        foreach (line; read_groups) {
-            JSONValue[string] sq;
-            sq["identifier"].str = line.identifier;
-            sq["sequencing_center"].str = line.sequencing_center;
-            sq["description"].str = line.description;
-            sq["date"].str = line.date;
-            sq["flow_order"].str = line.flow_order;
-            sq["key_sequence"].str = line.key_sequence;
-            sq["library"].str = line.library;
-            sq["programs"].str = line.programs;
-            sq["predicted_insert_size"].integer = line.predicted_insert_size;
-            sq["platform"].str = line.platform;
-            sq["platform_unit"].str = line.platform_unit;
-            sq["sample"].str = line.sample;
-            tmp[i++].object = sq;
+        auto tmp2 = new JSONValue[read_groups.length];
+        foreach (i, line; read_groups) {
+          JSONValue[string] sq;
+          sq["identifier"] = line.identifier;
+          sq["sequencing_center"] = line.sequencing_center;
+          sq["description"] = line.description;
+          sq["date"] = line.date;
+          sq["flow_order"] = line.flow_order;
+          sq["key_sequence"] = line.key_sequence;
+          sq["library"] = line.library;
+          sq["programs"] = line.programs;
+          sq["predicted_insert_size"] = line.predicted_insert_size;
+          sq["platform"] = line.platform;
+          sq["platform_unit"] = line.platform_unit;
+          sq["sample"] = line.sample;
+          tmp2[i].object = sq;
         }
-        result["rg_lines"].array = tmp.dup;
+        result["rg_lines"] = tmp2;
+        tmp2 = null;
 
-        tmp.length = programs.length;
-        i = 0;
-        foreach (line; programs) {
-            JSONValue[string] sq;
-            sq["identifier"].str = line.identifier;
-            sq["program_name"].str = line.name;
-            sq["command_line"].str = line.command_line;
-            sq["previous_program"].str = line.previous_program;
-            sq["program_version"].str = line.program_version;
-            tmp.array[i++].object = sq;
+        auto tmp3 = new JSONValue[programs.length];
+        foreach (i, line; programs) {
+          JSONValue[string] sq;
+          sq["identifier"] = line.identifier;
+          sq["program_name"] = line.name;
+          sq["command_line"] = line.command_line;
+          sq["previous_program"] = line.previous_program;
+          sq["program_version"] = line.program_version;
+          tmp3[i].object = sq;
         }
-        result["pg_lines"].array = tmp;
+        result["pg_lines"] = tmp3;
 
         JSONValue json;
         json.object = result;
         static if (__VERSION__ < 2072)
             sink.write(toJSON(&json));
         else
-            sink.write(toJSON(json));
+          sink.write(toJSON(json,true));
     }
 
     /// Packs message in the following format:
@@ -801,4 +800,8 @@ unittest {
     header.comments ~= "this is a comment";
 
     assert(header.text == "@HD\tVN:1.4\tSO:coordinate\n@CO\tthis is a comment\n");
+
+    JSONValue[string] result;
+    result["format_version"] = "1.2";
+    assert(to!string(result) == "[\"format_version\":\"1.2\"]", to!string(result));
 }
