@@ -69,6 +69,7 @@
 /// ---------------------------------------------------------
 module bio.bam.pileup;
 
+import bio.bam.cigar;
 import bio.bam.read;
 import bio.bam.md.reconstruct;
 import bio.bam.splitter;
@@ -760,7 +761,7 @@ unittest {
     auto reference = to!string(dna(reads));
 
     import std.stdio;
-    writeln("Testing pileup (low-level aspects)...");
+    // stderr.writeln("Testing pileup (low-level aspects)...");
 
     auto pileup = makePileup(reads, true, 796, 849, false);
     auto pileup2 = makePileup(reads, true, 0, ulong.max, false);

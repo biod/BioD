@@ -11,10 +11,10 @@ module bio.sam.utils.recordparser;
     the rights to use, copy, modify, merge, publish, distribute, sublicense,
     and/or sell copies of the Software, and to permit persons to whom the
     Software is furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -579,6 +579,7 @@ static int sam_alignment_en_alignment_tag_parsing = 251;
 
 
 import bio.sam.header;
+import bio.bam.cigar;
 import bio.bam.read;
 import bio.bam.bai.bin;
 import bio.core.utils.outbuffer;
@@ -599,7 +600,7 @@ BamRead parseAlignmentLine(string line, SamHeader header, OutBuffer buffer=null)
         buffer.clear();
 
     size_t rollback_size; // needed in case of invalid data
-    
+
     byte current_sign = 1;
 
     size_t read_name_beg; // position of beginning of QNAME
@@ -614,7 +615,7 @@ BamRead parseAlignmentLine(string line, SamHeader header, OutBuffer buffer=null)
     char quals_last_char; // needed in order to handle '*' correctly
 
     size_t cigar_op_len_start; // position of start of CIGAR operation
-    
+
     long int_value;                      // for storing temporary integers
     float float_value;                   // for storing temporary floats
     size_t float_beg;                    // position of start of current float
@@ -636,14 +637,14 @@ BamRead parseAlignmentLine(string line, SamHeader header, OutBuffer buffer=null)
     int ref_id = -1;
 
     
-#line 639 "sam_alignment.d"
+#line 640 "sam_alignment.d"
 	{
 	cs = sam_alignment_start;
 	}
 
-#line 479 "sam_alignment.rl"
+#line 480 "sam_alignment.rl"
     
-#line 646 "sam_alignment.d"
+#line 647 "sam_alignment.d"
 	{
 	int _klen;
 	uint _trans;
@@ -738,7 +739,7 @@ _match:
 	break;
 	case 5:
 #line 38 "sam_alignment.rl"
-	{ 
+	{
         float_value = to!float(line[float_beg .. p - line.ptr]);
     }
 	break;
@@ -777,7 +778,7 @@ _match:
 	case 14:
 #line 63 "sam_alignment.rl"
 	{
-        ref_id = header.getSequenceIndex(line[rname_beg .. p - line.ptr]); 
+        ref_id = header.getSequenceIndex(line[rname_beg .. p - line.ptr]);
     }
 	break;
 	case 15:
@@ -849,11 +850,11 @@ _match:
 	break;
 	case 26:
 #line 113 "sam_alignment.rl"
-	{ 
+	{
         auto op = CigarOperation(cigar_op_len, cigar_op_chr);
         if (op.is_reference_consuming)
             end_pos += op.length;
-        buffer.put!CigarOperation(op); 
+        buffer.put!CigarOperation(op);
         {
         auto ptr = cast(uint*)(buffer.data.ptr + 3 * uint.sizeof);
         *ptr = (*ptr) + 1;
@@ -902,7 +903,7 @@ _match:
 	case 32:
 #line 156 "sam_alignment.rl"
 	{
-        { 
+        {
         auto ptr = cast(int*)(buffer.data.ptr + 5 * int.sizeof);
         *ptr = header.getSequenceIndex(line[rnext_beg .. p - line.ptr]);
         }
@@ -918,7 +919,7 @@ _match:
 	break;
 	case 35:
 #line 169 "sam_alignment.rl"
-	{ 
+	{
         {
         auto ptr = cast(int*)(buffer.data.ptr + 6 * int.sizeof);
         *ptr = to!int(int_value) - 1;
@@ -935,7 +936,7 @@ _match:
 	break;
 	case 38:
 #line 181 "sam_alignment.rl"
-	{ 
+	{
         {
         auto ptr = cast(int*)(buffer.data.ptr + 7 * int.sizeof);
         *ptr = to!int(int_value);
@@ -956,7 +957,7 @@ _match:
 	break;
 	case 42:
 #line 194 "sam_alignment.rl"
-	{ 
+	{
         auto data = cast(ubyte[])line[sequence_beg .. p - line.ptr];
         l_seq = cast(int)data.length;
         auto raw_len = (l_seq + 1) / 2;
@@ -1041,16 +1042,16 @@ _match:
 	break;
 	case 51:
 #line 278 "sam_alignment.rl"
-	{ 
+	{
         buffer.capacity = buffer.length + 4;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('A');
-        buffer.putUnsafe!char((*p)); 
+        buffer.putUnsafe!char((*p));
     }
 	break;
 	case 52:
 #line 285 "sam_alignment.rl"
-	{ 
+	{
         buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
         if (int_value < 0) {
@@ -1088,7 +1089,7 @@ _match:
 	break;
 	case 54:
 #line 319 "sam_alignment.rl"
-	{ 
+	{
         buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('f');
@@ -1097,7 +1098,7 @@ _match:
 	break;
 	case 55:
 #line 326 "sam_alignment.rl"
-	{ 
+	{
         {
         auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
         buffer.capacity = buffer.length + 4 + data.length;
@@ -1154,7 +1155,7 @@ _match:
 	break;
 	case 59:
 #line 379 "sam_alignment.rl"
-	{ 
+	{
         buffer.put!float(float_value);
         {
             auto ptr = cast(uint*)(buffer.data.ptr + tag_array_length_offset);
@@ -1173,7 +1174,7 @@ _match:
 	case 62:
 #line 403 "sam_alignment.rl"
 	{
-        buffer.shrink(rollback_size); 
+        buffer.shrink(rollback_size);
         p--; {cs = 180; if (true) goto _again;}
     }
 	break;
@@ -1185,7 +1186,7 @@ _match:
 #line 410 "sam_alignment.rl"
 	{ rollback_size = buffer.length; }
 	break;
-#line 1188 "sam_alignment.d"
+#line 1189 "sam_alignment.d"
 		default: break;
 		}
 	}
@@ -1208,7 +1209,7 @@ _again:
 	break;
 	case 5:
 #line 38 "sam_alignment.rl"
-	{ 
+	{
         float_value = to!float(line[float_beg .. p - line.ptr]);
     }
 	break;
@@ -1293,7 +1294,7 @@ _again:
 	break;
 	case 52:
 #line 285 "sam_alignment.rl"
-	{ 
+	{
         buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
         if (int_value < 0) {
@@ -1327,7 +1328,7 @@ _again:
 	break;
 	case 54:
 #line 319 "sam_alignment.rl"
-	{ 
+	{
         buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('f');
@@ -1336,7 +1337,7 @@ _again:
 	break;
 	case 55:
 #line 326 "sam_alignment.rl"
-	{ 
+	{
         {
         auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
         buffer.capacity = buffer.length + 4 + data.length;
@@ -1381,7 +1382,7 @@ _again:
 	break;
 	case 59:
 #line 379 "sam_alignment.rl"
-	{ 
+	{
         buffer.put!float(float_value);
         {
             auto ptr = cast(uint*)(buffer.data.ptr + tag_array_length_offset);
@@ -1392,7 +1393,7 @@ _again:
 	case 62:
 #line 403 "sam_alignment.rl"
 	{
-        buffer.shrink(rollback_size); 
+        buffer.shrink(rollback_size);
         p--; {cs = 180; if (true) goto _again;}
     }
 	break;
@@ -1400,7 +1401,7 @@ _again:
 #line 410 "sam_alignment.rl"
 	{ rollback_size = buffer.length; }
 	break;
-#line 1403 "sam_alignment.d"
+#line 1404 "sam_alignment.d"
 		default: break;
 		}
 	}
@@ -1409,7 +1410,7 @@ _again:
 	_out: {}
 	}
 
-#line 480 "sam_alignment.rl"
+#line 481 "sam_alignment.rl"
 
     BamRead read;
     read.raw_data = buffer.data[];

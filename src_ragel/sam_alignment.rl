@@ -8,10 +8,10 @@
     the rights to use, copy, modify, merge, publish, distribute, sublicense,
     and/or sell copies of the Software, and to permit persons to whom the
     Software is furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -35,7 +35,7 @@
     int = (sign >update_sign)? uint % take_sign_into_account ;
 
     action mark_float_start { float_beg = p - line.ptr; }
-    action update_float_value { 
+    action update_float_value {
         float_value = to!float(line[float_beg .. p - line.ptr]);
     }
 
@@ -61,7 +61,7 @@
     ### 3. STORE RNAME ###
     action rname_start { rname_beg = p - line.ptr; }
     action rname_end {
-        ref_id = header.getSequenceIndex(line[rname_beg .. p - line.ptr]); 
+        ref_id = header.getSequenceIndex(line[rname_beg .. p - line.ptr]);
     }
 
     action handle_invalid_rname { fhold; fgoto recover_from_invalid_rname; }
@@ -110,11 +110,11 @@
     ### 7. STORE CIGAR OPERATIONS ###
     action cigar_set_op_length { cigar_op_len = to!uint(int_value); }
     action cigar_set_op_chr { cigar_op_chr = fc; }
-    action cigar_put_operation { 
+    action cigar_put_operation {
         auto op = CigarOperation(cigar_op_len, cigar_op_chr);
         if (op.is_reference_consuming)
             end_pos += op.length;
-        buffer.put!CigarOperation(op); 
+        buffer.put!CigarOperation(op);
         {
         auto ptr = cast(uint*)(buffer.data.ptr + 3 * uint.sizeof);
         *ptr = (*ptr) + 1;
@@ -151,10 +151,10 @@
         *ptr = ref_id;
         }
     }
-   
+
     action rnext_start { rnext_beg = p - line.ptr; }
     action rnext_end {
-        { 
+        {
         auto ptr = cast(int*)(buffer.data.ptr + 5 * int.sizeof);
         *ptr = header.getSequenceIndex(line[rnext_beg .. p - line.ptr]);
         }
@@ -162,11 +162,11 @@
     action handle_invalid_rnext { fhold; fgoto recover_from_invalid_rnext; }
     recover_from_invalid_rnext := invalid_field '\t' @{ fhold; fgoto pnext_parsing; } ;
 
-    rnext = '*' | ('=' % set_same_mate_ref_id) | 
+    rnext = '*' | ('=' % set_same_mate_ref_id) |
                   (([!-()+-<>-~][!-~]*) > rnext_start % rnext_end) ;
 
     ### 10. SET MATE POSITION ###
-    action set_mate_pos { 
+    action set_mate_pos {
         {
         auto ptr = cast(int*)(buffer.data.ptr + 6 * int.sizeof);
         *ptr = to!int(int_value) - 1;
@@ -178,7 +178,7 @@
     pnext = uint % set_mate_pos;
 
     ### 11. SET TEMPLATE LENGTH ###
-    action set_template_length { 
+    action set_template_length {
         {
         auto ptr = cast(int*)(buffer.data.ptr + 7 * int.sizeof);
         *ptr = to!int(int_value);
@@ -191,7 +191,7 @@
 
     ### 12. SET SEQUENCE ###
     action sequence_start { sequence_beg = p - line.ptr; }
-    action sequence_end { 
+    action sequence_end {
         auto data = cast(ubyte[])line[sequence_beg .. p - line.ptr];
         l_seq = cast(int)data.length;
         auto raw_len = (l_seq + 1) / 2;
@@ -275,14 +275,14 @@
 
     ############ TAG PARSING ######
 
-    action set_charvalue { 
+    action set_charvalue {
         buffer.capacity = buffer.length + 4;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('A');
-        buffer.putUnsafe!char(fc); 
+        buffer.putUnsafe!char(fc);
     }
 
-    action set_integervalue { 
+    action set_integervalue {
         buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
         if (int_value < 0) {
@@ -316,14 +316,14 @@
 
     action start_tagvalue { tagvalue_beg = p - line.ptr; }
 
-    action set_floatvalue { 
+    action set_floatvalue {
         buffer.capacity = buffer.length + 7;
         buffer.putUnsafe(tag_key);
         buffer.putUnsafe!char('f');
         buffer.putUnsafe!float(float_value);
     }
 
-    action set_stringvalue { 
+    action set_stringvalue {
         {
         auto data = cast(ubyte[])(line[tagvalue_beg .. p - line.ptr]);
         buffer.capacity = buffer.length + 4 + data.length;
@@ -376,7 +376,7 @@
         }
     }
 
-    action put_float_to_array { 
+    action put_float_to_array {
         buffer.put!float(float_value);
         {
             auto ptr = cast(uint*)(buffer.data.ptr + tag_array_length_offset);
@@ -390,10 +390,10 @@
     floatarrayvalue = [f] > start_arrayvalue (',' float % put_float_to_array)+ ;
     arrayvalue = integerarrayvalue | floatarrayvalue ;
 
-    tagvalue = ("A:" charvalue) | 
-               ("i:" integervalue) | 
-               ("f:" floatvalue) | 
-               ("Z:" stringvalue) | 
+    tagvalue = ("A:" charvalue) |
+               ("i:" integervalue) |
+               ("f:" floatvalue) |
+               ("Z:" stringvalue) |
                ("H:" hexstringvalue) |
                ("B:" arrayvalue) ;
 
@@ -401,7 +401,7 @@
     action tag_key_end   { tag_key = cast(ubyte[])(line[tag_key_beg .. p - line.ptr]); }
 
     action handle_invalid_tag {
-        buffer.shrink(rollback_size); 
+        buffer.shrink(rollback_size);
         fhold; fgoto recover_from_invalid_tag;
     }
     # FIXME: what if the tag is last?
@@ -412,13 +412,14 @@
     optionalfield = tag ':' tagvalue % update_rollback_size $!handle_invalid_tag ;
     optionalfields = optionalfield ('\t' optionalfield)* ;
 
-    alignment := field_parsing: mandatoryfields 
+    alignment := field_parsing: mandatoryfields
                  tag_parsing: ('\t' optionalfields)? ;
 
-    write data; 
+    write data;
 }%%
 
 import bio.sam.header;
+import bio.bam.cigar;
 import bio.bam.read;
 import bio.bam.bai.bin;
 import bio.core.utils.outbuffer;
@@ -439,7 +440,7 @@ BamRead parseAlignmentLine(string line, SamHeader header, OutBuffer buffer=null)
         buffer.clear();
 
     size_t rollback_size; // needed in case of invalid data
-    
+
     byte current_sign = 1;
 
     size_t read_name_beg; // position of beginning of QNAME
@@ -454,7 +455,7 @@ BamRead parseAlignmentLine(string line, SamHeader header, OutBuffer buffer=null)
     char quals_last_char; // needed in order to handle '*' correctly
 
     size_t cigar_op_len_start; // position of start of CIGAR operation
-    
+
     long int_value;                      // for storing temporary integers
     float float_value;                   // for storing temporary floats
     size_t float_beg;                    // position of start of current float
