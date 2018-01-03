@@ -9,6 +9,7 @@
 import bio.bam.read, bio.bam.referenceinfo, bio.sam.header;
 import bio.bam.reader, bio.bam.writer;
 import undead.stream, std.stdio;
+import bio.bam.cigar;
 
 void main() {
     auto header = new SamHeader(); // First, create SAM header 
