@@ -1,7 +1,7 @@
 // BioD depends on stream.d which is no longer included with phobos.
 // To run this example from this directory,
 // Clone the undead repository with
-// git clone https://  /undead/undead.git at the appropriate location and ensure
+// git clone https://github.com:dlang/undeaD.git at the appropriate location and ensure
 // it is available on your path
 // Run example: rdmd -I.. -I../location_of_undead/src iterate_tags.d
 
