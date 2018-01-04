@@ -1,4 +1,9 @@
-// run example: rdmd -I.. transverse_multiple_bam_files.d
+// BioD depends on stream.d which is no longer included with phobos.
+// To run this example from this directory,
+// Clone the undead repository with
+// git clone https://  /undead/undead.git at the appropriate location and ensure
+// it is available on your path
+// Run example: rdmd -I.. -I../location_of_undead/src transverse_multiple_bam_files.d
 
 import bio.bam.multireader;
 import bio.bam.read : compareCoordinates;
