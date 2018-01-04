@@ -1,4 +1,9 @@
-// run example: rdmd -I.. print_base_info.d
+// BioD depends on stream.d which is no longer included with phobos.
+// To run this example from this directory,
+// Clone the undead repository with
+// git clone https://github.com:dlang/undeaD.git at the appropriate location and ensure
+// it is available on your path
+// Run example: rdmd -I.. -I../location_of_undead/src print_base_info.d
 
 import bio.bam.reader;
 import bio.bam.baseinfo;

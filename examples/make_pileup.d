@@ -1,4 +1,9 @@
-// run example: rdmd -I.. make_pileup.d
+// BioD depends on stream.d which is no longer included with phobos.
+// To run this example from this directory,
+// Clone the undead repository with
+// git clone https://github.com:dlang/undeaD.git at the appropriate location and ensure
+// it is available on your path
+// Run example: rdmd -I.. -I../location_of_undead/src make_pileup.d
 
 import bio.bam.reader;
 import bio.bam.pileup;
