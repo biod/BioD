@@ -58,7 +58,7 @@ private {
         char* wstr=str;
 
         static if (isSigned!T) { 
-            ulong uvalue = (value < 0) ? -value : value;
+            ulong uvalue = (value < 0) ? -cast(int)(value) : value;
         } else {
             ulong uvalue = value;
         }
