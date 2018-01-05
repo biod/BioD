@@ -1007,7 +1007,7 @@ private:
         assert(n < 16);
         // http://graphics.stanford.edu/~seander/bithacks.html#ConditionalSetOrClearBitsWithoutBranching
         ushort mask = cast(ushort)(1 << n);
-        _flag = (_flag & ~mask) | ((-cast(int)b) & mask);
+        _flag = (_flag & ~cast(int)(mask)) | ((-cast(int)b) & mask);
     }
 
     // If _chunk is still a slice, not an array, duplicate it.
