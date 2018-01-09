@@ -1,6 +1,14 @@
+/*
+    Asserte functions. This file is part of BioD.
+    Copyright (C) 2018 Pjotr Prins <pjotr.prins@thebird.nl>
+*/
+
+// This code is based on 'exception.d' in D's Phobos
+
 module bio.core.utils.exception;
 
 import std.exception;
+import std.traits;
 
 /++
     Asserts that the given value is true, but unlike standard assert
@@ -28,10 +36,10 @@ T asserte(T)(T value, lazy Throwable ex)
   return value;
 }
 
-T asserte(T)(T value)
+T asserte(T)(T value, lazy string msg = "asserte failed")
 {
   version(assert) {
-    if (!value) throw new Exception("asserte failed");
+    if (!value) throw new Exception(msg);
   }
   return value;
 }
