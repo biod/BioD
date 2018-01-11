@@ -30,6 +30,7 @@ import bio.bam.read;
 import bio.bam.tagvalue;
 import bio.bam.iontorrent.flowcall;
 import bio.bam.md.core;
+import bio.bam.cigar;
 
 import std.range;
 import std.conv;
