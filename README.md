@@ -68,7 +68,7 @@ support use the [issue tracker](https://github.com/biod/BioD/issues) or contact
 
 * [Pjotr Prins](https://github.com/pjotrp)
 * [Artem Tarasov](https://github.com/lomereiter)
-* [George Githinji](https://github.com/biorelated)
+* [George Githinji](https://github.com/George-Githinji)
 
 # License
 
