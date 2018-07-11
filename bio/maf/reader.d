@@ -35,7 +35,7 @@ import std.algorithm;
 struct MafBlockRange {
     private {
 
-        alias File.ByLine!(char, char) LineRange;
+        alias typeof(File.byLine()) LineRange;
         File _f;
         LineRange _lines;
 
