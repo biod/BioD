@@ -142,7 +142,7 @@ unittest {
         GATTTGGGGTTCAAAGCAGTATCGATCAAATAGTAAATCCATTTGTTCAACTCACAGTTT
         +
         !''*((((***+))%%%++)(%%%%).1***-+*''))**55CCF>>>>>>CCCCCCC65
-        """[1 .. $];
+        """ ~ [1 .. $];
 
     foreach(record; FastqRecord.read(input)) {
         import std.stdio;
