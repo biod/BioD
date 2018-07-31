@@ -129,7 +129,7 @@ struct FastqRecord {
 }
 
 unittest {
-    string input = """
+    string input = "" ~ """
         @seq1
         TTATTTTAAT
         +
