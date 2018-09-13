@@ -1,6 +1,6 @@
 /*
     New style BAM reader. This file is part of Sambamba.
-    Copyright (C) 2017 Pjotr Prins <pjotr.prins@thebird.nl>
+    Copyright (C) 2017,2018 Pjotr Prins <pjotr.prins@thebird.nl>
 
     Sambamba is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published

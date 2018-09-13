@@ -131,7 +131,7 @@ struct ReadBlob {
   */
 
   @property void cleanup() {
-    delete _data;
+    destroy(_data);
     _data = null;
   }
 
