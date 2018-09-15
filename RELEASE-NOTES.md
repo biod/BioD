@@ -13,5 +13,5 @@
 + Added 'asserte' method which throws an exception on assert (failure)
 + Bug fixes:
   * #31 Bug in bio/core/utils/outbuffer.d: _heap.length is not correctly set affects reading long SAM records
-  * #210 correct pseudo-bin calculation (thanks @jfarek)
+  * https://github.com/biod/sambamba/issues/210 correct pseudo-bin calculation (thanks @jfarek)
   * JSON header output fixes #331
