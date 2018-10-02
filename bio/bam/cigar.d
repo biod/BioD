@@ -39,7 +39,7 @@ import bio.core.base;
 import bio.core.utils.format;
 
 import bio.bam.abstractreader;
-import bio.bam.cigar;
+//import bio.bam.cigar;
 import bio.bam.writer;
 import bio.bam.tagvalue;
 import bio.bam.bai.bin;
