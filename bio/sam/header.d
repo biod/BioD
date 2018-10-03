@@ -238,7 +238,8 @@ mixin HeaderLineStruct!("RgLine", "@RG", "identifier",
           Field!("predicted_insert_size", "PI", int),
           Field!("platform", "PL"),
           Field!("platform_unit", "PU"),
-          Field!("sample", "SM"));
+          Field!("sample", "SM"),
+          Field!("platform_model", "PM"));
 
 mixin HeaderLineStruct!("PgLine", "@PG", "identifier",
           Field!("identifier", "ID"),
