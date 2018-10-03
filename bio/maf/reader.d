@@ -31,27 +31,28 @@ import std.array;
 import std.string;
 import std.stdio;
 import std.algorithm;
+import std.range.interfaces;
+import std.string;
 
 ///
 struct MafBlockRange {
     private {
 
-        alias File.ByLine!(char, char) LineRange;
         File _f;
-        LineRange _lines;
-
         bool _empty;
         MafBlock _front;
 
         void skipHeader() {
-            if (!_lines.empty && _lines.front.startsWith("##maf"))
+          auto _lines = _f.byLine();
+          if (!_lines.empty)
+            if (_lines.front.startsWith("##maf"))
                 _lines.popFront();
         }
     }
 
     this(string fn) {
         _f = File(fn);
-        _lines = cast(LineRange)_f.byLine(KeepTerminator.yes);
+        // _lines = _f.byLine(KeepTerminator.yes);
         skipHeader();
         popFront();
     }
@@ -69,6 +70,7 @@ struct MafBlockRange {
     ///
     void popFront() {
         auto block_data = Appender!(char[])();
+        auto _lines = _f.byLine();
         while (!_lines.empty && !_lines.front.chomp().empty) {
             block_data.put(_lines.front.dup);
             _lines.popFront();
