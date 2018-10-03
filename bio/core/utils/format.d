@@ -8,10 +8,10 @@
     the rights to use, copy, modify, merge, publish, distribute, sublicense,
     and/or sell copies of the Software, and to permit persons to whom the
     Software is furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -29,7 +29,7 @@
         $(LI $(D ref char*) - in this case, function starts
             writing at the location, and updates the pointer.
             No checks are done, it's user's responsibility that this is safe.)
-        $(LI $(D scope void delegate(const(char)[])) - formatted data 
+        $(LI $(D scope void delegate(const(char)[])) - formatted data
             is passed to the delegate for further processing.)))
  */
 module bio.core.utils.format;
@@ -41,6 +41,16 @@ import std.string;
 import std.traits;
 import std.array;
 import std.math;
+
+///
+template isSomeSink(T) {
+    static if (__traits(compiles, T.init("string")))//T == void delegate(const(char)[])))
+        enum isSomeSink = true;
+    else static if (is(T == char*))
+        enum isSomeSink = true;
+    else
+        enum isSomeSink = false;
+}
 
 private {
     // Reverses closed interval [begin .. end]
@@ -57,14 +67,14 @@ private {
     {
         char* wstr=str;
 
-        static if (isSigned!T) { 
+        static if (isSigned!T) {
             ulong uvalue = (value < 0) ? -cast(int)(value) : value;
         } else {
             ulong uvalue = value;
         }
 
         do {
-            *wstr++ = cast(char)(48 + (uvalue % 10)); 
+            *wstr++ = cast(char)(48 + (uvalue % 10));
         } while (uvalue /= 10);
 
         static if (isSigned!T) {
@@ -77,18 +87,9 @@ private {
     }
 }
 
-///
-template isSomeSink(T) {
-    static if (__traits(compiles, T.init("string")))//T == void delegate(const(char)[])))
-        enum isSomeSink = true;
-    else static if (is(T == char*))
-        enum isSomeSink = true;
-    else
-        enum isSomeSink = false;
-}
 
 private {
-    void writeFloat(T)(ref char* sink, T number) 
+    void writeFloat(T)(ref char* sink, T number)
         if (isFloatingPoint!T)
     {
         char[4] format;
@@ -98,7 +99,7 @@ private {
         sink += sprintf(sink, format.ptr, number);
     }
 
-    void writeFloat(T)(scope void delegate(const(char)[]) sink, T number) 
+    void writeFloat(T)(scope void delegate(const(char)[]) sink, T number)
         if (isFloatingPoint!T)
     {
         char[1024] buffer = void;
@@ -138,7 +139,7 @@ private {
         sink += itoa(integer, sink);
     }
 
-    void writeInteger(T)(scope void delegate(const(char)[]) sink, T integer) 
+    void writeInteger(T)(scope void delegate(const(char)[]) sink, T integer)
         if (isIntegral!T)
     {
         char[32] buf = void;
@@ -152,7 +153,7 @@ private {
         *sink++ = c;
     }
 
-    void writeChar(T)(scope void delegate(const(char)[]) sink, T c) 
+    void writeChar(T)(scope void delegate(const(char)[]) sink, T c)
         if (isSomeChar!T)
     {
         sink((&c)[0 .. 1]);
@@ -172,7 +173,7 @@ private {
         sink(cast(const(char)[])s);
     }
 
-    void writeImpl(Sink, T)(auto ref Sink sink, T value) 
+    void writeImpl(Sink, T)(auto ref Sink sink, T value)
         if (isSomeSink!Sink)
     {
         static if (isIntegral!T)
@@ -183,7 +184,7 @@ private {
             writeChar(sink, value);
         else static if (isSomeString!T)
             writeString(sink, value);
-        else static assert(false, 
+        else static assert(false,
                     "only integers, floats, chars and strings are supported");
     }
 
@@ -192,7 +193,7 @@ private {
     // JSON doesn't support NaN and +/- infinity.
     // Therefore the approach taken here is to represent
     // infinity as 1.0e+1024, and NaN as null.
-    void writeFloatJson(Sink, T)(auto ref Sink sink, T value) 
+    void writeFloatJson(Sink, T)(auto ref Sink sink, T value)
         if (isFloatingPoint!T)
     {
         if (isFinite(value)) {
@@ -211,12 +212,12 @@ private {
     }
 
     immutable char[256] specialCharacterTable = [
-    /*   0-15  */    0,0,  0,0,0,0,0,0, 'b','t','n',0, 'f','r',0,  0, 
+    /*   0-15  */    0,0,  0,0,0,0,0,0, 'b','t','n',0, 'f','r',0,  0,
     /*  16-31  */    0,0,  0,0,0,0,0,0,   0,  0,  0,0,   0,  0,0,  0,
-    /*  32-47  */    0,0,'"',0,0,0,0,0,   0,  0,  0,0,   0,  0,0,  0, 
-    /*  48-63  */    0,0,  0,0,0,0,0,0,   0,  0,  0,0,   0,  0,0,'/', 
+    /*  32-47  */    0,0,'"',0,0,0,0,0,   0,  0,  0,0,   0,  0,0,  0,
+    /*  48-63  */    0,0,  0,0,0,0,0,0,   0,  0,  0,0,   0,  0,0,'/',
     /*  64-79  */    0,0,  0,0,0,0,0,0,   0,  0,  0,0,   0,  0,0,  0,
-    /*  80-95  */    0,0,  0,0,0,0,0,0,   0,  0,  0,0,'\\',  0,0,  0, 
+    /*  80-95  */    0,0,  0,0,0,0,0,0,   0,  0,  0,0,'\\',  0,0,  0,
     /*  96-111 */    0,0,  0,0,0,0,0,0,   0,  0,  0,0,   0,  0,0,  0,
     /* 112-127 */    0,0,  0,0,0,0,0,0,   0,  0,  0,0,   0,  0,0,  0,
 
@@ -230,7 +231,7 @@ private {
                      0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0
     ];
 
-    void writeStringJson(Sink, T)(auto ref Sink sink, T s) 
+    void writeStringJson(Sink, T)(auto ref Sink sink, T s)
         if (isSomeString!T)
     {
         sink.write('"');
@@ -269,7 +270,7 @@ private {
         sink.write(']');
     }
 
-    void writeJsonImpl(Sink, T)(auto ref Sink sink, T value) 
+    void writeJsonImpl(Sink, T)(auto ref Sink sink, T value)
         if (isSomeSink!Sink)
     {
         static if (isIntegral!T)
@@ -282,7 +283,7 @@ private {
             writeStringJson(sink, value);
         else static if (isArray!T && __traits(compiles, sink.writeJsonImpl(value[0])))
             writeArrayJson(sink, value);
-        else static assert(false, 
+        else static assert(false,
                     "only numbers, chars, strings and arrays are supported");
     }
 }
@@ -294,7 +295,7 @@ void write(T)(scope void delegate(const(char)[]) sink, T value) { writeImpl(sink
 
 ///
 void writeArray(Sink, T, U)(auto ref Sink sink, T array, U delimiter)
-    if (isSomeSink!Sink && isArray!T && (isSomeChar!U || isSomeString!U) && 
+    if (isSomeSink!Sink && isArray!T && (isSomeChar!U || isSomeString!U) &&
         __traits(compiles, sink.write(array[0])))
 {
     if (array.length == 0)
