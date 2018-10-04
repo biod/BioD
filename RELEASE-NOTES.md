@@ -1,3 +1,9 @@
+## ChangeLog v0.2.1 (20181004)
+
++ Fix bunch of deprecation warnings
++ Fixes sort removing tags from @RG header https://github.com/biod/sambamba/issues/356
++ Fixes https://github.com/biod/BioD/issues/37
+
 ## ChangeLog v0.2.0 (20180915)
 
 64-bit compilation should be fine on ldc 1.10
