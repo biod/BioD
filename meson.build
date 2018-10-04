@@ -89,19 +89,33 @@ biod_src = [
     'bio/sam/utils/recordparser.d',
     'bio/sam/reader.d',
     'bio/sam/header.d'
+
+bio2_src = [
+    'bio2/bam/header.d',
+    'bio2/bam/reader.d',
+    'bio2/bam/writer.d',
+    'bio2/bgzf.d',
+    'bio2/bgzf_writer.d',
+    'bio2/constants.d',
+    'bio2/hashing.d',
+    'bio2/logger.d',
+    'bio2/pileup.d',
+    'bio2/reads.d',
+    'bio2/unpack.d'
 ]
 
 #
 # Includes
 #
-install_subdir('bio/', install_dir: 'include/d/')
+install_subdir('bio/', install_dir: 'include/d/bio/')
+install_subdir('bio2/', install_dir: 'include/d/bio/')
 
 #
 # Library and pkg-config
 #
 biod_lib = library('biod',
-        [biod_src],
         include_directories: [src_dir],
+        [biod_src, bio2_src],
         dependencies: [undead_dep, zlib_dep],
         install: true,
         version: project_version,
@@ -111,6 +125,7 @@ pkgc.generate(name: 'biod',
               libraries: biod_lib,
               subdirs: 'd/',
               version: project_version,
+              subdirs: 'd/bio/',
               description: 'Bioinformatics library in D (utils for working with SAM, BAM, SFF formats).'
 )
 
@@ -121,6 +136,8 @@ biod_test_exe = executable('biod_test',
     ['test/unittests.d',
     biod_src],
     include_directories: [src_dir],
+     biod_src,
+     bio2_src],
     dependencies: [undead_dep, zlib_dep],
     d_args: meson.get_compiler('d').unittest_args()
 )
