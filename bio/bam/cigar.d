@@ -135,7 +135,7 @@ struct CigarOperation {
         return ((raw & 0xF) >> 1) == 2; // 4 or 5
     }
 
-    private void toSam(Sink)(auto ref Sink sink) const
+    void toSam(Sink)(auto ref Sink sink) const
         if (isSomeSink!Sink)
     {
         sink.write(length);

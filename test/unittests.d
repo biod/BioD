@@ -22,6 +22,7 @@
 
 */
 
+import bio.bam.cigar;
 import bio.bam.reader;
 import bio.bam.writer;
 import bio.sam.reader;
