@@ -5,8 +5,10 @@
 // it is available on your path
 // Run example: rdmd -I.. -I../location_of_undead/src iterate_tags.d
 
-import bio.bam.reader, bio.bam.tagvalue;
-import std.stdio, std.datetime;
+import bio.bam.reader;
+import bio.bam.tagvalue;
+import std.stdio;
+import std.datetime.stopwatch : benchmark,StopWatch;
 import std.conv : to;
 
 void main() {
@@ -28,20 +30,29 @@ void main() {
   // It is not necessary to know exact value type as in BAM.
   // If it can be converted to specified type, that's fine.
   // Otherwise, an exception will be thrown.
-  auto v3 = to!long(v); auto v4 = to!string(v); auto v5 = to!float(v);
+  auto v3 = to!long(v); 
+  auto v4 = to!string(v); 
+  auto v5 = to!float(v);
 
   // With strings and arrays there is an unsafe but faster way...
   v = read["FZ"];
+  
   StopWatch sw;
 
   // even with -O -release -inline this is slow
-  sw.start; auto fz1 = to!(ushort[])(v); sw.stop();
-  writeln("  safe conversion: ", sw.peek().usecs, "μs");
+  sw.start; 
+  auto fz1 = to!(ushort[])(v);
+  sw.stop();
+  
+  writeln("  safe conversion: ", sw.peek.total!"usecs", "μs");
   sw.reset();
 
   // this works because v starts in memory with a union
-  sw.start(); auto fz2 = *(cast(ushort[]*)(&v)); sw.stop();
-  writeln("unsafe conversion: ", sw.peek().usecs, "μs");
+  sw.start();
+  auto fz2 = *(cast(ushort[]*)(&v)); 
+  sw.stop();
+  
+  writeln("unsafe conversion: ", sw.peek.total!"usecs", "μs");
 
   assert(fz1 == fz2);
 }
