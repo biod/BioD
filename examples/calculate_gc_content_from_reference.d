@@ -8,7 +8,10 @@
 import bio.bam.reader;
 import bio.bam.md.reconstruct : dna;
 
-import std.stdio, std.datetime, std.range, std.array;
+import std.stdio;
+import std.datetime.stopwatch: benchmark, StopWatch;
+import std.range;
+import std.array;
 
 void main() {
   auto bam = new BamReader("../test/data/b7_295_chunk.bam");
@@ -31,10 +34,11 @@ void main() {
 
   auto reads = array(bam.reads); // no I/O during measurements
 
+  //std.datetime.stopwatch.StopWatch
   StopWatch sw; // for a range of reads, minumum number of MD tags is parsed
   sw.start(); walkLength(dna(reads)); sw.stop();
-  writeln("extracting reference from range of reads: ", sw.peek().usecs, "μs");
+  writeln("extracting reference from range of reads: ", sw.peek.total!"usecs", "μs");
   sw.reset(); 
   sw.start(); foreach (read; reads) walkLength(dna(read)); sw.stop();
-  writeln("extracting reference from each read:     ", sw.peek().usecs, "μs");
+  writeln("extracting reference from each read:     ", sw.peek.total!"usecs", "μs");
 }
