@@ -1471,6 +1471,18 @@ bool compareReadNamesAsPicard(R1, R2)(const auto ref R1 a1, const auto ref R2 a2
     return a1.name < a2.name;
 }
 
+bool compareReadNamesAsPicard(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
+    if (isBamRead!R1 && isSomeString!R2)
+{
+    return a1.name < a2;
+}
+
+bool compareReadNamesAsPicard(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
+    if (isSomeString!R1 && isBamRead!R2)
+{
+    return a1 < a2.name;
+}
+
 /// $(P Comparison function for 'queryname' sorting order
 /// (return whether first read is 'less' than second))
 ///
