@@ -4,3 +4,5 @@ __dummy.html
 *.o
 *.obj
 dub.selections.json
+bin/
+build/
