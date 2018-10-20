@@ -8,28 +8,30 @@ module bio.std.decompress;
 
 /**
    Streaming line reader which can be used for gzipped files. Note the
-   current edition still uses the garbage collector.
+   current edition (still) uses the garbage collector. It may help to
+   switch it off or to use the BioD decompressor used by bgzf.
 
    Conversion can happen between different encodings, provided the
    line terminator is ubyte = '\n'. GzipbyLine logic is modeled on
    ByLineImpl and readln function from std.stdio.
 */
 
+import std.algorithm;
 import std.conv;
 import std.exception;
 import std.file;
 import std.stdio;
 import std.zlib: UnCompress;
 
-struct GzipbyLine(Char) {
+struct GzipbyLine(R) {
 
   File f;
   UnCompress decompress;
-  Char[] line;
+  R line;
   ubyte[] uncompressed_buf;
   uint _bufsize;
 
-  this(string gzipfn, uint bufsize=1024) {
+  this(string gzipfn, uint bufsize=0x4000) {
     enforce(gzipfn.isFile);
     f = File(gzipfn,"r");
     decompress = new UnCompress();
@@ -38,25 +40,57 @@ struct GzipbyLine(Char) {
 
   @disable this(this); // disable copy semantics;
 
-  int opApply(scope int delegate(ubyte[]) dg) {
+  int opApply(scope int delegate(R) dg) {
+
+    // chunk_byLine takes a buffer and splits on \n.
+    R chunk_byLine(R head, R rest) {
+      auto split = findSplitAfter(rest,"\n");
+      // If a new line is found split the in left and right.
+      auto left = split[0]; // includes eol splitter
+      auto right = split[1];
+      if (left.length > 0) { // we have a match!
+        dg(head ~ left);
+        return chunk_byLine([], right);
+      }
+      // no match
+      return head ~ right;
+    }
+
+    R tail; // tail of previous buffer
     foreach (ubyte[] buffer; f.byChunk(_bufsize))
     {
-      auto uncompressedData = decompress.uncompress(buffer);
-      dg(cast(ubyte[])uncompressedData);
+      auto buf = cast(R)decompress.uncompress(buffer);
+      tail = chunk_byLine(tail,buf);
     }
+    dg(tail);
     return 0;
   }
 }
 
 unittest {
-  writeln("Testing GzipbyLine");
+
+  import std.algorithm.comparison : equal;
+
+  // writeln("Testing GzipbyLine");
+  int[] a = [ 1, 2, 4, 7, 7, 2, 4, 7, 3, 5];
+  auto b = findSplitAfter(a, [7]);
+  assert(equal(b[0],[1, 2, 4, 7]));
+  assert(equal(b[1],[7, 2, 4, 7, 3, 5]));
+  auto b1 = findSplitAfter(b[1], [7]);
+  assert(equal(b1[0],[7]));
+  assert(equal(b1[1],[2, 4, 7, 3, 5]));
+  auto b2 = findSplitAfter([2, 4, 3], [7]);
+  assert(equal(b2[0],cast(ubyte[])[]));
+  assert(equal(b2[1],[2,4,3]));
+
   uint lines = 0;
   uint chars = 0;
-  foreach(ubyte[] s; GzipbyLine!ubyte("test/data/BXD_geno.txt.gz",32)) {
-    // test file contains 147 lines 3622 characters
-    // writeln(s);
+  foreach(ubyte[] s; GzipbyLine!(ubyte[])("test/data/BXD_geno.txt.gz")) {
+    // test file contains 7320 lines 4707218 characters
+    // write(cast(string)s);
     chars += s.length;
+    lines += 1;
   }
-  assert(chars == 3622,"size " ~ to!string(chars));
-  // assert(lines == 147,"lines " ~ to!string(lines));
+  assert(chars == 4707218,"chars " ~ to!string(chars));
+  assert(lines == 7321,"lines " ~ to!string(lines));
 }
