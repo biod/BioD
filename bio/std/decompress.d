@@ -62,7 +62,7 @@ struct GzipbyLine(R) {
       auto buf = cast(R)decompress.uncompress(buffer);
       tail = chunk_byLine(tail,buf);
     }
-    dg(tail);
+    if (tail.length > 0) dg(tail);
     return 0;
   }
 }
@@ -92,5 +92,5 @@ unittest {
     lines += 1;
   }
   assert(chars == 4707218,"chars " ~ to!string(chars));
-  assert(lines == 7321,"lines " ~ to!string(lines));
+  assert(lines == 7320,"lines " ~ to!string(lines));
 }

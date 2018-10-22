@@ -448,6 +448,4 @@ struct BgzfStream {
   }
 
   T[] read(T)(T[] buffer) { return cast(T[])fetch(cast(ubyte[])buffer); };
-
-
 }
