@@ -6,9 +6,13 @@
 // Run example: rdmd -I.. -I../location_of_undead/src create_bam_from_scratch.d
 
 // this example shows how to create BAM files from scratch
-import bio.bam.read, bio.bam.referenceinfo, bio.sam.header;
-import bio.bam.reader, bio.bam.writer;
-import undead.stream, std.stdio;
+import bio.bam.read;
+import bio.bam.referenceinfo;
+import bio.sam.header;
+import bio.bam.reader;
+import bio.bam.writer;
+import undead.stream;
+import std.stdio;
 import bio.bam.cigar;
 
 void main() {
