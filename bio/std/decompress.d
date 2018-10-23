@@ -17,9 +17,11 @@ module bio.std.decompress;
 */
 
 import std.algorithm;
+// import std.concurrency;
 import std.conv;
 import std.exception;
 import std.file;
+import std.parallelism;
 import std.stdio;
 import std.zlib: UnCompress;
 
@@ -28,7 +30,6 @@ struct GzipbyLine(R) {
   File f;
   UnCompress decompress;
   R line;
-  ubyte[] uncompressed_buf;
   uint _bufsize;
 
   this(string gzipfn, uint bufsize=0x4000) {
@@ -67,6 +68,7 @@ struct GzipbyLine(R) {
   }
 }
 
+
 unittest {
 
   import std.algorithm.comparison : equal;
@@ -86,6 +88,102 @@ unittest {
   uint lines = 0;
   uint chars = 0;
   foreach(ubyte[] s; GzipbyLine!(ubyte[])("test/data/BXD_geno.txt.gz")) {
+    // test file contains 7320 lines 4707218 characters
+    // write(cast(string)s);
+    chars += s.length;
+    lines += 1;
+  }
+  assert(chars == 4707218,"chars " ~ to!string(chars));
+  assert(lines == 7320,"lines " ~ to!string(lines));
+}
+
+/**
+   Mmfile threaded version of streaming line reader which can be used
+   for gzipped files. Note the current edition is slower than
+   GzipbyLine above and (still) uses the garbage collector. It may
+   help to switch it off or to use the BioD decompressor used by bgzf.
+
+   Conversion can happen between different encodings, provided the
+   line terminator is ubyte = '\n'. GzipbyLine logic is modeled on
+   ByLineImpl and readln function from std.stdio.
+*/
+
+import std.mmfile;
+import core.thread;
+
+struct GzipbyLineThreaded(R) {
+
+  string fn;
+  UnCompress decompress;
+  R line;
+  // Nullable!ubyte[] uncompressed_buf;
+  uint _bufsize;
+
+  this(string gzipfn, uint bufsize=0x4000) {
+    enforce(gzipfn.isFile);
+    fn = gzipfn;
+    decompress = new UnCompress();
+    _bufsize = bufsize;
+  }
+
+  @disable this(this); // disable copy semantics;
+
+  int opApply(scope int delegate(R) dg) {
+
+    // chunk_byLine takes a buffer and splits on \n.
+    R chunk_byLine(R head, R rest) {
+      auto split = findSplitAfter(rest,"\n");
+      // If a new line is found split the in left and right.
+      auto left = split[0]; // includes eol splitter
+      auto right = split[1];
+      if (left.length > 0) { // we have a match!
+        dg(head ~ left);
+        return chunk_byLine([], right);
+      }
+      // no match
+      return head ~ right;
+    }
+
+    R decompressor(ubyte[] buffer) {
+      return cast(R)decompress.uncompress(buffer);
+    }
+
+    auto mmf = new MmFile(fn);
+    immutable mmf_length = mmf.length();
+    long rest = mmf_length;
+    R tail; // tail of previous buffer
+
+    // Decompress the first chunk
+    auto buffer1 = cast(ubyte[])mmf[0.._bufsize];
+    rest -= buffer1.length;
+    auto buf = decompressor(buffer1);
+
+    uint chunknum = 1;
+    while(rest>0) {
+      // Get the next chunk
+      ulong pos2 = (chunknum+1)*_bufsize;
+      if (pos2 > mmf_length) pos2 = cast(ulong)mmf_length;
+      auto buffer2 = cast(ubyte[])mmf[chunknum*_bufsize..mmf_length];
+      rest -= buffer2.length;
+      // Set up decompressing the next chunk
+      auto t = task(&decompressor, buffer2);
+      // auto t = task!decompressor(buffer2);
+      t.executeInNewThread();
+      // now invoke the delegate
+      tail = chunk_byLine(tail,buf);
+      buf = t.yieldForce();
+      chunknum += 1;
+    }
+    tail = chunk_byLine(tail,buf);
+    if (tail.length > 0) dg(tail);
+    return 0;
+  }
+}
+
+unittest {
+  uint lines = 0;
+  uint chars = 0;
+  foreach(ubyte[] s; GzipbyLineThreaded!(ubyte[])("test/data/BXD_geno.txt.gz")) {
     // test file contains 7320 lines 4707218 characters
     // write(cast(string)s);
     chars += s.length;
