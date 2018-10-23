@@ -1419,6 +1419,70 @@ template isBamRead(T)
         });
 }
 
+// Comparison function for 'queryname' sorting order based on https://github.com/samtools/htsjdk/blob/master/src/main/java/htsjdk/samtools/SAMRecordQueryNameComparator.java
+bool compareReadNamesAsPicard(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
+    if (isBamRead!R1 && isBamRead!R2)
+ {
+    if(a1.name == a2.name)
+    {
+        if(a1.is_paired() || a2.is_paired())
+        {
+            if(!a1.is_paired())
+                return false;
+            if(!a2.is_paired())
+                return true;
+
+            if(a1.is_first_of_pair() && a2.is_second_of_pair())
+                return true;
+
+            if(a1.is_second_of_pair() && a2.is_first_of_pair())
+                return false;
+                
+        }
+
+        if(a1.strand() != a2.strand())
+        {
+            return a1.strand() == '-' ? false : true;
+        }
+
+        if(a1.is_secondary_alignment() != a2.is_secondary_alignment())
+        {
+            return a2.is_secondary_alignment();
+        }
+
+        if(a1.is_supplementary() != a2.is_supplementary())
+        {
+            return a2.is_supplementary();
+        }
+
+        if(!a1["HI"].is_nothing)
+        {
+                if(a2["HI"].is_nothing)
+                        return true;
+
+                int i1 = to!int(a1["HI"]);
+                int i2 = to!int(a2["HI"]);
+                return i1 < i2;
+        }
+        else
+        if(!a2["HI"].is_nothing)
+                return false;
+    }
+    return a1.name < a2.name;
+}
+
+bool compareReadNamesAsPicard(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
+    if (isBamRead!R1 && isSomeString!R2)
+{
+    return a1.name < a2;
+}
+
+bool compareReadNamesAsPicard(R1, R2)(const auto ref R1 a1, const auto ref R2 a2)
+    if (isSomeString!R1 && isBamRead!R2)
+{
+    return a1 < a2.name;
+}
+
 /// $(P Comparison function for 'queryname' sorting order
 /// (return whether first read is 'less' than second))
 ///

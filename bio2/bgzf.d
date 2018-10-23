@@ -23,7 +23,10 @@ module bio2.bgzf;
 
 /**
 
-   This is a new version of sambamba bgzf (under development).
+   This is a new version of sambamba bgzf (under development). Bgzf is
+   a blocked version of the ubiquous gzip format. By making it blocked
+   it allows for seeking in gz files. Note that without seeking it
+   can take standard gz files too.
 
    The new version is a prototype for new sambamba architecture using
    canonical D language features, including immutable and improved
@@ -386,7 +389,7 @@ struct BgzfStream {
 
   @disable this(this); // disable copy semantics;
 
-  bool eof() {
+  @property bool eof() {
     return fpos.isNull;
   }
 
@@ -445,6 +448,4 @@ struct BgzfStream {
   }
 
   T[] read(T)(T[] buffer) { return cast(T[])fetch(cast(ubyte[])buffer); };
-
-
 }
