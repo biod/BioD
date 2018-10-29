@@ -214,7 +214,7 @@ struct BgzfReader {
         f.rawRead(buf);
         f.seek(lastpos);
         if (buf == BGZF_EOF)
-          return tuple(FilePos(),compressed_buf,cast(ulong)0,crc32); // sets fpos to null
+          return tuple(FilePos(),compressed_buf,cast(size_t)0,crc32); // sets fpos to null
       }
       return tuple(FilePos(f.tell()),compressed_buf,cast(size_t)uncompressed_size,crc32);
     } catch (Exception e) { throwBgzfException(e.msg,e.file,e.line); }
