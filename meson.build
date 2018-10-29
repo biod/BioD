@@ -12,7 +12,10 @@ pkgc = import('pkgconfig')
 #
 # Dependencies
 #
-undead_dep = dependency('undead', version : '>=1.0.6')
+# undead_dep = dependency('undead', method: 'dub')
+undead_path = '/home/pjotr/.dub/packages/undead-1.0.9/undead/src'
+undead_dir = include_directories('/home/pjotr/.dub/packages/undead-1.0.9/undead/src')
+
 zlib_dep = dependency('zlib')
 
 #
@@ -94,7 +97,9 @@ biod_src = [
     'bio/sff/reader.d',
     'bio/sff/readrange.d',
     'bio/sff/utils/roundup.d',
-    'bio/sff/writer.d'
+    'bio/sff/writer.d',
+    'bio/std/decompress.d',
+    'bio/std/range/splitter.d'
 ]
 
 bio2_src = [
@@ -111,6 +116,22 @@ bio2_src = [
     'bio2/unpack.d'
 ]
 
+undead_src = [
+    undead_path+'/undead/bitarray.d',
+    undead_path+'/undead/cstream.d',
+    undead_path+'/undead/datebase.d',
+    undead_path+'/undead/date.d',
+    undead_path+'/undead/dateparse.d',
+    undead_path+'/undead/doformat.d',
+    undead_path+'/undead/metastrings.d',
+    undead_path+'/undead/regexp.d',
+    undead_path+'/undead/socketstream.d',
+    undead_path+'/undead/stream.d',
+    undead_path+'/undead/string.d',
+    undead_path+'/undead/utf.d',
+    undead_path+'/undead/internal/file.d'
+]
+
 #
 # Includes
 #
@@ -121,8 +142,9 @@ install_subdir('bio2/', install_dir: 'include/d/bio/')
 # Library and pkg-config
 #
 biod_lib = library('biod',
-        [biod_src, bio2_src],
-        dependencies: [undead_dep, zlib_dep],
+        [biod_src, bio2_src, undead_src],
+        include_directories : undead_dir,
+        dependencies: [zlib_dep],
         install: true,
         version: meson.project_version(),
         soversion: project_soversion
@@ -140,8 +162,9 @@ pkgc.generate(name: 'biod',
 biod_test_exe = executable('biod_test',
     ['test/unittests.d',
      biod_src,
-     bio2_src],
-    dependencies: [undead_dep, zlib_dep],
+     bio2_src, undead_src],
+    include_directories : undead_dir,
+    dependencies: [zlib_dep],
     d_unittest: true
 )
 test('biod_tests', biod_test_exe)
