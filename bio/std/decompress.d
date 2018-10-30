@@ -85,7 +85,7 @@ unittest {
 
   uint lines = 0;
   uint chars = 0;
-  foreach(ubyte[] s; GzipbyLine!(ubyte[])("test/data/BXD_geno.txt.gz")) {
+  foreach(ubyte[] s; GzipbyLine!(ubyte[])("../test/data/BXD_geno.txt.gz")) {
     // test file contains 7320 lines 4707218 characters
     // write(cast(string)s);
     chars += s.length;

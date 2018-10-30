@@ -1,5 +1,5 @@
 project('BioD', 'd',
-    meson_version : '>=0.46',
+    meson_version : '>=0.45',
     license : 'MIT',
     version : '0.2.2'
 )
@@ -17,6 +17,8 @@ undead_path = '/home/pjotr/.dub/packages/undead-1.0.9/undead/src'
 undead_dir = include_directories('/home/pjotr/.dub/packages/undead-1.0.9/undead/src')
 
 zlib_dep = dependency('zlib')
+
+# thread_dep = dependency('threads')
 
 #
 # Sources
@@ -138,6 +140,8 @@ undead_src = [
 install_subdir('bio/', install_dir: 'include/d/bio/')
 install_subdir('bio2/', install_dir: 'include/d/bio/')
 
+add_global_arguments('-unittest', language : 'D')
+
 #
 # Library and pkg-config
 #
@@ -146,6 +150,8 @@ biod_lib = library('biod',
         include_directories : undead_dir,
         dependencies: [zlib_dep],
         install: true,
+        d_unittest: true,
+        link_args: ['-unittest'],
         version: meson.project_version(),
         soversion: project_soversion
 )
@@ -159,12 +165,20 @@ pkgc.generate(name: 'biod',
 #
 # Tests
 #
+
+# if meson.get_compiler('d').get_id() == 'llvm'
+#   extra_args = ['-unittest', '-link-defaultlib-shared']
+# endif
+
 biod_test_exe = executable('biod_test',
     ['test/unittests.d',
      biod_src,
      bio2_src, undead_src],
     include_directories : undead_dir,
     dependencies: [zlib_dep],
-    d_unittest: true
+    d_unittest: true,
+    c_args: ['-unittest'],
+    link_args: ['-unittest']
 )
+
 test('biod_tests', biod_test_exe)

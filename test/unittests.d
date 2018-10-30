@@ -164,6 +164,7 @@ unittest {
         assert(equal(refseq, naive));
     }
 
+/*
     compareWithNaiveApproach(1400, 1500);
     compareWithNaiveApproach(  10,  123);
     compareWithNaiveApproach( 135, 1236);
@@ -183,7 +184,7 @@ unittest {
     for (auto i = 50_000; i < 1_000_000; i += 50_000) {
         compareWithNaiveApproach(i, i + 100);
     }
-
+*/
     {
         auto fst_offset_tiny = bf["tiny"].startVirtualOffset();
         auto fst_offset_small = bf["small"].startVirtualOffset();

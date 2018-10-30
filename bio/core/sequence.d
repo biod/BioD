@@ -155,7 +155,8 @@ reversableRange(alias reverseTransform=identity, R)(R range, bool reverse=false)
 }
 
 unittest {
-
+    import std.stdio;
+    writeln("BioD: running unittests");
     auto bidir_range = [1, 2, 3, 4, 5];
     auto rev = reversableRange(bidir_range[], true);
 
@@ -176,6 +177,7 @@ unittest {
     assert(rev.front == 1);
     assert(equal(rev[1 .. 3], [2, 3]));
 }
+
 
 /// Sequence of bases. Element of reversed range will be complemented.
 template Sequence(R)
