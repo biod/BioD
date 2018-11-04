@@ -9,7 +9,11 @@ import bio.bam.reader;
 import bio.bam.pileup;
 import bio.bam.read : compareCoordinates;
 
-import std.range, std.algorithm, std.datetime, std.stdio, std.array;
+import std.range;
+import std.algorithm;
+import std.datetime;
+import std.stdio;
+import std.array;
 
 void main() {
 
@@ -25,9 +29,9 @@ void main() {
         bam.reads));
 
   // There is also easier and faster way to get reads starting at the column:
-  pileup = makePileup(bam.reads, true); // (initialize pileup engine again)
-  assert(equal(
-        pileup.map!(column => column.reads_starting_here)()
-        .joiner(),
-        bam.reads));
+//  pileup = makePileup(bam.reads, true); // (initialize pileup engine again)
+ // assert(equal(
+ //       pileup.map!(column => column.reads_starting_here)()
+  //      .joiner(),
+  //      bam.reads));
 }
