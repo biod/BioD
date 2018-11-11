@@ -49,6 +49,32 @@ in sambamba we use
 
     DFLAGS = -wi -I. -IBioD -g
 
+## Build environment
+
+It is possible to create a recent build container with GNU Guix
+
+    guix environment  -C guix --ad-hoc meson ninja ldc dub zlib gdb --network
+
+and run meson and ninja (you may need the meson branch of BioD)
+
+    dub
+    meson ./build
+    ninja -C ./build
+
+to create a debug version
+
+    meson build --buildtype debug --reconfigure
+
+# Debugging
+
+With gdb make sure to switch off the handlers
+
+    handle SIGUSR1 SIGUSR2 nostop noprint
+
+It can be passed in from the command line
+
+    gdb -iex "handle SIGUSR1 SIGUSR2 nostop noprint" biod_test
+
 # Usage
 
 See the [examples directory](https://github.com/biod/BioD/tree/master/examples)
