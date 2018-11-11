@@ -41,8 +41,9 @@ struct GzipbyLine(R) {
 
   @disable this(this); // disable copy semantics;
 
-  int opApply(scope int delegate(R) dg) {
+  int opApply(scope int delegate(int line, R) dg) {
 
+    int line = 0;
     // chunk_byLine takes a buffer and splits on \n.
     R chunk_byLine(R head, R rest) {
       auto split = findSplitAfter(rest,"\n");
@@ -50,7 +51,7 @@ struct GzipbyLine(R) {
       auto left = split[0]; // includes eol splitter
       auto right = split[1];
       if (left.length > 0) { // we have a match!
-        dg(head ~ left);
+        dg(line++, head ~ left);
         return chunk_byLine([], right);
       }
       // no match
@@ -63,7 +64,7 @@ struct GzipbyLine(R) {
       auto buf = cast(R)decompress.uncompress(buffer);
       tail = chunk_byLine(tail,buf);
     }
-    if (tail.length > 0) dg(tail);
+    if (tail.length > 0) dg(line++, tail);
     return 0;
   }
 }
@@ -85,16 +86,16 @@ unittest {
   assert(equal(b2[0],cast(ubyte[])[]));
   assert(equal(b2[1],[2,4,3]));
 
-  uint lines = 0;
   uint chars = 0;
-  foreach(ubyte[] s; GzipbyLine!(ubyte[])("test/data/BXD_geno.txt.gz")) {
+  int lines = 0;
+  foreach(line, ubyte[] s; GzipbyLine!(ubyte[])("test/data/BXD_geno.txt.gz")) {
     // test file contains 7320 lines 4707218 characters
     // write(cast(string)s);
     chars += s.length;
-    lines += 1;
+    lines = line;
   }
   assert(chars == 4707218,"chars " ~ to!string(chars));
-  assert(lines == 7320,"lines " ~ to!string(lines));
+  assert(lines == 7319,"genotype lines " ~ to!string(lines+1));
 }
 
 /**
@@ -128,8 +129,9 @@ struct GzipbyLineThreaded(R) {
 
   @disable this(this); // disable copy semantics;
 
-  int opApply(scope int delegate(R) dg) {
+  int opApply(scope int delegate(int line, R) dg) {
 
+    int line = 0;
     // chunk_byLine takes a buffer and splits on \n.
     R chunk_byLine(R head, R rest) {
       auto split = findSplitAfter(rest,"\n");
@@ -137,7 +139,7 @@ struct GzipbyLineThreaded(R) {
       auto left = split[0]; // includes eol splitter
       auto right = split[1];
       if (left.length > 0) { // we have a match!
-        dg(head ~ left);
+        dg(line++, head ~ left);
         return chunk_byLine([], right);
       }
       // no match
@@ -175,20 +177,20 @@ struct GzipbyLineThreaded(R) {
       chunknum += 1;
     }
     tail = chunk_byLine(tail,buf);
-    if (tail.length > 0) dg(tail);
+    if (tail.length > 0) dg(line++, tail);
     return 0;
   }
 }
 
 unittest {
-  uint lines = 0;
+  int lines = 0;
   uint chars = 0;
-  foreach(ubyte[] s; GzipbyLineThreaded!(ubyte[])("test/data/BXD_geno.txt.gz")) {
+  foreach(line, ubyte[] s; GzipbyLineThreaded!(ubyte[])("test/data/BXD_geno.txt.gz")) {
     // test file contains 7320 lines 4707218 characters
     // write(cast(string)s);
     chars += s.length;
-    lines += 1;
+    lines = line;
   }
   assert(chars == 4707218,"chars " ~ to!string(chars));
-  assert(lines == 7320,"lines " ~ to!string(lines));
+  assert(lines == 7319,"genotype lines " ~ to!string(lines+1));
 }
