@@ -5,12 +5,12 @@
 		"Pjotr Prins"
 	],
 	"description": "Bioinformatics library in D (utils for working with SAM, BAM, SFF formats)",
-	"copyright": "Copyright © 2016, BioD developers",
+	"copyright": "Copyright © 216-2018, BioD developers",
 	"license": "MIT",
 	"sourcePaths": ["bio"],
 	"importPaths": ["bio"],
 	"dependencies": {
-		"undead": "~>1.0.6"
+		"undead": "~>1.0.9"
 	},
 	"buildRequirements": ["allowWarnings"]
 }
