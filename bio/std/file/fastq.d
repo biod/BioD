@@ -26,7 +26,7 @@
    Credit should go to Rikki Cattermole.
  */
 
-module bio.core.fastq;
+module bio.std.file.fastq;
 
 struct FastqRecord {
     const(char)[] id;

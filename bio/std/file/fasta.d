@@ -21,7 +21,7 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.core.fasta;
+module bio.std.file.fasta;
 
 import std.file;
 import std.exception;

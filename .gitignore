@@ -5,4 +5,5 @@ __dummy.html
 *.obj
 dub.selections.json
 bin/
+old_biod/
 build/
