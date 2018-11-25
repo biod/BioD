@@ -15,7 +15,7 @@ D is a language that suits parallel programming because of guarantees
 the compiler provides. D is both a low-level language and a high-level
 hybrid OOP/FP language. There is no other programming language that
 matches those features. Also, D templating/generics is far easier that
-that of C++ or, say, Scala.
+that of C++.
 
 That is not to say that D is an easy language. A powerful toolbox will
 be complicated. If you want to do everything with a hammer, maybe

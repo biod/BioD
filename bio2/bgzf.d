@@ -49,7 +49,6 @@ import std.typecons;
 import std.zlib : calc_crc32 = crc32, ZlibException;
 
 import bio.bam.constants;
-import bio.core.bgzf.block;
 import bio.core.bgzf.constants;
 import bio.core.utils.zlib : inflateInit2, inflate, inflateEnd, Z_OK, Z_FINISH, Z_STREAM_END;
 

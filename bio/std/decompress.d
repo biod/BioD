@@ -94,8 +94,8 @@ unittest {
     chars += s.length;
     lines = line;
   }
+  assert(lines == 7319,"genotype lines " ~ to!string(lines+1)); // fails with ldc2 < 1.10!
   assert(chars == 4707218,"chars " ~ to!string(chars));
-  assert(lines == 7319,"genotype lines " ~ to!string(lines+1));
 }
 
 /**
@@ -191,6 +191,6 @@ unittest {
     chars += s.length;
     lines = line;
   }
-  assert(chars == 4707218,"chars " ~ to!string(chars));
   assert(lines == 7319,"genotype lines " ~ to!string(lines+1));
+  assert(chars == 4707218,"chars " ~ to!string(chars));
 }
