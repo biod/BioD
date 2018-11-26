@@ -52,18 +52,25 @@ SNP[] fetch_snp_annotations(string filen) {
   info("Parsing ",filen);
   File f = File(filen);
 
-  foreach(line; f.byLine) {
-    auto fields = array(SimpleSplitConv!(char[])(line));
-    auto name = to!string(fields[0]);
-    if (name in names)
-      throw new Exception("SNP name "~name~" appears multiple times in "~filen);
-    auto pos = (fields[1] == "NA" ? -1 : to!ulong(fields[1]));
-    auto chr = to!string(fields[2]);
-    double cm = -1.0;
-    if (fields.length > 3)
-      cm = (fields[3] == "NA" ? -1.0 : to!double(fields[3]));
-    auto snp = SNP(name,chr,pos,cm);
-    list ~= snp;
+  try {
+    foreach(line; f.byLine) {
+      auto fields = array(SimpleSplitConv!(char[])(line));
+      auto name = to!string(fields[0]);
+      if (name in names)
+        throw new Exception("SNP name "~name~" appears multiple times in "~filen);
+      auto pos = (fields[1] == "NA" ? -1 : to!ulong(fields[1]));
+      auto chr = to!string(fields[2]);
+      double cm = -1.0;
+      if (fields.length > 3)
+        cm = (fields[3] == "NA" ? -1.0 : to!double(fields[3]));
+      auto snp = SNP(name,chr,pos,cm);
+      list ~= snp;
+    }
   }
+  catch(Exception e) {
+    writeln(e.msg); // need to test and give proper output FIXME
+    throw e;
+  }
+
   return list;
 }

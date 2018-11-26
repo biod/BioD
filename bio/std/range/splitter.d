@@ -55,6 +55,10 @@ struct SimpleSplitConv(R)
         in_whitespace = false;
       }
     }
+    if (!in_whitespace) { // emit final
+      auto token = list[start..$];
+      dg(token);
+    }
     return 0;
   }
 }
@@ -64,4 +68,5 @@ unittest {
   assert(array(SimpleSplitConv!(ubyte[])(s)) == ["hello","1","2","3","4"]);
   assert(array(SimpleSplitConv!(ubyte[])(cast(ubyte[])"  hello, 1 2 \t3  4 \n")) == ["","hello","1","2","3","4"]);
   assert(array(SimpleSplitConv!(ubyte[])(cast(ubyte[])"hello, 1 2 \n\t3  4 \n")) == ["hello","1","2","3","4"]);
+  assert(array(SimpleSplitConv!(ubyte[])(cast(ubyte[])"chr1:55365,55365,1")) == ["chr1:55365","55365","1"]);
 }
