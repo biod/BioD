@@ -6,6 +6,8 @@
 
 module bio.std.genotype.snp;
 
+import bio.std.range.splitter;
+
 import std.algorithm;
 import std.array;
 import std.conv;
@@ -51,7 +53,7 @@ SNP[] fetch_snp_annotations(string filen) {
   File f = File(filen);
 
   foreach(line; f.byLine) {
-    auto fields = line.split("\t");
+    auto fields = array(SimpleSplitConv!(char[])(line));
     auto name = to!string(fields[0]);
     if (name in names)
       throw new Exception("SNP name "~name~" appears multiple times in "~filen);
