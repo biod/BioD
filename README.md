@@ -4,30 +4,26 @@
 
 BioD aims to:
 
-* Provide a platform for writing high-performance bioinformatics applications in D. BioD achieves this by:
-  - automatic parallelization of tasks where possible for example reading and writing BAM files
+* Provide a platform for writing high-performance bioinformatics applications in the D programming language. BioD achieves this by:
+  - automatic parallelization of tasks where possible
   - reducing the GC overhead by avoiding unnecessary memory allocations
 * Offer support for manipulating common biological data formats
 
 ## Why D?
 
 [D](http://www.d-lang.,org) is a language that suits parallel programming
-because  the compiler provides guarantees. D is both a low-level and a high-level
-hybrid OOP/FP language. In addition, D templating/generics is far easier than
-that of C++. Few languages in any match these set of features.
+because  the compiler provides certain guarantees. The D programmming language is both a low and high-level
+hybrid object orientated and functional (OOP/FP) programming language. D provides a templating/generics features that are
+far easier than that of C++. Few languages if any matches these set of features.
 
 ## D programming language resources
 * [The D Programming Language](https://www.amazon.com/D-Programming-Language-Andrei-Alexandrescu/dp/0321635361) by Andrei Alexandrecu 
 * [Programming in D](http://ddili.org/ders/d.en/index.html) by Ali Çehreli.
 
 ## Current development
-This project is under active development and aims to provide computational biology and 
-bioinformatics modules for working with biological datasets. 
-
-One of our current focus is to provide a bamreader and bamwriter that is
-really fast and easy to use. We believe the BAM format is here to stay
-for the foreseeable future in pipelines. With D we have an good way to
-write performance parsers, particularly with three typical scenarios:
+Our aim is to provide several modules to work with biological datasets for example
+one of our main focus is to provide a modules for working with high throughput sequencing for example a
+native bamreader and bamwriter that is really fast and easy to use. With D we have an good way to write performance parsers, particularly with three typical scenarios:
 
 1. Go through a BAM file a read at a time
 2. Go through a BAM file a nucleotide at a time (pileup)
@@ -36,9 +32,6 @@ write performance parsers, particularly with three typical scenarios:
 The sliding window is a derivation of the first - a read at a time or
 a nucleotide at a time.
 
-At this point this functionality is mostly in BioD, but not in an
-intuitive way. We are building up this functionality and will give
-examples (WIP).
 
 # Install
 
