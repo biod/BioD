@@ -21,13 +21,13 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.sam.reader;
-
-import bio.bam.abstractreader;
-import bio.sam.header;
-import bio.bam.read;
-import bio.bam.reference;
-import bio.bam.referenceinfo;
+module bio.std.hts.sam.reader;
+//
+import bio.std.hts.bam.abstractreader;
+import bio.std.hts.sam.header;
+import bio.std.hts.bam.read;
+import bio.std.hts.bam.reference;
+import bio.std.hts.bam.referenceinfo;
 import bio.core.utils.outbuffer;
 import bio.core.utils.range;
 
@@ -35,7 +35,7 @@ import bio.core.utils.bylinefast;
 alias ByLineFast _LineRange;
 
 version(DigitalMars) {
-    import bio.sam.utils.recordparser;
+    import bio.std.hts.sam.utils.recordparser;
 } else {
     import bio.sam.utils.fastrecordparser;
 }

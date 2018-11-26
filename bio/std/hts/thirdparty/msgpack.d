@@ -1,5 +1,3 @@
-// Written in the D programming language.
-
 /**
  * MessagePack serializer and deserializer implementation.
  *
@@ -29,7 +27,7 @@
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Masahiro Nakagawa
  */
-module bio.bam.thirdparty.msgpack;
+module bio.std.hts.thirdparty.msgpack;
 
 import std.array;
 import std.exception;

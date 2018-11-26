@@ -21,16 +21,16 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.baseinfo;
+module bio.std.hts.bam.baseinfo;
 
 import bio.core.base;
 import bio.core.sequence;
 
-import bio.bam.read;
-import bio.bam.tagvalue;
-import bio.bam.iontorrent.flowcall;
-import bio.bam.md.core;
-import bio.bam.cigar;
+import bio.std.hts.bam.read;
+import bio.std.hts.bam.tagvalue;
+import bio.std.hts.bam.iontorrent.flowcall;
+import bio.std.hts.bam.md.core;
+import bio.std.hts.bam.cigar;
 
 import std.range;
 import std.conv;

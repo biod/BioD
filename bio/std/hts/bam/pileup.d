@@ -67,12 +67,12 @@
 ///     }
 /// }
 /// ---------------------------------------------------------
-module bio.bam.pileup;
+module bio.std.hts.bam.pileup;
 
-import bio.bam.cigar;
-import bio.bam.read;
-import bio.bam.md.reconstruct;
-import bio.bam.splitter;
+import bio.std.hts.bam.cigar;
+import bio.std.hts.bam.read;
+import bio.std.hts.bam.md.reconstruct;
+import bio.std.hts.bam.splitter;
 
 import std.algorithm;
 import std.range;

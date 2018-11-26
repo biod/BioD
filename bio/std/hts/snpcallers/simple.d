@@ -1,6 +1,6 @@
-module bio.bam.snpcallers.simple;
+module bio.std.hts.bam.snpcallers.simple;
 
-import bio.bam.pileup;
+import bio.std.hts.bam.pileup;
 import bio.core.utils.algo;
 
 import std.algorithm;

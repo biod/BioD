@@ -21,13 +21,14 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.baifile;
+module bio.std.hts.bam.baifile;
 
 public import bio.core.bgzf.chunk;
-public import bio.bam.bai.bin;
+public import bio.std.hts.bam.bai.bin;
 import bio.core.bgzf.virtualoffset;
-import bio.bam.constants;
+import bio.std.hts.bam.constants;
 
+//TODO Remove stream dependency!
 import undead.stream;
 import std.system;
 import std.exception;

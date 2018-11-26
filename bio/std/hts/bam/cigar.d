@@ -22,7 +22,7 @@
 
 */
 
-module bio.bam.cigar;
+module bio.std.hts.bam.cigar;
 
 import std.algorithm;
 import std.range;
@@ -38,19 +38,19 @@ import core.stdc.stdlib;
 import bio.core.base;
 import bio.core.utils.format;
 
-import bio.bam.abstractreader;
+import bio.std.hts.bam.abstractreader;
 //import bio.bam.cigar;
-import bio.bam.writer;
-import bio.bam.tagvalue;
-import bio.bam.bai.bin;
+import bio.std.hts.bam.writer;
+import bio.std.hts.bam.tagvalue;
+import bio.std.hts.bam.bai.bin;
 
-import bio.bam.md.core;
+import bio.std.hts.bam.md.core;
 
-import bio.bam.utils.array;
-import bio.bam.utils.value;
+import bio.std.hts.bam.utils.array;
+import bio.std.hts.bam.utils.value;
 import bio.core.utils.switchendianness;
 
-import bio.bam.thirdparty.msgpack : Packer, unpack;
+import bio.std.hts.thirdparty.msgpack : Packer, unpack;
 
 /**
   Represents single CIGAR operation

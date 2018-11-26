@@ -59,10 +59,10 @@ static const int sam_alignment_en_alignment_tag_parsing = 251;
 #line 419 "sam_alignment.rl"
 
 
-import bio.sam.header;
-import bio.bam.cigar;
-import bio.bam.read;
-import bio.bam.bai.bin;
+import bio.std.hts.sam.header;
+import bio.std.hts.bam.cigar;
+import bio.std.hts.bam.read;
+import bio.std.hts.bam.bai.bin;
 import bio.core.utils.outbuffer;
 import bio.core.base;
 import std.conv;

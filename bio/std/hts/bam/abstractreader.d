@@ -21,11 +21,11 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.abstractreader;
+module bio.std.hts.bam.abstractreader;
 
-import bio.sam.header;
-import bio.bam.read;
-import bio.bam.referenceinfo;
+import bio.std.hts.sam.header;
+import bio.std.hts.bam.read;
+import bio.std.hts.bam.referenceinfo;
 
 public import std.range;
 
@@ -33,13 +33,13 @@ public import std.range;
 /// and $(DPREF2 sam, reader, SamReader).
 interface IBamSamReader {
     /// SAM header
-    bio.sam.header.SamHeader header() @property;
+    bio.std.hts.sam.header.SamHeader header() @property;
 
     /// Information about reference sequences
-    const(bio.bam.referenceinfo.ReferenceSequenceInfo)[] reference_sequences() @property const nothrow;
+    const(bio.std.hts.bam.referenceinfo.ReferenceSequenceInfo)[] reference_sequences() @property const nothrow;
 
     /// All reads in the file
-    std.range.InputRange!(bio.bam.read.BamRead) allReads() @property;
+    std.range.InputRange!(bio.std.hts.bam.read.BamRead) allReads() @property;
 
     /// Filename
     string filename() @property const;

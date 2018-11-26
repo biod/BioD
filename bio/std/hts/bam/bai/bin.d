@@ -21,10 +21,10 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.bai.bin;
+module bio.std.hts.bam.bai.bin;
 
 import bio.core.bgzf.chunk;
-import bio.bam.constants;
+import bio.std.hts.bam.constants;
 
 /// Distinct bin
 struct Bin {

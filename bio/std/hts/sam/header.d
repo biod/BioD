@@ -21,9 +21,9 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.sam.header;
+module bio.std.hts.sam.header;
 
-import bio.bam.thirdparty.msgpack;
+import bio.std.hts.thirdparty.msgpack;
 import bio.core.utils.format;
 
 import std.algorithm;

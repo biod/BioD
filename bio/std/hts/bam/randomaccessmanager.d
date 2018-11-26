@@ -24,14 +24,14 @@
 /**
   Module for random access operations on BAM file.
  */
-module bio.bam.randomaccessmanager;
+module bio.std.hts.bam.randomaccessmanager;
 
-import bio.bam.constants;
-import bio.bam.reader;
-import bio.bam.read;
-import bio.bam.readrange;
-import bio.bam.baifile;
-import bio.bam.region;
+import bio.std.hts.bam.constants;
+import bio.std.hts.bam.reader;
+import bio.std.hts.bam.read;
+import bio.std.hts.bam.readrange;
+import bio.std.hts.bam.baifile;
+import bio.std.hts.bam.region;
 import bio.core.utils.algo;
 
 import bio.core.bgzf.block;
