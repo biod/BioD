@@ -11,14 +11,16 @@ BioD aims to:
 
 ## Why D?
 
-[D](http://www.d-lang.,org) is a language that suits parallel programming
-because  the compiler provides certain guarantees. The D programmming language is both a low and high-level
-hybrid object orientated and functional (OOP/FP) programming language. D provides a templating/generics features that are
-far easier than that of C++. Few languages if any matches these set of features.
+[D](http://www.dlang.org) is a language that suits parallel programming
+because  the compiler provides certain guarantees. The D programmming language offers multi-paradigm programming features 
+and can be considered as both a low and high-level
+hybrid object orientated and functional (OOP/FP) programming language. D's templating/generics features are
+far easier than that of C++.
 
 ## D programming language resources
 * [The D Programming Language](https://www.amazon.com/D-Programming-Language-Andrei-Alexandrescu/dp/0321635361) by Andrei Alexandrecu 
 * [Programming in D](http://ddili.org/ders/d.en/index.html) by Ali Çehreli.
+* [The D Cookbook](https://www.amazon.com/D-Cookbook-Adam-D-Ruppe/dp/1783287217) by Adam D. Ruppe 
 
 ## Current development
 Our aim is to provide several modules to work with biological datasets for example
