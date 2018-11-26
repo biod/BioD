@@ -26,6 +26,8 @@ struct SNP {
   double cm;  // centimorgan, -1 if NA
 }
 
+immutable NullSNP = SNP("unknown","NA",-1,-1.0);
+
 /*
   Fetch SNP annotations from tab delimited file that looks like name,
   pos, chr, cM
@@ -35,6 +37,9 @@ struct SNP {
   rs13483034      53249416        17      30.175
 
   NA values can be used and the last cM column is optional.
+
+  Note: this function should be generalized to return a named tuple, based on a
+  named list
 */
 
 SNP[] fetch_snp_annotations(string filen) {
