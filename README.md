@@ -11,22 +11,20 @@ BioD aims to:
 
 ## Why D?
 
-D is a language that suits parallel programming because of guarantees
-the compiler provides. D is both a low-level language and a high-level
-hybrid OOP/FP language. There is no other programming language that
-matches those features. Also, D templating/generics is far easier that
-that of C++ or, say, Scala.
+[D](http://www.d-lang.,org) is a language that suits parallel programming
+because  the compiler provides guarantees. D is both a low-level and a high-level
+hybrid OOP/FP language. In addition, D templating/generics is far easier than
+that of C++. Few languages in any match these set of features.
 
-That is not to say that D is an easy language. A powerful toolbox will
-be complicated. If you want to do everything with a hammer, maybe
-better choose Java instead ;).
-
-For more information about D find Andrei Alexandrecu's D book. It is a
-classic. Ali Çehreli's book also is recommended.
+## D programming language resources
+* [The D Programming Language](https://www.amazon.com/D-Programming-Language-Andrei-Alexandrescu/dp/0321635361) by Andrei Alexandrecu 
+* [Programming in D](http://ddili.org/ders/d.en/index.html) by Ali Çehreli.
 
 ## Current development
+This project is under active development and aims to provide computational biology and 
+bioinformatics modules for working with biological datasets. 
 
-Our current focus is to provide a bamreader and bamwriter that is
+One of our current focus is to provide a bamreader and bamwriter that is
 really fast and easy to use. We believe the BAM format is here to stay
 for the foreseeable future in pipelines. With D we have an good way to
 write performance parsers, particularly with three typical scenarios:
