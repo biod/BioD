@@ -1,13 +1,11 @@
 # BioD [![Build Status](https://travis-ci.org/biod/BioD.svg?branch=master)](https://travis-ci.org/biod/BioD) [![DUB Package](https://img.shields.io/badge/dub-v0.1.0-red.svg)](https://code.dlang.org/packages/biod)
 
-[BioD](https://github.com/biod/BioD) is a fast and memory efficient bioinformatics library written in the [D programming language](http://dlang.org).
+[BioD](https://github.com/biod/BioD) is a fast and memory efficient bioinformatics library written in the [D programming language](http://www.dlang.org)
+whose aim is to:
 
-BioD aims to:
-
-* Provide a platform for writing high-performance bioinformatics applications in the D programming language. BioD achieves this by:
-  - automatic parallelization of tasks where possible
-  - reducing the GC overhead by avoiding unnecessary memory allocations
-* Offer support for manipulating common biological data formats
+* Provide a platform for developing high-performance computational biology applications using the [D programming language](http://www.dlang.org) through 
+  - Automatic parallelization of tasks where possible
+  - Avoiding unnecessary memory allocations
 
 ## Why D?
 
