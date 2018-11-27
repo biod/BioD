@@ -21,16 +21,16 @@ far easier than that of C++.
 * [The D Cookbook](https://www.amazon.com/D-Cookbook-Adam-D-Ruppe/dp/1783287217) by Adam D. Ruppe 
 
 ## Current development
-Our aim is to provide several modules to work with biological datasets for example
-one of our main focus is to provide a modules for working with high throughput sequencing for example a
-native bamreader and bamwriter that is really fast and easy to use. With D we have an good way to write performance parsers, particularly with three typical scenarios:
+Our aim is to provide several modules to work with biological datasets.
+BioD provides modules for manipulating  high throughput data formats for example:
 
-1. Go through a BAM file a read at a time
-2. Go through a BAM file a nucleotide at a time (pileup)
-3. Go through a BAM file with a sliding window
+- A native BAM file reader
+- A native BAM file writer 
 
-The sliding window is a derivation of the first - a read at a time or
-a nucleotide at a time.
+Both of which are really fast and easy to use and provide the following:
+- Iterating through a BAM file a read at a time
+- Iterating  a BAM file a nucleotide at a time (pileup)
+- Iterating a BAM file based on a sliding window
 
 
 # Install
