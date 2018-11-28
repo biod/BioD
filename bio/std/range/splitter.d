@@ -70,3 +70,52 @@ unittest {
   assert(array(SimpleSplitConv!(ubyte[])(cast(ubyte[])"hello, 1 2 \n\t3  4 \n")) == ["hello","1","2","3","4"]);
   assert(array(SimpleSplitConv!(ubyte[])(cast(ubyte[])"chr1:55365,55365,1")) == ["chr1:55365","55365","1"]);
 }
+
+
+struct FastSplitConv(R)
+  if (isInputRange!R)
+{
+  R list, split_on;
+
+  this(R range, R splits_on = cast(R)SPLIT_ON) {
+    list = range;
+    split_on = splits_on;
+  }
+
+  int opApply(scope int delegate(R) dg) {
+    size_t start = 0;
+    bool in_whitespace = false;
+    foreach(size_t pos, c; list) {
+      if (canFind(split_on,c)) { // hit split char
+        if (!in_whitespace) { // emit
+          auto token = list[start..pos];
+          dg(token);
+        }
+        start = pos+1;
+        in_whitespace = true;
+      } else {
+        in_whitespace = false;
+      }
+    }
+    if (!in_whitespace) { // emit final
+      auto token = list[start..$];
+      dg(token);
+    }
+    return 0;
+  }
+}
+
+unittest {
+  auto s = cast(ubyte[])"hello 1 2 \t3  4 \n";
+  for (int x = 0; x < 4_000_000; x++) {
+    assert(array(FastSplitConv!(ubyte[])(s)) == ["hello","1","2","3","4"]);
+    // assert(array(FastSplitConv!(ubyte[])(cast(ubyte[])"  hello, 1 2 \t3  4 \n")) == ["","hello","1","2","3","4"]);
+    // assert(array(FastSplitConv!(ubyte[])(cast(ubyte[])"hello, 1 2 \n\t3  4 \n")) == ["hello","1","2","3","4"]);
+    // assert(array(FastSplitConv!(ubyte[])(cast(ubyte[])"chr1:55365,55365,1")) == ["chr1:55365","55365","1"]);
+  }
+  /*
+    real    0m3.733s
+    user    0m3.736s
+    sys     0m0.000s
+  */
+}

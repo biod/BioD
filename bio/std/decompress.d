@@ -11,6 +11,20 @@ module bio.std.decompress;
    current edition (still) uses the garbage collector. It may help to
    switch it off or to use the BioD decompressor used by bgzf.
 
+   For a comparison with gzip a 2GB file decompressed with
+
+   real    0m53.701s
+   user    0m53.820s
+   sys     0m0.572s
+
+   while gzip took
+
+   real    0m11.528s
+   user    0m10.288s
+   sys     0m0.936s
+
+   So, that is something to aim for.
+
    Conversion can happen between different encodings, provided the
    line terminator is ubyte = '\n'. GzipbyLine logic is modeled on
    ByLineImpl and readln function from std.stdio.
