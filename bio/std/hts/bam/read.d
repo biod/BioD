@@ -215,7 +215,7 @@ struct BamRead {
         enforce(new_name.length >= 1 && new_name.length <= 255,
                 "name length must be in 1-255 range");
         _dup();
-        bio.std.hts.bam.utils.array.replaceSlice(_chunk,
+        bio.std.hts.utils.array.replaceSlice(_chunk,
                  _chunk[_read_name_offset .. _read_name_offset + _l_read_name - 1],
                  cast(ubyte[])new_name);
         _l_read_name = cast(ubyte)(new_name.length + 1);
@@ -231,7 +231,7 @@ struct BamRead {
     @property void cigar(const(CigarOperation)[] c) {
         enforce(c.length < 65536, "Too many CIGAR operations, must be <= 65535");
         _dup();
-        bio.std.hts.bam.utils.array.replaceSlice(_chunk,
+        bio.std.hts.utils.array.replaceSlice(_chunk,
              _chunk[_cigar_offset .. _cigar_offset + _n_cigar_op * CigarOperation.sizeof],
              cast(ubyte[])c);
 
@@ -457,7 +457,7 @@ struct BamRead {
                 replacement[i] |= cast(ubyte)(Base(seq[2 * i + 1]).internal_code);
         }
 
-        bio.std.hts.bam.utils.array.replaceSlice(_chunk,
+        bio.std.hts.utils.array.replaceSlice(_chunk,
                      _chunk[_seq_offset .. _tags_offset],
                      replacement);
 

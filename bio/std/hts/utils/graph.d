@@ -21,7 +21,7 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.std.hts.bam.utils.graph;
+module bio.std.hts.utils.graph;
 
 import std.exception;
 import std.array;
