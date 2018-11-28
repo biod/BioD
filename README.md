@@ -22,15 +22,8 @@ far easier than that of C++.
 
 ## Current development
 Our aim is to provide several modules to work with biological datasets.
-BioD provides modules for manipulating  high throughput data formats for example:
-
-- A native BAM file reader
-- A native BAM file writer 
-
-Both of which are really fast and easy to use and provide the following:
-- Iterating through a BAM file a read at a time
-- Iterating  a BAM file a nucleotide at a time (pileup)
-- Iterating a BAM file based on a sliding window
+BioD provides modules for manipulating  high throughput data formats by provifing fast and easy to use native BAM file reader and writer 
+with ability to Iterate a BAM file a read at a time,a nucleotide at a time (pileup) or via a sliding window.
 
 
 # Install
