@@ -23,7 +23,7 @@
 */
 module bio.core.bgzf.block;
 
-import bio.bam.constants;
+import bio.std.hts.bam.constants;
 import bio.core.utils.memoize;
 import bio.core.utils.zlib;
 

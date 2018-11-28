@@ -21,13 +21,13 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.multireader;
+module bio.std.hts.bam.multireader;
 
-import bio.sam.header;
-import bio.bam.reader;
-import bio.bam.read;
-import bio.bam.referenceinfo;
-import bio.bam.utils.samheadermerger;
+import bio.std.hts.sam.header;
+import bio.std.hts.bam.reader;
+import bio.std.hts.bam.read;
+import bio.std.hts.bam.referenceinfo;
+import bio.std.hts.utils.samheadermerger;
 
 import std.algorithm;
 import std.range;

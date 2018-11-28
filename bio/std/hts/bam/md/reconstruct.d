@@ -21,11 +21,11 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.md.reconstruct;
+module bio.std.hts.bam.md.reconstruct;
 
-import bio.bam.cigar;
-import bio.bam.read;
-import bio.bam.md.core;
+import bio.std.hts.bam.cigar;
+import bio.std.hts.bam.read;
+import bio.std.hts.bam.md.core;
 
 import std.conv;
 import std.range;

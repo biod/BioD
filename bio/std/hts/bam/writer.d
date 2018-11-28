@@ -21,14 +21,14 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.writer;
+module bio.std.hts.bam.writer;
 
-import bio.bam.referenceinfo;
-import bio.sam.header;
-import bio.bam.constants;
-import bio.bam.bai.indexing;
-import bio.bam.read;
-import bio.bam.readrange;
+import bio.std.hts.bam.referenceinfo;
+import bio.std.hts.sam.header;
+import bio.std.hts.bam.constants;
+import bio.std.hts.bam.bai.indexing;
+import bio.std.hts.bam.read;
+import bio.std.hts.bam.readrange;
 import bio.core.bgzf.outputstream;
 import bio.core.bgzf.virtualoffset;
 import bio.core.utils.stream;
@@ -51,7 +51,7 @@ import std.bitmanip;
 
     Example:
     --------------------------------------
-    import bio.bam.writer, bio.bam.reader;
+    import bio.std.hts.bam.writer, bio.std.hts.bam.reader;
     ...
     auto src = new BamReader("in.bam");
     auto dst = new BamWriter("out.bam", 9); // maximal compression
@@ -195,7 +195,7 @@ final class BamWriter {
     }
 
     /// Writes SAM header. Should be called after construction.
-    void writeSamHeader(bio.sam.header.SamHeader header) {
+    void writeSamHeader(bio.std.hts.sam.header.SamHeader header) {
         writeSamHeader(header.text);
     }
 
@@ -214,7 +214,7 @@ final class BamWriter {
     /// resolving read reference IDs to names.
     ///
     /// Flushes current BGZF block.
-    void writeReferenceSequenceInfo(const(bio.bam.referenceinfo.ReferenceSequenceInfo)[] reference_sequences)
+    void writeReferenceSequenceInfo(const(bio.std.hts.bam.referenceinfo.ReferenceSequenceInfo)[] reference_sequences)
     {
         _reference_sequences = reference_sequences;
 

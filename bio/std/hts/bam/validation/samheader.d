@@ -28,9 +28,9 @@
   subclass AbstractSamHeaderValidator and define your own 
   onError() methods.
 */
-module bio.bam.validation.samheader;
+module bio.std.hts.bam.validation.samheader;
 
-public import bio.sam.header;
+public import bio.std.hts.sam.header;
 import bio.core.utils.algo;
 
 import std.algorithm;

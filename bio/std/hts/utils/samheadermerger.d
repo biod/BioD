@@ -21,10 +21,10 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.utils.samheadermerger;
+module bio.std.hts.utils.samheadermerger;
 
-import bio.sam.header;
-import bio.bam.validation.samheader;
+import bio.std.hts.sam.header;
+import bio.std.hts.bam.validation.samheader;
 
 import std.array;
 import std.range;
@@ -33,7 +33,7 @@ import std.conv;
 import std.typecons;
 import std.exception;
 
-import bio.bam.utils.graph;
+import bio.std.hts.utils.graph;
 
 /// Class encapsulating functionality of merging several SAM headers
 /// into one. (In fact, its role is to just group several variables,

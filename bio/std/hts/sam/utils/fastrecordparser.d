@@ -4695,7 +4695,7 @@ unittest {
     assert(equal!approxEqual(to!(float[])(alignment["Y1"]), [13.263, -3.1415, 52.63461]));
     assert(to!char(alignment["XT"]) == 'U');
 
-    import bio.bam.reference;
+    import bio.std.hts.bam.reference;
 
     auto info = ReferenceSequenceInfo("20", 1234567);
 

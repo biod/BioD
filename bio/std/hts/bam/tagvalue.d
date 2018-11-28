@@ -27,7 +27,7 @@
 ///
 /// Example:
 /// --------------------------------
-/// import bio.bam.reader, bio.bam.tagvalue;
+/// import bio.std.hts.bam.reader, bio.std.hts.bam.tagvalue;
 /// ...
 /// auto bam = new BamReader("file.bam");
 /// Value v = bam.reads.front["MD"];
@@ -46,7 +46,7 @@
 /// v = -17;
 /// assert(v.is_signed);
 /// ----------------------------------
-module bio.bam.tagvalue;
+module bio.std.hts.bam.tagvalue;
 
 public import std.conv;
 import std.typetuple;
@@ -55,7 +55,7 @@ import std.format;
 import std.array;
 import bio.core.utils.format;
 
-import bio.bam.thirdparty.msgpack;
+import bio.std.hts.thirdparty.msgpack;
 
 struct CharToType(char c, T) {
     /** symbol */

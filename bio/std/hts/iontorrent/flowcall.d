@@ -21,10 +21,9 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.iontorrent.flowcall;
-
-import bio.bam.tagvalue;
-import bio.bam.iontorrent.flowindex;
+module bio.std.hts.iontorrent.flowcall;
+import bio.std.hts.bam.tagvalue;
+import bio.std.hts.iontorrent.flowindex;
 
 import bio.core.base;
 import bio.core.utils.range;

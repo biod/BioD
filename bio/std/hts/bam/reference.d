@@ -29,7 +29,7 @@
 ///
 /// Example:
 /// -----------------------------
-/// import bio.bam.reader, std.stdio;
+/// import bio.std.hts.bam.reader, std.stdio;
 /// ...
 /// auto bam = new BamReader("file.bam");
 /// auto refseq = bam["chr17"];
@@ -38,13 +38,13 @@
 ///     if (read.cigar.length > 1)
 ///         writeln(read.name, " ", read.cigarString());
 /// -----------------------------
-module bio.bam.reference;
+module bio.std.hts.bam.reference;
 
-public import bio.bam.referenceinfo;
+public import bio.std.hts.bam.referenceinfo;
 
-import bio.bam.readrange;
-import bio.bam.region;
-import bio.bam.randomaccessmanager;
+import bio.std.hts.bam.readrange;
+import bio.std.hts.bam.region;
+import bio.std.hts.bam.randomaccessmanager;
 import bio.core.bgzf.virtualoffset;
 
 import undead.stream;

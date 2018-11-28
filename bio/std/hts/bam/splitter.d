@@ -21,9 +21,9 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.splitter;
+module bio.std.hts.bam.splitter;
 
-import bio.bam.read;
+import bio.std.hts.bam.read;
 
 import std.array;
 import std.functional;

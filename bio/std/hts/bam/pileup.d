@@ -56,7 +56,7 @@
 /// $(BR)
 /// Example:
 /// ---------------------------------------------------------
-/// import bio.bam.reader, bio.bam.pileup, std.stdio, std.algorithm : count;
+/// import bio.std.hts.bam.reader, bio.std.hts.bam.pileup, std.stdio, std.algorithm : count;
 /// void main() {
 ///     auto bam = new BamReader("file.bam");       // assume single reference and MD tags
 ///     auto pileup = bam.reads().makePileup(useMD);
@@ -83,7 +83,7 @@ import std.array;
 import std.exception;
 
 /// Represents a read aligned to a column
-struct PileupRead(Read=bio.bam.read.EagerBamRead) {
+struct PileupRead(Read=bio.std.hts.bam.read.EagerBamRead) {
 
     Read read; ///
     alias read this;
@@ -91,7 +91,7 @@ struct PileupRead(Read=bio.bam.read.EagerBamRead) {
 
     /// Current CIGAR operation. One of 'M', '=', 'X', 'D', 'N.
     /// Use $(D cigar_after)/$(D cigar_before) to determine insertions.
-    bio.bam.read.CigarOperation cigar_operation() @property const {
+    bio.std.hts.bam.read.CigarOperation cigar_operation() @property const {
         return _cur_op;
     }
 
@@ -101,12 +101,12 @@ struct PileupRead(Read=bio.bam.read.EagerBamRead) {
     }
 
     /// CIGAR operations after the current operation
-    const(bio.bam.read.CigarOperation)[] cigar_after() @property const {
+    const(bio.std.hts.bam.read.CigarOperation)[] cigar_after() @property const {
         return _read.cigar[_cur_op_index + 1 .. $];
     }
 
     /// CIGAR operations before the current operation
-    const(bio.bam.read.CigarOperation)[] cigar_before() @property const {
+    const(bio.std.hts.bam.read.CigarOperation)[] cigar_before() @property const {
         return _read.cigar[0 .. _cur_op_index];
     }
 

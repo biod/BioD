@@ -27,7 +27,7 @@ import bio.core.bgzf.block;
 import bio.core.bgzf.virtualoffset;
 import bio.core.bgzf.constants;
 import bio.core.bgzf.chunk;
-import bio.bam.constants;
+import bio.std.hts.bam.constants;
 import bio.core.utils.roundbuf;
 
 import undead.stream;

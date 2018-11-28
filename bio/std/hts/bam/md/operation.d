@@ -1,4 +1,4 @@
-module bio.bam.md.operation;
+module bio.std.hts.bam.md.operation;
 
 import bio.core.base;
 import bio.core.sequence;

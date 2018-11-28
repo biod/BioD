@@ -21,7 +21,7 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.iontorrent.flowindex;
+module bio.std.hts.iontorrent.flowindex;
 
 import std.range;
 

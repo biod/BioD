@@ -21,7 +21,7 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.constants;
+module bio.std.hts.bam.constants;
 
 public import bio.core.bgzf.constants;
 

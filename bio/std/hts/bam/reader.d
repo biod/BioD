@@ -24,7 +24,7 @@
 /// Writing a script/tool for processing BAM data often starts this way:
 /// 
 /// ------------------------
-/// import bio.bam.reader;
+/// import bio.std.hts.bam.reader;
 ///
 /// void main(string[] args) {
 ///     auto bam = new BamReader(args[1]); // open BAM file
@@ -38,23 +38,25 @@
 /// 
 /// Or, if a specific interval on the reference sequence is to be explored:
 /// ------------------------
-/// import bio.bam.pileup;
+/// import bio.std.hts.bam.pileup;
 /// ...
 /// auto reads = bam["chr7"][50_000 .. 60_000]; // BAI index is required
 /// foreach (column; makePileup(reads)) { ... } // see $(PMODULE pileup) docs
 /// ------------------------
-module bio.bam.reader;
+module bio.std.hts.bam.reader;
 
-import bio.bam.abstractreader;
-public import bio.sam.header;
-public import bio.bam.reference;
-public import bio.bam.region;
-public import bio.bam.read;
-public import bio.bam.tagvalue;
-public import bio.bam.readrange;
-import bio.bam.randomaccessmanager;
-import bio.bam.baifile;
-import bio.bam.bai.indexing;
+import bio.std.hts.bam.abstractreader;
+public import bio.std.hts.sam.header;
+public import bio.std.hts.bam.reference;
+public import bio.std.hts.bam.region;
+public import bio.std.hts.bam.read;
+public import bio.std.hts.bam.tagvalue;
+public import bio.std.hts.bam.readrange;
+
+import bio.std.hts.bam.randomaccessmanager;
+import bio.std.hts.bam.baifile;
+import bio.std.hts.bam.bai.indexing;
+
 import bio.core.utils.range;
 import bio.core.utils.stream;
 import bio.core.bgzf.inputstream;
@@ -85,7 +87,7 @@ class BamReader : IBamSamReader {
 
       Example:
       -------------------------------------------
-      import std.parallelism, bio.bam.reader;
+      import std.parallelism, bio.std.hts.bam.reader;
       void main() {
         auto pool = new TaskPool(4); // use 4 threads
         scope (exit) pool.finish();  // don't forget!
@@ -156,7 +158,7 @@ class BamReader : IBamSamReader {
             return;
         Stream stream = new BufferedFile(filename ~ ".bai", FileMode.OutNew);
         scope(exit) stream.close();
-        bio.bam.bai.indexing.createIndex(this, stream);
+        bio.std.hts.bam.bai.indexing.createIndex(this, stream);
         _bai_status = BaiStatus.notInitialized;
         _rndaccssmgr = null;
     }
@@ -182,7 +184,7 @@ class BamReader : IBamSamReader {
     /**
       Returns: SAM header of the BAM file
      */
-    bio.sam.header.SamHeader header() @property {
+    bio.std.hts.sam.header.SamHeader header() @property {
         if (_header is null) {
             synchronized {
                 if (_header is null) {
@@ -197,7 +199,7 @@ class BamReader : IBamSamReader {
     /**
         Returns: information about reference sequences
      */
-    const(bio.bam.referenceinfo.ReferenceSequenceInfo)[] reference_sequences() @property const nothrow {
+    const(bio.std.hts.bam.referenceinfo.ReferenceSequenceInfo)[] reference_sequences() @property const nothrow {
         return _reference_sequences;
     }
 
@@ -214,14 +216,14 @@ class BamReader : IBamSamReader {
 
         Example:
         ----------------------------------
-        import bio.bam.readrange;
+        import bio.std.hts.bam.readrange;
         ...
         auto bam = new BamReader("file.bam");
         auto reads = bam.reads!withOffsets();
         writeln(reads.front.start_virtual_offset);
         ----------------------------------
      */
-    auto reads(alias IteratePolicy=bio.bam.readrange.withoutOffsets)() @property {
+    auto reads(alias IteratePolicy=bio.std.hts.bam.readrange.withoutOffsets)() @property {
         auto _decompressed_stream = getDecompressedBamReadStream();
         return bamReadRange!IteratePolicy(_decompressed_stream, this);
     }
@@ -291,7 +293,7 @@ class BamReader : IBamSamReader {
 
         Example:
         ------------------------------------
-        import std.functional, std.stdio, bio.bam.reader;
+        import std.functional, std.stdio, bio.std.hts.bam.reader;
         void progress(lazy float p) {
             static uint n;
             if (++n % 63 == 0) writeln(p); // prints progress after every 63 records
@@ -302,7 +304,7 @@ class BamReader : IBamSamReader {
         }
         ------------------------------------
     */
-    auto readsWithProgress(alias IteratePolicy=bio.bam.readrange.withoutOffsets)
+    auto readsWithProgress(alias IteratePolicy=bio.std.hts.bam.readrange.withoutOffsets)
         (void delegate(lazy float p) progressBarFunc,
          void delegate() finishFunc=null) 
     {
@@ -322,14 +324,14 @@ class BamReader : IBamSamReader {
     }
 
     /// Part of IBamSamReader interface
-    std.range.InputRange!(bio.bam.read.BamRead) allReads() @property {
+    std.range.InputRange!(bio.std.hts.bam.read.BamRead) allReads() @property {
         return inputRangeObject(reads!withoutOffsets());
     }
 
     /**
       Returns: the read which starts at a given virtual offset.
      */
-    bio.bam.read.BamRead getReadAt(bio.core.bgzf.virtualoffset.VirtualOffset offset) {
+    bio.std.hts.bam.read.BamRead getReadAt(bio.core.bgzf.virtualoffset.VirtualOffset offset) {
         enforce(_random_access_manager !is null);
         return _random_access_manager.getReadAt(offset);
     }
@@ -399,7 +401,7 @@ class BamReader : IBamSamReader {
     /**
       Returns reference sequence with id $(I ref_id).
      */
-    bio.bam.reference.ReferenceSequence reference(int ref_id) {
+    bio.std.hts.bam.reference.ReferenceSequence reference(int ref_id) {
         enforce(ref_id < _reference_sequences.length, "Invalid reference index");
         return ReferenceSequence(_random_access_manager, 
                                  ref_id,
@@ -411,13 +413,13 @@ class BamReader : IBamSamReader {
 
       Example:
       ---------------------------
-      import std.stdio, bio.bam.reader;
+      import std.stdio, bio.std.hts.bam.reader;
       ...
       auto bam = new BamReader("file.bam");
       writeln(bam["chr2"].length);
       ---------------------------
      */
-    bio.bam.reference.ReferenceSequence opIndex(string ref_name) {
+    bio.std.hts.bam.reference.ReferenceSequence opIndex(string ref_name) {
         enforce(hasReference(ref_name), "Reference with name " ~ ref_name ~ " does not exist");
         auto ref_id = _reference_sequence_dict[ref_name];
         return reference(ref_id);
@@ -442,7 +444,7 @@ class BamReader : IBamSamReader {
         _random_access_manager.setBufferSize(buffer_size);
     }
 
-    package bool _seqprocmode; // available for bio.bam.readrange;
+    package bool _seqprocmode; // available for bio.std.hts.bam.readrange;
 
 private:
     

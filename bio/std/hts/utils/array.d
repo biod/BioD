@@ -21,7 +21,7 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.utils.array;
+module bio.std.hts.utils.array;
 
 import core.stdc.string;
 import std.traits;

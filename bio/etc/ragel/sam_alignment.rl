@@ -418,10 +418,10 @@
     write data;
 }%%
 
-import bio.sam.header;
-import bio.bam.cigar;
-import bio.bam.read;
-import bio.bam.bai.bin;
+import bio.std.hts.sam.header;
+import bio.std.hts.bam.cigar;
+import bio.std.hts.bam.read;
+import bio.std.hts.bam.bai.bin;
 import bio.core.utils.outbuffer;
 import bio.core.base;
 import std.conv;
@@ -508,7 +508,7 @@ unittest {
     assert(equal!approxEqual(to!(float[])(alignment["Y1"]), [13.263, -3.1415, 52.63461]));
     assert(to!char(alignment["XT"]) == 'U');
 
-    import bio.bam.reference;
+    import bio.std.hts.bam.reference;
 
     auto info = ReferenceSequenceInfo("20", 1234567);
 

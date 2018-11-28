@@ -21,11 +21,11 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.readrange;
+module bio.std.hts.bam.readrange;
 
-import bio.bam.read;
-import bio.bam.abstractreader;
-import bio.bam.reader;
+import bio.std.hts.bam.read;
+import bio.std.hts.bam.abstractreader;
+import bio.std.hts.bam.reader;
 import bio.core.bgzf.inputstream;
 import bio.core.bgzf.virtualoffset;
 

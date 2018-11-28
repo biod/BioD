@@ -21,10 +21,10 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.validation.alignment;
+module bio.std.hts.bam.validation.alignment;
 
-public import bio.bam.read;
-public import bio.bam.tagvalue;
+public import bio.std.hts.bam.read;
+public import bio.std.hts.bam.tagvalue;
 import bio.core.utils.algo;
 
 import std.algorithm;

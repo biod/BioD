@@ -1,4 +1,4 @@
-module bio.bam.snpcallers.maq;
+module bio.std.hts.snpcallers.maq;
 
 /*
  * The code below is based on errmod.c from Samtools.
@@ -12,8 +12,8 @@ import std.algorithm;
 import std.random;
 import std.typecons;
 
-import bio.bam.md.reconstruct;
-import bio.bam.pileup;
+import bio.std.hts.bam.md.reconstruct;
+import bio.std.hts.bam.pileup;
 
 import bio.core.base;
 import bio.core.genotype;

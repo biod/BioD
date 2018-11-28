@@ -39,15 +39,15 @@ import bio.core.base;
 import bio.core.utils.format;
 
 import bio.std.hts.bam.abstractreader;
-//import bio.bam.cigar;
+
 import bio.std.hts.bam.writer;
 import bio.std.hts.bam.tagvalue;
 import bio.std.hts.bam.bai.bin;
 
 import bio.std.hts.bam.md.core;
 
-import bio.std.hts.bam.utils.array;
-import bio.std.hts.bam.utils.value;
+import bio.std.hts.utils.array;
+import bio.std.hts.utils.value;
 import bio.core.utils.switchendianness;
 
 import bio.std.hts.thirdparty.msgpack : Packer, unpack;

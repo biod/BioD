@@ -45,24 +45,24 @@
 /// read.is_unmapped = true;                // set flag
 /// read.ref_id = -1;                       // set field
 /// ---------------------------
-module bio.bam.read;
+module bio.std.hts.bam.read;
 
 import bio.core.base;
 import bio.core.utils.format;
 
-import bio.bam.abstractreader;
-import bio.bam.cigar;
-import bio.bam.writer;
-import bio.bam.tagvalue;
-import bio.bam.bai.bin;
+import bio.std.hts.bam.abstractreader;
+import bio.std.hts.bam.cigar;
+import bio.std.hts.bam.writer;
+import bio.std.hts.bam.tagvalue;
+import bio.std.hts.bam.bai.bin;
 
-import bio.bam.md.core;
+import bio.std.hts.bam.md.core;
 
-import bio.bam.utils.array;
-import bio.bam.utils.value;
+import bio.std.hts.utils.array;
+import bio.std.hts.utils.value;
 import bio.core.utils.switchendianness;
 
-import bio.bam.thirdparty.msgpack : Packer, unpack;
+import bio.std.hts.thirdparty.msgpack : Packer, unpack;
 
 import std.algorithm;
 import std.range;
@@ -96,7 +96,7 @@ struct BamRead {
     @property   void position(int n)                  { _dup(); _pos = n; _recalculate_bin(); }
 
     /// Indexing bin which this read belongs to. Recalculated when position is changed.
-    @property    bio.bam.bai.bin.Bin bin()              const nothrow { return Bin(_bin); }
+    @property    bio.std.hts.bam.bai.bin.Bin bin()              const nothrow { return Bin(_bin); }
 
     /// Mapping quality. Equals to 255 if not available, otherwise
     /// equals to rounded -10 * log10(P {mapping position is wrong}).
@@ -215,7 +215,7 @@ struct BamRead {
         enforce(new_name.length >= 1 && new_name.length <= 255,
                 "name length must be in 1-255 range");
         _dup();
-        bio.bam.utils.array.replaceSlice(_chunk,
+        bio.std.hts.bam.utils.array.replaceSlice(_chunk,
                  _chunk[_read_name_offset .. _read_name_offset + _l_read_name - 1],
                  cast(ubyte[])new_name);
         _l_read_name = cast(ubyte)(new_name.length + 1);
@@ -231,7 +231,7 @@ struct BamRead {
     @property void cigar(const(CigarOperation)[] c) {
         enforce(c.length < 65536, "Too many CIGAR operations, must be <= 65535");
         _dup();
-        bio.bam.utils.array.replaceSlice(_chunk,
+        bio.std.hts.bam.utils.array.replaceSlice(_chunk,
              _chunk[_cigar_offset .. _cigar_offset + _n_cigar_op * CigarOperation.sizeof],
              cast(ubyte[])c);
 
@@ -457,7 +457,7 @@ struct BamRead {
                 replacement[i] |= cast(ubyte)(Base(seq[2 * i + 1]).internal_code);
         }
 
-        bio.bam.utils.array.replaceSlice(_chunk,
+        bio.std.hts.bam.utils.array.replaceSlice(_chunk,
                      _chunk[_seq_offset .. _tags_offset],
                      replacement);
 
@@ -838,12 +838,12 @@ struct BamRead {
 
     /// Associates read with BAM reader. This is done automatically
     /// if this read is obtained through BamReader/Reference methods.
-    void associateWithReader(bio.bam.abstractreader.IBamSamReader reader) {
+    void associateWithReader(bio.std.hts.bam.abstractreader.IBamSamReader reader) {
         _reader = reader;
     }
 
     /// Associated BAM/SAM reader.
-    inout(bio.bam.abstractreader.IBamSamReader) reader() @property inout {
+    inout(bio.std.hts.bam.abstractreader.IBamSamReader) reader() @property inout {
         return _reader;
     }
 
@@ -1062,12 +1062,12 @@ mixin template TagStorage() {
     /// auto v = read["MN"];
     /// assert(v.is_nothing); // no such tag
     ///
-    /// read["NM"] = 3; // converted to bio.bam.tagvalue.Value implicitly
+    /// read["NM"] = 3; // converted to bio.std.hts.bam.tagvalue.Value implicitly
     ///
     /// read["NM"] = null; // removes tag
     /// assert(read["NM"].is_nothing);
     /// ----------------------------
-    bio.bam.tagvalue.Value opIndex(string key) const {
+    bio.std.hts.bam.tagvalue.Value opIndex(string key) const {
         enforce(key.length == 2, "Key length must be 2");
         auto __tags_chunk = _tags_chunk; // _tags_chunk is evaluated lazily
         if (__tags_chunk.length < 4)
@@ -1353,8 +1353,8 @@ unittest {
 
     {
     import std.typecons;
-    static import bio.bam.thirdparty.msgpack;
-    auto packer = bio.bam.thirdparty.msgpack.packer(Appender!(ubyte[])());
+    static import bio.std.hts.thirdparty.msgpack;
+    auto packer = bio.std.hts.thirdparty.msgpack.packer(Appender!(ubyte[])());
     read.toMsgpack(packer);
     auto data = packer.stream.data;
     auto rec = unpack(data).via.array;

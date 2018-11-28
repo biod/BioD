@@ -21,7 +21,7 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.referenceinfo;
+module bio.std.hts.bam.referenceinfo;
 
 import undead.stream;
 import std.exception;

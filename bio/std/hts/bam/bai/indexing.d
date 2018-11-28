@@ -21,13 +21,13 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.bai.indexing;
+module bio.std.hts.bam.bai.indexing;
 
-import bio.bam.reader;
-import bio.bam.readrange;
-import bio.bam.constants;
+import bio.std.hts.bam.reader;
+import bio.std.hts.bam.readrange;
+import bio.std.hts.bam.constants;
 
-import bio.bam.bai.bin;
+import bio.std.hts.bam.bai.bin;
 import bio.core.bgzf.chunk;
 
 import undead.stream;

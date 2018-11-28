@@ -28,7 +28,7 @@ import bio.core.sequence;
 
 import bio.std.hts.bam.read;
 import bio.std.hts.bam.tagvalue;
-import bio.std.hts.bam.iontorrent.flowcall;
+import bio.std.hts.iontorrent.flowcall;
 import bio.std.hts.bam.md.core;
 import bio.std.hts.bam.cigar;
 

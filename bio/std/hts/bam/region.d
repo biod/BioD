@@ -22,7 +22,7 @@
 
 */
 
-module bio.bam.region;
+module bio.std.hts.bam.region;
 
 ///
 struct BamRegion {

@@ -1,4 +1,4 @@
-module bio.bam.md.core;
+module bio.std.hts.bam.md.core;
 
-public import bio.bam.md.operation;
-public import bio.bam.md.parse;
+public import bio.std.hts.bam.md.operation;
+public import bio.std.hts.bam.md.parse;

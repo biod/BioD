@@ -37,7 +37,7 @@ alias ByLineFast _LineRange;
 version(DigitalMars) {
     import bio.std.hts.sam.utils.recordparser;
 } else {
-    import bio.sam.utils.fastrecordparser;
+    import bio.std.hts.sam.utils.fastrecordparser;
 }
 
 import std.stdio;
@@ -119,12 +119,12 @@ class SamReader : IBamSamReader {
     }
 
     ///
-    bio.sam.header.SamHeader header() @property {
+    bio.std.hts.sam.header.SamHeader header() @property {
         return _header;
     }
 
     ///
-    const(bio.bam.referenceinfo.ReferenceSequenceInfo)[] reference_sequences() @property const {
+    const(bio.std.hts.bam.referenceinfo.ReferenceSequenceInfo)[] reference_sequences() @property const {
         return _reference_sequences;
     }
 
@@ -134,7 +134,7 @@ class SamReader : IBamSamReader {
     }
 
     ///
-    bio.bam.reference.ReferenceSequence opIndex(string ref_name) {
+    bio.std.hts.bam.reference.ReferenceSequence opIndex(string ref_name) {
         enforce(hasReference(ref_name), "Reference with name " ~ ref_name ~ " is not present in the header");
         auto ref_id = _reference_sequence_dict[ref_name];
         return ReferenceSequence(null, ref_id, _reference_sequences[ref_id]);
@@ -167,7 +167,7 @@ class SamReader : IBamSamReader {
     }
 
     ///
-    std.range.InputRange!(bio.bam.read.BamRead) allReads() @property {
+    std.range.InputRange!(bio.std.hts.bam.read.BamRead) allReads() @property {
         return inputRangeObject(reads);
     }
 

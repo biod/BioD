@@ -21,9 +21,9 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.bam.utils.value;
+module bio.std.hts.bam.utils.value;
 
-import bio.bam.tagvalue;
+import bio.std.hts.bam.tagvalue;
 import std.exception;
 import std.array;
 

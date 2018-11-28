@@ -1,6 +1,6 @@
-module bio.bam.md.parse;
+module bio.std.hts.bam.md.parse;
 
-import bio.bam.md.operation;
+import bio.std.hts.bam.md.operation;
 import std.ascii;
 import std.array;
 import std.algorithm;
