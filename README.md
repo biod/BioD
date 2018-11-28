@@ -26,25 +26,24 @@ BioD provides modules for manipulating  high throughput data formats by provifin
 with ability to Iterate a BAM file a read at a time,a nucleotide at a time (pileup) or via a sliding window.
 
 
-# Install
+## Install
 
-The current default is to provide the path to the checked out repo to the D-compiler. For example
-in sambamba we use
+The current default is to provide the path to the checked out repo to the D-compiler. For example,
 
     DFLAGS = -wi -I. -IBioD -g
 
-# Usage
+## Usage
 
 See the [examples directory](https://github.com/biod/BioD/tree/master/examples)
 for examples and usage.
 
 BioD is also a crucial part of the [sambamba](https://github.com/biod/sambamba) tool.
 
-# Contributing
+## Contributing
 
 Simply clone the repository on github and put in a pull request.
 
-# BioD contributors and support
+## BioD contributors and support
 
 See
 [contributors](https://github.com/biod/BioD/graphs/contributors). For
@@ -54,6 +53,6 @@ support use the [issue tracker](https://github.com/biod/BioD/issues) or contact
 * [Artem Tarasov](https://github.com/lomereiter)
 * [George Githinji](https://github.com/George-Githinji)
 
-# License
+## License
 
 BioD is licensed under the liberal MIT (expat) [license](./LICENSE).
