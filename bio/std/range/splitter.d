@@ -72,10 +72,10 @@ unittest {
 }
 
 /*
-   Dirty fast_splitter is 3x faster than above elegant version. It does one
-   heap allocation if the buffer of 16K is not enough.
+   Dirty fast_splitter is 3x faster than above elegant version. It does no heap
+   allocations.
 */
-R[] fast_splitter(R)(R[] tokens, R range, R splits_on = cast(R)SPLIT_ON) {
+R[] fast_splitter(R)(R[] tokens, R range, R splits_on = cast(R)SPLIT_ON) @nogc {
   // R[] tokens = new R[range.length]; // pre-allocate optimistially
   auto j = 0, prev_j = 0;
   bool in_whitespace = false;
@@ -110,16 +110,20 @@ R[] fast_splitter(R)(R[] tokens, R range, R splits_on = cast(R)SPLIT_ON) {
   return tokens[0..token_num];
 }
 
+/*
+   Same as above, but with one single heap allocation - it may be slightly
+   slower.
+*/
+R[] fast_splitter(R)(R range, R splits_on = cast(R)SPLIT_ON) {
+  R[] tokens = new R[range.length];
+  return fast_splitter(tokens,range,splits_on);
+}
+
 unittest {
   auto s = "hello 1 2 \t3  4 \n";
-  string[16384] tokens;
-  writeln(fast_splitter(tokens,s).map!"to!string(a)");
-  for (int x = 0; x < 4_000_000; x++) {
-    assert(fast_splitter(tokens,s) == ["hello", "1", "2", "3", "4"]);
-    /*
-    assert(fast_splitter("  hello, 1 2 \t3  4 \n") == ["","hello","1","2","3","4"]);
-    assert(fast_splitter("hello, 1 2 \n\t3  4 \n") == ["hello","1","2","3","4"]);
-    assert(fast_splitter("chr1:55365,55365,1") == ["chr1:55365","55365","1"]);
-    */
-  }
+  string[16] tokens; // preset buffer
+  assert(fast_splitter(tokens,s) == ["hello", "1", "2", "3", "4"]);
+  assert(fast_splitter("  hello, 1 2 \t3  4 \n") == ["","hello","1","2","3","4"]);
+  assert(fast_splitter("hello, 1 2 \n\t3  4 \n") == ["hello","1","2","3","4"]);
+  assert(fast_splitter(tokens,"chr1:55365,55365,1") == ["chr1:55365","55365","1"]);
 }
