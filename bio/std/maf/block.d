@@ -21,7 +21,7 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.maf.block;
+module bio.std.maf.block;
 
 ///
 struct MafSequence {

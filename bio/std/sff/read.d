@@ -1,4 +1,4 @@
-module bio.sff.read;
+module bio.std.sff.read;
 
 /// SFF record
 struct SffRead {

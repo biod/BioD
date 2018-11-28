@@ -22,11 +22,11 @@
 /**
     Module for streaming unpacked (BAM) blocks
 */
-module bio2.unpack;
+module bio.std.experimental.hts.unpack;
 
 import std.stdio;
 
-import bio2.bgzf;
+import bio.std.experimental.hts.bgzf;
 
 int unpack_bams(string[] infns, File outfile) {
 

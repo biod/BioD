@@ -1,4 +1,4 @@
-module bio2.constants;
+module bio.std.experimental.hts.constants;
 
 alias ulong size_d;
 alias int RefId;      // -1 is invalid FIXME

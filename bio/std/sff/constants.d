@@ -1,4 +1,4 @@
-module bio.sff.constants;
+module bio.std.sff.constants;
 
 immutable SFF_MAGIC = 0x2E736666;
 

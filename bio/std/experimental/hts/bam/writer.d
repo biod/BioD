@@ -19,7 +19,7 @@
 
 */
 
-module bio2.bam.writer;
+module bio.std.experimental.bam.writer;
 
 import std.conv;
 import core.stdc.stdio: fopen, fread, fclose;
@@ -30,15 +30,16 @@ import std.string;
 import std.typecons;
 import std.bitmanip;
 
-import bio.bam.cigar;
-import bio.bam.constants;
 
-import bio2.bgzf;
-import bio2.bgzf_writer;
-import bio2.constants;
+import bio.std.hts.bam.cigar; //depends on undead
+import bio.std.hts.bam.constants;
 
-import bio2.bam.header;
-import bio2.bam.reader : ProcessReadBlob, Offset;
+import bio.std.experimental.hts.bgzf;
+import bio.std.experimental.hts.bgzf_writer;
+import bio.std.experimental.hts.constants;
+
+import bio.std.experimental.hts.bam.header;
+import bio.std.experimental.hts.bam.reader : ProcessReadBlob, Offset;
 
 struct ModifyProcessReadBlob { // make this generic later
   ProcessReadBlob _read2;

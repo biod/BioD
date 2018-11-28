@@ -19,7 +19,7 @@
 
 */
 
-module bio2.hashing;
+module bio.std.experimental.hts.hashing;
 
 import std.conv;
 import std.stdio;

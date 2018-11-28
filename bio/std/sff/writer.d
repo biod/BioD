@@ -1,7 +1,7 @@
-module bio.sff.writer;
+module bio.std.sff.writer;
 
-import bio.sff.constants;
-import bio.sff.utils.roundup;
+import bio.std.sff.constants;
+import bio.std.sff.utils.roundup;
 
 import bio.core.utils.stream;
 import undead.stream;

@@ -1,4 +1,4 @@
-module bio.sff.index;
+module bio.std.sff.index;
 
 struct IndexLocation {
     ulong offset;

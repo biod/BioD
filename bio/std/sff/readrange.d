@@ -1,7 +1,7 @@
-module bio.sff.readrange;
+module bio.std.sff.readrange;
 
-import bio.sff.read;
-import bio.sff.index;
+import bio.std.sff.read;
+import bio.std.sff.index;
 import bio.core.utils.switchendianness;
 
 import std.algorithm;

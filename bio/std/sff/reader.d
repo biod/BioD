@@ -21,12 +21,12 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.sff.reader;
+module bio.std.sff.reader;
 
-public import bio.sff.index;
-import bio.sff.read;
-import bio.sff.readrange;
-import bio.sff.constants;
+public import bio.std.sff.index;
+import bio.std.sff.read;
+import bio.std.sff.readrange;
+import bio.std.sff.constants;
 
 import bio.core.utils.stream;
 import undead.stream;

@@ -1,4 +1,4 @@
-module bio.sff.utils.roundup;
+module bio.std.sff.utils.roundup;
 
 import std.traits;
 import std.conv;

@@ -21,7 +21,7 @@
 
 // This is a complete rewrite of Artem Tarasov's original reader.
 
-module bio2.bam.reader;
+module bio.std.experimental.hts.bam.reader;
 
 import std.conv;
 import core.stdc.stdio: fopen, fread, fclose;
@@ -33,14 +33,16 @@ import std.string;
 import std.typecons;
 import std.bitmanip;
 
-import bio.bam.cigar;
-import bio.bam.constants;
+//TODO remove these dependecies 
+import bio.std.hts.bam.cigar;
+import bio.std.hts.bam.constants;
+
 import bio.core.utils.exception;
 
-import bio2.bgzf;
-import bio2.constants;
+import bio.std.experimental.hts.bgzf;
+import bio.std.experimental.hts.constants;
 
-import bio2.bam.header;
+import bio.std.experimental.hts.bam.header;
 
 template ReadFlags(alias flag) {
   @property bool is_paired()                nothrow { return cast(bool)(flag & 0x1); }

@@ -1,4 +1,4 @@
-module bio.maf.parser;
+module bio.std.maf.parser;
 #line 1 "maf_block.rl"
 /*
     This file is part of BioD.
@@ -23,8 +23,9 @@ module bio.maf.parser;
     DEALINGS IN THE SOFTWARE.
 
 */
-import std.conv, std.array;
-import bio.maf.block;
+import std.conv;
+import std.array;
+import bio.std.maf.block;
 
 
 #line 27 "maf_block.d"

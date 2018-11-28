@@ -21,7 +21,7 @@
 
 // This is a complete rewrite of Artem Tarasov's original reader.
 
-module bio2.bam.header;
+module bio.std.experimental.hts.bam.header;
 
 /*
 import std.conv;
@@ -37,11 +37,15 @@ import std.file;
 import std.stdio;
 import std.string;
 
-import bio.bam.constants;
+// why import this from old bio.bam
+// TODO check it depends on undead. 
+import bio.std.hts.bam.constants;
 
-import bio2.bgzf;
-import bio2.bgzf_writer;
-import bio2.constants;
+import bio.std.experimental.hts.bgzf;
+import bio.std.experimental.hts.bgzf_writer;
+
+// what is the difference btw these constants and the ones from bio.std.hts.bam.constants
+import bio.std.experimental.hts.constants; 
 
 struct RefSequence {
   size_d length;

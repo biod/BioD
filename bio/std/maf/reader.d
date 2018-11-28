@@ -22,10 +22,10 @@
     DEALINGS IN THE SOFTWARE.
 
 */
-module bio.maf.reader;
+module bio.std.maf.reader;
 
-import bio.maf.block;
-import bio.maf.parser;
+import bio.std.maf.block;
+import bio.std.maf.parser;
 
 import std.array;
 import std.string;

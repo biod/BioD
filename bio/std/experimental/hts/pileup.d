@@ -18,7 +18,7 @@
     02111-1307 USA
 
 */
-module bio2.pileup;
+module bio.std.experimental.hts.pileup;
 
 import std.conv;
 import std.exception;
@@ -28,7 +28,7 @@ import std.typecons;
 
 import std.experimental.logger;
 
-import bio2.constants;
+import bio.std.experimental.hts.constants;
 import bio.core.utils.exception;
 
 immutable ulong DEFAULT_BUFFER_SIZE = 1_000_000;

@@ -21,7 +21,7 @@
 
 // Based on the original by Artem Tarasov.
 
-module bio2.bgzf_writer;
+module bio.std.experimental.hts.bgzf_writer;
 
 // import core.stdc.stdlib : malloc, free;
 import core.memory: pureMalloc, pureFree;
@@ -36,14 +36,15 @@ import std.algorithm : max;
 import std.stdio;
 import std.typecons;
 
+// depends on old 
 import bio.core.bgzf.compress;
 import bio.core.utils.roundbuf;
 
 // import undead.stream;
 
-import bio.bam.constants: BGZF_MAX_BLOCK_SIZE, BGZF_BLOCK_SIZE, BGZF_EOF;
-import bio2.bgzf;
-import bio2.constants;
+import bio.std.hts.bam.constants: BGZF_MAX_BLOCK_SIZE, BGZF_BLOCK_SIZE, BGZF_EOF;
+import bio.std.experimental.hts.bgzf;
+import bio.std.experimental.hts.constants;
 
 alias void delegate(ubyte[], ubyte[]) BlockWriteHandler;
 

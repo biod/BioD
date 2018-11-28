@@ -19,7 +19,7 @@
 
 */
 
-module bio2.bgzf;
+module bio.std.experimental.hts.bgzf;
 
 /**
 
@@ -48,12 +48,12 @@ import std.stdio;
 import std.typecons;
 import std.zlib : calc_crc32 = crc32, ZlibException;
 
-import bio.bam.constants;
+import bio.std.hts.bam.constants;
 import bio.core.bgzf.block;
 import bio.core.bgzf.constants;
 import bio.core.utils.zlib : inflateInit2, inflate, inflateEnd, Z_OK, Z_FINISH, Z_STREAM_END;
 
-import bio2.constants;
+import bio.std.experimental.hts.constants;
 
 class BgzfException : Exception {
     this(string msg) { super(msg); }

@@ -19,9 +19,9 @@
 
 */
 
-module bio2.reads;
+module bio.std.experimental.hts.reads;
 
-import bio2.constants;
+import bio.std.experimental.hts.constants;
 import bio.core.utils.exception;
 
 import std.stdio;
