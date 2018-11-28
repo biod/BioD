@@ -77,7 +77,15 @@ R[] fast_splitter(R)(R range, R splits_on = cast(R)SPLIT_ON) {
   bool in_whitespace = false;
   auto token_num = 0;
   for (; j<range.length ;) {
-    if (canFind(splits_on,range[j])) { // hit split char
+    bool found = false;
+    auto check = range[j];
+    foreach (c ; splits_on) {
+      if (c==check) {
+        found = true;
+        break;
+      }
+    }
+    if (found) { // hit split char
       if (!in_whitespace && j>0) {
         tokens[token_num] = range[prev_j..j];
         token_num++;
@@ -108,6 +116,10 @@ unittest {
     // assert(array(FastSplitConv!(ubyte[])(cast(ubyte[])"chr1:55365,55365,1")) == ["chr1:55365","55365","1"]);
   }
   /*
+    real    0m1.731s
+    user    0m1.732s
+    sys     0m0.000s
+
     real    0m2.675s
     user    0m2.676s
     sys     0m0.000s
