@@ -9,7 +9,7 @@ whose aim is to:
 
 ## Why D?
 
-[D](http://www.dlang.org) is a language that suits parallel programming
+[D is a language](http://www.dlang.org) that suits parallel programming
 because  the compiler provides certain guarantees. The D programmming language offers multi-paradigm programming features 
 and can be considered as both a low and high-level
 hybrid object orientated and functional (OOP/FP) programming language. D's templating/generics features are
@@ -36,7 +36,7 @@ The current default is to provide the path to the checked out repo to the D-comp
 
 It is possible to create a recent build container with GNU guix
 
- guix enviroment -C guix --ad-hoc meson ninja ldc dub zlib gdb --network
+`guix enviroment -C guix --ad-hoc meson ninja ldc dub zlib gdb --network`
 
  and run meson and ninja (see the meson branch of BioD)
 
@@ -59,7 +59,7 @@ gdb -iex "handle SIGUSR1 SIGUSR2 no stop noprint" biod_test
 
 ## Usage
 
-See the [examples directory](https://github.com/biod/BioD/tree/master/examples)
+See the [examples directory](examples)
 for examples and usage.
 
 ## Mailing list
