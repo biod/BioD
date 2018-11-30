@@ -7,13 +7,12 @@ whose aim is to:
   - Automatic parallelization of tasks where possible
   - Avoiding unnecessary memory allocations
 
-## Why D?
+## Why BioD?
 
-[D is a language](http://www.dlang.org) that suits parallel programming
-because  the compiler provides certain guarantees. The D programmming language offers multi-paradigm programming features 
-and can be considered as both a low and high-level
-hybrid object orientated and functional (OOP/FP) programming language. D's templating/generics features are
-far easier than that of C++.
+BioD makes use of [D programming language](http://www.dlang.org) features that make it possible to develop high
+performance bioinformatics tools (e.g. [sambamba](https://github.com/biod/sambamba)). D is both a low and high-level
+hybrid object orientated and functional (OOP/FP) programming language with templating/generic features are far easier
+than that of C++.
 
 ## D programming language resources
 * [The D Programming Language](https://www.amazon.com/D-Programming-Language-Andrei-Alexandrescu/dp/0321635361) by Andrei Alexandrecu 
