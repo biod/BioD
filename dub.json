@@ -10,6 +10,6 @@
 	"copyright": "Copyright © 2016-2018, BioD developers",
 	"license": "MIT",
 	"sourcePaths": ["bio","contrib/undead/src"],
-	"importPaths": ["bio"],
+	"importPaths": ["bio","contrib/undead/src"],
 	"buildRequirements": ["allowWarnings"]
 }
