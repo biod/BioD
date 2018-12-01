@@ -23,7 +23,7 @@
 */
 module bio.core.bgzf.compress;
 
-import bio.bam.constants;
+import bio.std.hts.bam.constants;
 import bio.core.utils.zlib;
 
 import std.array;

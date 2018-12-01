@@ -15,7 +15,7 @@ endif
 DLIBS       = $(LIBRARY_PATH)/libphobos2-ldc.a $(LIBRARY_PATH)/libdruntime-ldc.a
 DLIBS_DEBUG = $(LIBRARY_PATH)/libphobos2-ldc-debug.a $(LIBRARY_PATH)/libdruntime-ldc-debug.a
 
-SRC         = $(wildcard bio/std/*.d) $(wildcard bio/std/*/*.d) bio2/bgzf.d bio/core/bgzf/constants.d
+SRC         = $(wildcard bio/std/*.d) $(wildcard bio/std/*/*.d) bio.std.experimental.hts/bgzf.d bio/core/bgzf/constants.d
 OBJ         = $(SRC:.d=.o)
 BIN         = bin/biod_tests
 

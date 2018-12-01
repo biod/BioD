@@ -1,12 +1,18 @@
-// BioD depends on stream.d which is no longer included with phobos.
-// To run this example from this directory,
-// Clone the undead repository with
-// git clone https://github.com:dlang/undeaD.git at the appropriate location and ensure
-// it is available on your path
-// Run example: rdmd -I.. -I../location_of_undead/src calculate_gc_content_from_reference.d
+/*
+   To run this example from this directory:
+   rdmd -I.. calculate_gc_content_from_reference.d
 
-import bio.bam.reader;
-import bio.bam.md.reconstruct : dna;
+// compile this example with
+
+// debug version
+dmd -i -I.. calculate_gc_content_from_reference.d
+
+// optimised version
+dmd -i -O -release -inline -boundscheck=off -I.. calculate_gc_content_from_reference.d
+
+*/
+import bio.std.hts.bam.reader;
+import bio.std.hts.bam.md.reconstruct : dna;
 
 import std.stdio;
 import std.datetime.stopwatch: benchmark, StopWatch;

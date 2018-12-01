@@ -1,15 +1,12 @@
-// BioD depends on stream.d which is no longer included with phobos.
-// To run this example from this directory,
-// Clone the undead repository with
-// git clone https://github.com:dlang/undeaD.git at the appropriate location and ensure
-// it is available on your path
-// Run example: rdmd -I.. -I../location_of_undead/src create_bam_from_scratch.d
 
-// this example shows how to create BAM files from scratch
-import bio.bam.read, bio.bam.referenceinfo, bio.sam.header;
-import bio.bam.reader, bio.bam.writer;
-import undead.stream, std.stdio;
-import bio.bam.cigar;
+import bio.std.hts.bam.read;
+import bio.std.hts.bam.referenceinfo;
+import bio.std.hts.sam.header;
+import bio.std.hts.bam.reader;
+import bio.std.hts.bam.writer;
+import undead.stream;
+import std.stdio;
+import bio.std.hts.bam.cigar;
 
 void main() {
     auto header = new SamHeader(); // First, create SAM header 

@@ -1,15 +1,11 @@
-// BioD depends on stream.d which is no longer included with phobos.
-// To run this example from this directory,
-// Clone the undead repository with
-// git clone https://github.com:dlang/undeaD.git at the appropriate location and ensure
-// it is available on your path
-// Run example: rdmd -I.. -I../location_of_undead/src transverse_multiple_bam_files.d
 
-import bio.bam.multireader;
-import bio.bam.read : compareCoordinates;
-import bio.bam.pileup;
+import bio.std.hts.bam.multireader;
+import bio.std.hts.bam.read : compareCoordinates;
+import bio.std.hts.bam.pileup;
 
-import std.algorithm, std.conv, std.stdio;
+import std.algorithm;
+import std.conv;
+import std.stdio;
 
 void main() {
   // multiple BAM files can be traversed simultaneously (if they can be merged)

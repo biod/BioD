@@ -22,19 +22,19 @@
 
 */
 
-import bio.bam.cigar;
-import bio.bam.reader;
-import bio.bam.writer;
-import bio.sam.reader;
-import bio.sam.header;
-import bio.bam.md.core;
-import bio.bam.md.reconstruct;
-import bio.bam.pileup;
-import bio.bam.baseinfo;
-import bio.bam.validation.samheader;
-import bio.bam.validation.alignment;
-import bio.bam.utils.samheadermerger;
-import bio.sam.utils.recordparser;
+import bio.std.hts.bam.cigar;
+import bio.std.hts.bam.reader;
+import bio.std.hts.bam.writer;
+import bio.std.hts.sam.reader;
+import bio.std.hts.sam.header;
+import bio.std.hts.bam.md.core;
+import bio.std.hts.bam.md.reconstruct;
+import bio.std.hts.bam.pileup;
+import bio.std.hts.bam.baseinfo;
+import bio.std.hts.bam.validation.samheader;
+import bio.std.hts.bam.validation.alignment;
+import bio.std.hts.utils.samheadermerger;
+import bio.std.hts.sam.utils.recordparser;
 import bio.core.bgzf.block;
 import bio.core.bgzf.inputstream;
 import bio.core.bgzf.outputstream;
