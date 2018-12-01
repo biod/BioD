@@ -3,7 +3,7 @@
 [BioD](https://github.com/biod/BioD) is a fast and memory efficient bioinformatics library written in the [D programming language](http://www.dlang.org)
 whose aim is to:
 
-* Provide a platform for developing high-performance computational biology applications using the [D programming language](http://www.dlang.org) through 
+* Provide a platform for developing high-performance computational biology applications using the [D programming language](http://www.dlang.org) through
   - Automatic parallelization of tasks where possible
   - Avoiding unnecessary memory allocations
 
@@ -15,13 +15,13 @@ hybrid object orientated and functional (OOP/FP) programming language with templ
 than that of C++.
 
 ## D programming language resources
-* [The D Programming Language](https://www.amazon.com/D-Programming-Language-Andrei-Alexandrescu/dp/0321635361) by Andrei Alexandrecu 
+* [The D Programming Language](https://www.amazon.com/D-Programming-Language-Andrei-Alexandrescu/dp/0321635361) by Andrei Alexandrecu
 * [Programming in D](http://ddili.org/ders/d.en/index.html) by Ali Çehreli.
-* [The D Cookbook](https://www.amazon.com/D-Cookbook-Adam-D-Ruppe/dp/1783287217) by Adam D. Ruppe 
+* [The D Cookbook](https://www.amazon.com/D-Cookbook-Adam-D-Ruppe/dp/1783287217) by Adam D. Ruppe
 
 ## Current development
 Our aim is to provide several modules to work with biological datasets.
-BioD provides modules for manipulating  high throughput data formats by provifing fast and easy to use native BAM file reader and writer 
+BioD provides modules for manipulating  high throughput data formats by provifing fast and easy to use native BAM file reader and writer
 with ability to Iterate a BAM file a read at a time,a nucleotide at a time (pileup) or via a sliding window.
 
 
@@ -35,7 +35,7 @@ The current default is to provide the path to the checked out repo to the D-comp
 
 It is possible to create a recent build container with GNU guix
 
-`guix enviroment -C guix --ad-hoc meson ninja ldc dub zlib gdb --network`
+`guix environment -C guix --ad-hoc meson ninja ldc dub zlib gdb --network`
 
  and run meson and ninja (see the meson branch of BioD)
 
