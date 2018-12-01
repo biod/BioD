@@ -26,9 +26,12 @@ classic. Ali Çehreli's book also is recommended.
 
 ## Current development
 
-Our current focus is to provide a bamreader and bamwriter that is
-really fast and easy to use. We believe the BAM format is here to stay
-for the foreseeable future in pipelines. With D we have an good way to
+Our current focus is to simplify the code base and move out material
+that is either outdated or specific to sambamba.
+
+We also want to provide a new bamreader and bamwriter that is really
+fast and easy to use. We believe the BAM format is here to stay for
+the foreseeable future in pipelines. With D we have an good way to
 write performance parsers, particularly with three typical scenarios:
 
 1. Go through a BAM file a read at a time
