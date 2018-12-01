@@ -2,15 +2,14 @@
 	"name": "biod",
 	"authors": [
 		"Artem Tarasov",
+		"George Gitinji",
+    "Prasun Anand",
 		"Pjotr Prins"
 	],
 	"description": "Bioinformatics library in D (utils for working with SAM, BAM, SFF formats)",
-	"copyright": "Copyright © 216-2018, BioD developers",
+	"copyright": "Copyright © 2016-2018, BioD developers",
 	"license": "MIT",
-	"sourcePaths": ["bio"],
+	"sourcePaths": ["bio","contrib/undead/src"],
 	"importPaths": ["bio"],
-	"dependencies": {
-		"undead": "~>1.0.9"
-	},
 	"buildRequirements": ["allowWarnings"]
 }

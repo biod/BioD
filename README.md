@@ -47,6 +47,8 @@ It is possible to create a recent build container with GNU guix
 
  `meson build --buildtype debug --reconfigure`
 
+Note that in the current version dub is not required for dependencies.
+
 ## Debugging
 
 With gdb, switch off the handlers

@@ -8,10 +8,10 @@
     the rights to use, copy, modify, merge, publish, distribute, sublicense,
     and/or sell copies of the Software, and to permit persons to whom the
     Software is furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -37,7 +37,7 @@ alias ByLineFast _LineRange;
 version(DigitalMars) {
     import bio.std.hts.sam.utils.recordparser;
 } else {
-    import bio.std.hts.sam.utils.fastrecordparser;
+    import bio.sam.utils.fastrecordparser;
 }
 
 import std.stdio;
@@ -142,7 +142,7 @@ class SamReader : IBamSamReader {
 
     /// Reads in SAM file.
     auto reads() @property {
-        
+
         _LineRange lines = _lines;
         if (_seekable) {
             if (_filename !is null) {
@@ -190,7 +190,7 @@ private:
     int[string] _reference_sequence_dict;
 
     void _initializeStream() {
-        auto header = Appender!(char[])(); 
+        auto header = Appender!(char[])();
 
         _lines = ByLineFast(_file);
 
