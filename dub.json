@@ -1,15 +1,16 @@
 {
-	"name": "biod",
-	"authors": [
+	"name": "BioD",
+	"description": "A D library for computational biology and bioinformatics",
+	"homepage": "https://github.com/biod/BioD",
+    "authors": [
 		"Artem Tarasov",
-		"George Gitinji",
-    "Prasun Anand",
+		"George Githinji",
+        "Prasun Anand",
 		"Pjotr Prins"
 	],
-	"description": "Bioinformatics library in D (utils for working with SAM, BAM, SFF formats)",
 	"copyright": "Copyright © 2016-2018, BioD developers",
 	"license": "MIT",
-	"sourcePaths": ["bio","contrib/undead/src"],
-	"importPaths": ["bio","contrib/undead/src"],
+	"sourcePaths": ["bio","contrib/undead"],
+	"importPaths": ["bio","contrib/undead"],
 	"buildRequirements": ["allowWarnings"]
 }
