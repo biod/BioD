@@ -25,7 +25,7 @@
  * the suitability of this software for any purpose. It is provided
  * "as is" without express or implied warranty.
  */
-module undead.stream;
+module contrib.undead.stream;
 
 import std.internal.cstring;
 
@@ -81,12 +81,12 @@ private {
   //import std.format;
   import std.system;    // for Endian enumeration
   import std.utf;
-  import undead.utf;
+  import contrib.undead.utf;
   import core.bitop; // for bswap
   import core.vararg;
   static import std.file;
-  import undead.internal.file;
-  import undead.doformat;
+  import contrib.undead.internal.file;
+  import contrib.undead.doformat;
 }
 
 /// InputStream is the interface for readable streams.
@@ -1214,7 +1214,7 @@ class Stream : InputStream, OutputStream {
 
   private void doFormatCallback(dchar c) {
     char[4] buf;
-    auto b = undead.utf.toUTF8(buf, c);
+    auto b = contrib.undead.utf.toUTF8(buf, c);
     writeString(b);
   }
 
@@ -1433,7 +1433,7 @@ class Stream : InputStream, OutputStream {
 
   unittest { // unit test for Issue 3363
     import std.stdio;
-    immutable fileName = undead.internal.file.deleteme ~ "-issue3363.txt";
+    immutable fileName = contrib.undead.internal.file.deleteme ~ "-issue3363.txt";
     auto w = std.stdio.File(fileName, "w");
     scope (exit) std.file.remove(fileName);
     w.write("one two three");
@@ -2139,7 +2139,7 @@ class File: Stream {
   unittest {
     File file = new File;
     int i = 666;
-    auto stream_file = undead.internal.file.deleteme ~ "-stream.$$$";
+    auto stream_file = contrib.undead.internal.file.deleteme ~ "-stream.$$$";
     file.create(stream_file);
     // should be ok to write
     assert(file.writeable);
@@ -2257,7 +2257,7 @@ class BufferedFile: BufferedStream {
   unittest {
     BufferedFile file = new BufferedFile;
     int i = 666;
-    auto stream_file = undead.internal.file.deleteme ~ "-stream.$$$";
+    auto stream_file = contrib.undead.internal.file.deleteme ~ "-stream.$$$";
     file.create(stream_file);
     // should be ok to write
     assert(file.writeable);
@@ -2852,7 +2852,7 @@ class MmFileStream : TArrayStream!(MmFile) {
 }
 
 unittest {
-  auto test_file = undead.internal.file.deleteme ~ "-testing.txt";
+  auto test_file = contrib.undead.internal.file.deleteme ~ "-testing.txt";
   MmFile mf = new MmFile(test_file,MmFile.Mode.readWriteNew,100,null);
   MmFileStream m;
   m = new MmFileStream (mf);

@@ -1,7 +1,7 @@
 /**
  * Contains the obsolete functions from Phobos' `std.utf`.
  */
-module undead.utf;
+module contrib.undead.utf;
 
 import std.utf;
 import std.typecons;

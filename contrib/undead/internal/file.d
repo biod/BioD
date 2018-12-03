@@ -1,6 +1,6 @@
 // Written in the D programming language
 
-module undead.internal.file;
+module contrib.undead.internal.file;
 
 // Copied from std.file. undead doesn't have access to it, but some modules
 // in undead used std.file.deleteme when they were in Phobos, so this gives
