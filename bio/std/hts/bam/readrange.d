@@ -29,7 +29,7 @@ import bio.std.hts.bam.reader;
 import bio.core.bgzf.inputstream;
 import bio.core.bgzf.virtualoffset;
 
-import undead.stream;
+import contrib.undead.stream;
 import std.algorithm;
 import std.system;
 import std.bitmanip;

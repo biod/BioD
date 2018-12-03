@@ -35,7 +35,7 @@ import bio.core.utils.stream;
 
 import std.parallelism;
 import std.exception;
-import undead.stream;
+import contrib.undead.stream;
 import std.traits;
 import std.system;
 import std.algorithm;
@@ -73,7 +73,7 @@ final class BamWriter {
     ///     compression_level  = compression level, must be in range -1..9
     ///     task_pool          = task pool to use for parallel compression
     ///     buffer_size        = size of BgzfOutputStream buffer
-    this(undead.stream.Stream stream,
+    this(contrib.undead.stream.Stream stream,
          int compression_level=-1,
          std.parallelism.TaskPool task_pool=std.parallelism.taskPool,
          size_t buffer_size=0)

@@ -5,7 +5,7 @@ import bio.std.sff.index;
 import bio.core.utils.switchendianness;
 
 import std.algorithm;
-import undead.stream;
+import contrib.undead.stream;
 import std.system;
 import std.array;
 

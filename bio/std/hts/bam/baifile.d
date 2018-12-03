@@ -29,7 +29,7 @@ import bio.core.bgzf.virtualoffset;
 import bio.std.hts.bam.constants;
 
 //TODO Remove stream dependency!
-import undead.stream;
+import contrib.undead.stream;
 import std.system;
 import std.exception;
 import std.algorithm;
