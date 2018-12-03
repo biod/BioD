@@ -9,8 +9,8 @@ whose aim is to:
 
 ## Why BioD?
 
-BioD makes use of [D programming language](http://www.dlang.org) features that make it possible to develop high
-performance bioinformatics tools (e.g. [sambamba](https://github.com/biod/sambamba)). D is both a low and high-level
+BioD leverages on  [D programming language](http://www.dlang.org) features to develop high
+performance bioinformatics tools (e.g. [sambamba](https://github.com/biod/sambamba)). The D programming language is both a low and high-level
 hybrid object orientated and functional (OOP/FP) programming language with templating/generic features are far easier
 than that of C++.
 
@@ -20,9 +20,9 @@ than that of C++.
 * [The D Cookbook](https://www.amazon.com/D-Cookbook-Adam-D-Ruppe/dp/1783287217) by Adam D. Ruppe
 
 ## Current development
-Our aim is to provide several modules to work with biological datasets.
-BioD provides modules for manipulating  high throughput data formats by provifing fast and easy to use native BAM file reader and writer
-with ability to Iterate a BAM file a read at a time,a nucleotide at a time (pileup) or via a sliding window.
+Our aim is to provide a set of D  modules to manipulate and work with biological datasets.
+BioD provides modules for manipulating high throughput data formats by provifing fast and easy to use native BAM file reader and writer
+with ability to iterate a BAM file a read at a time,a nucleotide at a time (pileup) or via a sliding window.
 
 
 ## Install
@@ -56,7 +56,8 @@ With gdb, switch off the handlers
 ` handle SIGUSR1 SIGUSR2 nostop noprint`
 
 It can be passed in from the command line
-gdb -iex "handle SIGUSR1 SIGUSR2 no stop noprint" biod_test
+
+`gdb -iex "handle SIGUSR1 SIGUSR2 no stop noprint" biod_test`
 
 ## Usage
 
