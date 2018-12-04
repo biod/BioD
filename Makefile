@@ -1,7 +1,7 @@
 # Simple Makefile
 
 D_COMPILER=ldc2
-DFLAGS = -wi -g -relocation-model=pic -unittest -main -Icontrib/undead/src
+DFLAGS = -wi -g -relocation-model=pic -unittest -main -Icontrib/undead
 
 ifndef GUIX
   ifdef GUIX_ENVIRONMENT
@@ -15,7 +15,7 @@ endif
 DLIBS       = $(LIBRARY_PATH)/libphobos2-ldc.a $(LIBRARY_PATH)/libdruntime-ldc.a
 DLIBS_DEBUG = $(LIBRARY_PATH)/libphobos2-ldc-debug.a $(LIBRARY_PATH)/libdruntime-ldc-debug.a
 
-SRC         = $(wildcard contrib/undead/src/undead/*.d) contrib/undead/src/undead/internal/file.d $(wildcard bio/std/*.d) $(wildcard bio/std/*/*.d) bio/std/experimental/hts/bgzf.d bio/core/bgzf/constants.d bio/core/utils/stream.d bio/core/utils/switchendianness.d
+SRC         = $(wildcard contrib/undead/src/undead/*.d) contrib/undead/internal/file.d $(wildcard bio/std/*.d) $(wildcard bio/std/*/*.d) bio/std/experimental/hts/bgzf.d bio/core/bgzf/constants.d bio/core/utils/stream.d bio/core/utils/switchendianness.d
 OBJ         = $(SRC:.d=.o)
 BIN         = bin/biod_tests
 

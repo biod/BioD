@@ -96,7 +96,7 @@ class BamReader : IBamSamReader {
       }
       -------------------------------------------
      */
-    this(undead.stream.Stream stream,
+    this(contrib.undead.stream.Stream stream,
          TaskPool task_pool = taskPool) {
         _source_stream = new EndianStream(stream, Endian.littleEndian);
         _task_pool = task_pool;

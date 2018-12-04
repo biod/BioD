@@ -4,7 +4,7 @@ import bio.std.hts.bam.referenceinfo;
 import bio.std.hts.sam.header;
 import bio.std.hts.bam.reader;
 import bio.std.hts.bam.writer;
-import undead.stream;
+import contrib.undead.stream;
 import std.stdio;
 import bio.std.hts.bam.cigar;
 

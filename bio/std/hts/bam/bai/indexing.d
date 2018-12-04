@@ -30,7 +30,7 @@ import bio.std.hts.bam.constants;
 import bio.std.hts.bam.bai.bin;
 import bio.core.bgzf.chunk;
 
-import undead.stream;
+import contrib.undead.stream;
 import std.array;
 import std.algorithm;
 import std.system;

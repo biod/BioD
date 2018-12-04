@@ -10,7 +10,7 @@
 
    Source: $(PHOBOSSRC std/_format.d)
  */
-module undead.doformat;
+module contrib.undead.doformat;
 
 //debug=format;                // uncomment to turn on debugging printf's
 
@@ -1315,7 +1315,7 @@ unittest
 
     void myPrint(...)
     {
-        undead.doformat.doFormat(&putc, _arguments, _argptr);
+        contrib.undead.doformat.doFormat(&putc, _arguments, _argptr);
     }
 
     myPrint("The answer is %s:", 27, 6);

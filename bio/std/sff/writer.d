@@ -4,7 +4,7 @@ import bio.std.sff.constants;
 import bio.std.sff.utils.roundup;
 
 import bio.core.utils.stream;
-import undead.stream;
+import contrib.undead.stream;
 import std.system;
 
 /// Class for outputting SFF files
