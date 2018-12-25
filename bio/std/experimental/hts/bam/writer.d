@@ -19,7 +19,7 @@
 
 */
 
-module bio.std.experimental.bam.writer;
+module bio.std.experimental.hts.bam.writer;
 
 import std.conv;
 import core.stdc.stdio: fopen, fread, fclose;

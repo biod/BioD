@@ -1,4 +1,4 @@
-module bio.sam.utils.fastrecordparser;
+module bio.std.hts.sam.utils.fastrecordparser;
 
 #line 1 "sam_alignment.rl"
 /*
