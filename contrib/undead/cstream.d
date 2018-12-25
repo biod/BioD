@@ -149,10 +149,10 @@ class CFile : Stream {
 
   // run a few tests
   unittest {
-    import undead.internal.file;
+    import contrib.undead.internal.file;
     import std.internal.cstring : tempCString;
 
-    auto stream_file = (undead.internal.file.deleteme ~ "-stream.txt").tempCString();
+    auto stream_file = (contrib.undead.internal.file.deleteme ~ "-stream.txt").tempCString();
     FILE* f = fopen(stream_file,"w");
     assert(f !is null);
     CFile file = new CFile(f,FileMode.Out);
