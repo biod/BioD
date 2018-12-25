@@ -37,7 +37,7 @@ alias ByLineFast _LineRange;
 version(DigitalMars) {
     import bio.std.hts.sam.utils.recordparser;
 } else {
-    import bio.sam.utils.fastrecordparser;
+    import bio.std.hts.sam.utils.fastrecordparser;
 }
 
 import std.stdio;

@@ -20,7 +20,7 @@
  *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
-module undead.cstream;
+module contrib.undead.cstream;
 
 public import core.stdc.stdio;
 public import contrib.undead.stream;
