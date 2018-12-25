@@ -85,3 +85,7 @@ support use the [issue tracker](https://github.com/biod/BioD/issues) or contact
 ## License
 
 BioD is free software and licensed under the MIT (expat) [license](./LICENSE).
+
+BioD includes some files from the
+[undeaD project](https://github.com/dlang/undeaD) in ./contrib which
+are published under a Boost license. This code should be phased out in time.
