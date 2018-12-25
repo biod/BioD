@@ -9,51 +9,51 @@ whose aim is to:
 
 ## Why BioD?
 
-BioD leverages on  [D programming language](http://www.dlang.org) features to develop high
-performance bioinformatics tools (e.g. [sambamba](https://github.com/biod/sambamba)). The D programming language is both a low and high-level
-hybrid object orientated and functional (OOP/FP) programming language with templating/generic features are far easier
-than that of C++.
+BioD leverages on [D programming language](http://www.dlang.org)
+features to develop high performance bioinformatics tools
+(e.g. [sambamba](https://github.com/biod/sambamba)). The D programming
+language is both a low and high-level hybrid object orientated and
+functional (OOP/FP) programming language with templating/generic
+features are far easier than that of C++.
 
 ## D programming language resources
-* [The D Programming Language](https://www.amazon.com/D-Programming-Language-Andrei-Alexandrescu/dp/0321635361) by Andrei Alexandrecu
-* [Programming in D](http://ddili.org/ders/d.en/index.html) by Ali Çehreli.
+
+* [Programming in D](http://ddili.org/ders/d.en/index.html) is online by Ali Çehreli.
+* [The D Programming Language](https://www.amazon.com/D-Programming-Language-Andrei-Alexandrescu/dp/0321635361) by Andrei Alexandrecu (great book, slightly out of date)
 * [The D Cookbook](https://www.amazon.com/D-Cookbook-Adam-D-Ruppe/dp/1783287217) by Adam D. Ruppe
 
 ## Current development
-Our aim is to provide a set of D  modules to manipulate and work with biological datasets.
-BioD provides modules for manipulating high throughput data formats by provifing fast and easy to use native BAM file reader and writer
-with ability to iterate a BAM file a read at a time,a nucleotide at a time (pileup) or via a sliding window.
+
+Our aim is to provide a set of D modules to manipulate and work with
+biological datasets.  BioD provides modules for manipulating high
+throughput data formats by provifing fast and easy to use native BAM
+file reader and writer with ability to iterate a BAM file a read at a
+time,a nucleotide at a time (pileup) or via a sliding window.
 
 
 ## Install
 
-The current default is to provide the path to the checked out repo to the D-compiler. For example,
+The current default is to provide the path to the checked out repo to
+the D-compiler. For example,
 
     DFLAGS = -wi -I. -IBioD -g
 
 ## Build environment
 
+After installing ldc and dub
+
+    dub
+    dub test
+
 It is possible to create a recent build container with GNU guix
 
-`guix environment -C guix --ad-hoc meson ninja ldc dub zlib gdb --network`
-
- and run meson and ninja (see the meson branch of BioD)
-
- `dub
- meson ./build
- ninja -C ./build`
-
- to create a debug version
-
- `meson build --buildtype debug --reconfigure`
-
-Note that in the current version dub is not required for dependencies.
+`guix environment -C guix --ad-hoc ldc dub zlib gdb --network`
 
 ## Debugging
 
 With gdb, switch off the handlers
 
-` handle SIGUSR1 SIGUSR2 nostop noprint`
+`handle SIGUSR1 SIGUSR2 nostop noprint`
 
 It can be passed in from the command line
 
