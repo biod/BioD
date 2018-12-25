@@ -23,7 +23,7 @@
 module undead.cstream;
 
 public import core.stdc.stdio;
-public import undead.stream;
+public import contrib.undead.stream;
 version(unittest) import std.stdio;
 
 import std.algorithm;
@@ -246,4 +246,3 @@ shared static this() {
   dout = new CFile(core.stdc.stdio.stdout,FileMode.Out);
   derr = new CFile(core.stdc.stdio.stderr,FileMode.Out);
 }
-
