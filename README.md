@@ -79,9 +79,9 @@ See
 support use the [issue tracker](https://github.com/biod/BioD/issues) or contact
 
 * [Pjotr Prins](https://github.com/pjotrp)
-* [Artem Tarasov](https://github.com/lomereiter)
 * [George Githinji](https://github.com/George-Githinji)
+* [Prasun Anand](https://github.com/prasunanand)
 
 ## License
 
-BioD is licensed under the liberal MIT (expat) [license](./LICENSE).
+BioD is free software and licensed under the MIT (expat) [license](./LICENSE).
