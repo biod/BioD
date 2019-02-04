@@ -21,6 +21,8 @@
    DEALINGS IN THE SOFTWARE.
  */
 
+module bio.std.file.fasta;
+
 import std.array;
 import std.string;
 import std.algorithm;
@@ -32,7 +34,7 @@ import std.typecons;
 import std.exception;
 import std.path;
 import std.file;
-import fai;
+import bio.std.file.fai;
 
 /* 
   A text-based single-letter format for representing 

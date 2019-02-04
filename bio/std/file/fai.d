@@ -21,6 +21,8 @@
    DEALINGS IN THE SOFTWARE.
  */
 
+module bio.std.file.fai;
+
 import std.stdio;
 import std.range;
 import std.algorithm;
