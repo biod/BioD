@@ -1306,7 +1306,7 @@ private bool needToSwapEndianess(Char)(ref FormatSpec!Char f)
 }
 
 unittest
-{
+{   
     string res;
     void putc(dchar c)
     {
@@ -1315,7 +1315,7 @@ unittest
 
     void myPrint(...)
     {
-        contrib.undead.doformat.doFormat(&putc, _arguments, _argptr);
+        doFormat(&putc, _arguments, _argptr);
     }
 
     myPrint("The answer is %s:", 27, 6);
