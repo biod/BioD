@@ -45,24 +45,33 @@ import bio.std.experimental.hts.constants;
 import bio.std.experimental.hts.bam.header;
 
 template ReadFlags(alias flag) {
+  // 0x01: template having multiple segments in sequencing
   @property bool is_paired()                nothrow { return cast(bool)(flag & 0x1); }
-  /// Each segment properly aligned according to the aligner
+  // 0x2: Each segment properly aligned according to the aligner
   @property bool is_proper_pair()           nothrow { return cast(bool)(flag & 0x2); }
+  // 0x4: Segment unmapped
   @property bool is_unmapped_raw()          nothrow { return cast(bool)(flag & 0x4); }
   @property bool is_mapped_raw()            nothrow { return cast(bool)(!(flag & 0x4)); }
+  // 0x8: Next segment in template unmapped
   @property bool mate_is_unmapped()         nothrow { return cast(bool)(flag & 0x8); }
+  // 0x10: SEQ being reverse complimented
   @property bool is_reverse_strand()        nothrow { return cast(bool)(flag & 0x10); }
+  // 0x20: SEQ of the next segment in the template being reverse complemented
   @property bool mate_is_reverse_strand()   nothrow { return cast(bool)(flag & 0x20); }
+  // 0x40: The first segment in the template
   @property bool is_first_of_pair()         nothrow { return cast(bool)(flag & 0x40); }
+  // 0x80: The last segment in the template
   @property bool is_second_of_pair()        nothrow { return cast(bool)(flag & 0x80); }
+  // 0x100: Secondary segment
   @property bool is_secondary_alignment()   nothrow { return cast(bool)(flag & 0x100); }
+  // 0x200: Not passing filters, such as platform/vendor quality controls
   @property bool is_qc_fail() {
     assert(is_mapped_raw,to!string(this));
     return cast(bool)(flag & 0x200); }
   alias is_qc_fail failed_quality_control;
-  /// PCR or optical duplicate
+  /// 0x400: PCR or optical duplicate
   @property bool is_duplicate()             nothrow { return cast(bool)(flag & 0x400); }
-  /// Supplementary alignment
+  /// 0x800: Supplementary alignment
   @property bool is_supplementary()         nothrow { return cast(bool)(flag & 0x800); }
   @property string show_flags() {
     string res = format("b%b-%d",flag,flag);
