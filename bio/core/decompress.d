@@ -36,7 +36,7 @@ import std.conv;
 import std.exception;
 import std.file;
 import std.parallelism;
-import std.stdio;
+import std.stdio: File;
 import std.zlib: UnCompress;
 
 struct GzipbyLine(R) {
