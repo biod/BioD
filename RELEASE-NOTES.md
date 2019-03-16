@@ -1,3 +1,14 @@
+## ChangeLog v0.2.2 (20190316)
+
++ Restored make so we can compile without dub
++ Fasta and fasta indexing (.fai) support added (thanks Emilio Palumbo https://github.com/emi80)
++ Mate pair comparison and HI tag support added for BAM (thanks https://github.com/emi80)
++ Added Picard-style comparison for BAM (thanks https://github.com/TimurIs)
++ Added fast whitespace line splitter/tokenizer, a Phobos-style version and a faster C-style version (thanks https://github.com/pjotrp)
++ Added multi-allelic frequencies (MAF) support (thanks https://github.com/pjotrp)
++ Name spaces and directories reorganised (thanks George Gethinji https://github.com/george-githinji)
++ Pulled in D's undead repo (dropped dependency) and minimalised it to actual used files (@pjotrp)
+
 ## ChangeLog v0.2.1 (20181004)
 
 + Fix bunch of deprecation warnings

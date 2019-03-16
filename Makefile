@@ -37,6 +37,7 @@ $(BIN): $(OBJ)
 	$(D_COMPILER) $(DFLAGS) $(OBJ) -of=$(BIN)
 
 check: $(BIN)
+	$(info running tests...)
 	$(BIN)
 
 clean:
