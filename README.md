@@ -45,13 +45,23 @@ After installing ldc and dub
     dub
     dub test
 
-It is possible to create a recent build container with GNU guix
+It is possible to create a recent build container with the
+[GNU guix](https://www.gnu.org/software/guix/) transactional package
+manager
 
-`guix environment -C guix --ad-hoc ldc dub zlib gdb --network`
+    guix environment -C guix --ad-hoc ldc dub zlib gdb binutils-gold --network
+
+after getting dropped in the container simply run dub.
+
+If you want to use the make file instead (not requiring the network) use
+
+    guix environment -C guix --ad-hoc ldc zlib gdb make binutils-gold --no-grafts
+    make -j 4
+    make check
 
 ## Debugging
 
-With gdb, switch off the handlers
+When using gdb, switch off these handlers
 
 `handle SIGUSR1 SIGUSR2 nostop noprint`
 
