@@ -1,7 +1,7 @@
 {
   "name": "biod",
-    "description": "A D library for computational biology and bioinformatics",
-  "homepage": "https://github.com/biod/BioD",
+    "description": "D library for computational biology and bioinformatics",
+    "homepage": "https://github.com/biod/BioD",
     "authors": [
     "Artem Tarasov",
     "George Githinji",
@@ -9,7 +9,7 @@
     "Prasun Anand",
     "Pjotr Prins"
   ],
-  "copyright": "Copyright © 2016-209, BioD developers",
+  "copyright": "Copyright © 2016-2019, BioD developers",
   "license": "MIT",
   "sourcePaths": ["bio","contrib/undead"],
   "importPaths": ["bio","contrib/undead"],
