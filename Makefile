@@ -1,7 +1,7 @@
 # Simple Makefile
 
 D_COMPILER=ldc2
-DFLAGS = -wi -g -relocation-model=pic -unittest -main -Icontrib/undead
+DFLAGS = -wi -g -relocation-model=pic -unittest -Icontrib/undead
 
 ifndef GUIX
   ifdef GUIX_ENVIRONMENT
@@ -34,7 +34,7 @@ default debug release static: $(BIN)
 
 $(BIN): $(OBJ)
 	$(info linking...)
-	$(D_COMPILER) $(DFLAGS) $(OBJ) -of=$(BIN)
+	$(D_COMPILER) -main $(DFLAGS) $(OBJ) -of=$(BIN)
 
 check: $(BIN)
 	$(info running tests...)
