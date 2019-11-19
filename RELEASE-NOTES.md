@@ -1,3 +1,7 @@
+## ChangeLog v0.2.3 (20191119)
+
++ Compiles and tests pass on Debian with dub and ldc 1.17.0
+
 ## ChangeLog v0.2.2 (20190316)
 
 + Restored make so we can compile without dub
