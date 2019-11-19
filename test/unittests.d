@@ -8,10 +8,10 @@
     the rights to use, copy, modify, merge, publish, distribute, sublicense,
     and/or sell copies of the Software, and to permit persons to whom the
     Software is furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -50,7 +50,7 @@ import bio.core.utils.roundbuf;
 import std.path;
 import std.range;
 import std.stdio;
-import undead.stream;
+// import undead.stream;
 import std.algorithm;
 import std.array;
 import std.conv;
@@ -149,7 +149,7 @@ unittest {
 
         auto refseq = array(bf["large"][beg .. end]);
 
-        auto naive = array(filter!((BamRead a) { 
+        auto naive = array(filter!((BamRead a) {
                          return a.ref_id != -1 &&
                                 bf.reference(a.ref_id).name == "large" &&
                                 a.position < end &&
@@ -246,7 +246,7 @@ unittest {
 
     v = "0eabcf123";
     v.setHexadecimalFlag();
-    assert(v.is_hexadecimal_string);    
+    assert(v.is_hexadecimal_string);
     assert(v == "0eabcf123");
 
     // stderr.writeln("Testing parseAlignmentLine/toSam functions...");
@@ -290,7 +290,7 @@ unittest {
 
     foreach (read; bf.reads)
         writer.writeRecord(read);
-    
+
     writer.flush();
 
     stream.seekSet(0);
@@ -329,7 +329,7 @@ unittest {
             int current_ref_id = -1;
 
                                       // [99 .. 1569]   [1 .. 1567]
-            int[2] expected_columns = [1470,            1567]; 
+            int[2] expected_columns = [1470,            1567];
             foreach (column; columns) {
                 int ref_id = column.ref_id;
                 --expected_columns[ref_id];
@@ -373,16 +373,17 @@ unittest {
         auto read = reads[1];
         assert(!read.is_reverse_strand);
 
-        alias TypeTuple!("FZ", "MD", 
-                         Option.cigarExtra, 
-                         Option.mdCurrentOp, 
+        alias TypeTuple!("FZ", "MD",
+                         Option.cigarExtra,
+                         Option.mdCurrentOp,
                          Option.mdPreviousOp,
                          Option.mdNextOp) Options;
 
-        auto bases = basesWith!Options(read, 
+        /*
+        auto bases = basesWith!Options(read,
                                        arg!"flowOrder"(flow_order),
                                        arg!"keySequence"(key_sequence));
-     
+
         typeof(bases.front) bfront;
         bases.constructFront(&bfront);
 
@@ -397,7 +398,7 @@ unittest {
                      "-CCCGATTGGTCGTTGCTTTACGCTGATTGGCGAGTCCGGGGAACGTACCTTTGCTATCAGTCCAGGCCACATGAACCAGCTGCGGGCTGAAAGCATTCCGGAAGATGTGATTGCCGGACCTCGGCACTGGTTCTCACCTCATATCTGGTGCGTTGCAAGCCGGGTGAACCCATGCCGGAAGCACCATGAAAGCCATTGAGTACGCGAAGAAATATA"));
         assert(equal(bases, read.sequence));
         assert(equal(take(map!"a.flow_call.intensity_value"(bases), 92),
-                     [219, 219, 194, 194, 92, 107, 83, 198, 198, 78, 
+                     [219, 219, 194, 194, 92, 107, 83, 198, 198, 78,
                      // A   A    C    C    T   G   A    T    T    A
                       292, 292, 292,  81, 79,  78, 95, 99, 315, 315, 315,
                      // C   C    C    A    T   C   A    G    T    T    T
@@ -420,16 +421,17 @@ unittest {
             if (r.is_unmapped) continue;
             if (r.cigar.length == 0) continue;
             if (r.is_reverse_strand) {
-                bases = basesWith!Options(r, arg!"flowOrder"(flow_order), 
+                bases = basesWith!Options(r, arg!"flowOrder"(flow_order),
                                              arg!"keySequence"(key_sequence));
                 // if reverse strand, bases are also reverse complemented
                 assert(equal(bases, map!"a.complement"(retro(r.sequence))));
             } else {
-                bases = basesWith!Options(r, arg!"flowOrder"(flow_order), 
+                bases = basesWith!Options(r, arg!"flowOrder"(flow_order),
                                              arg!"keySequence"(key_sequence));
                 assert(equal(bases, r.sequence));
             }
         }
+        */
     }
 
     // stderr.writeln("Testing extended CIGAR conversion...");
@@ -480,5 +482,4 @@ unittest {
     }
 }
 
-void main() {
-}
+// void main() {}
