@@ -1,7 +1,9 @@
 # Simple Makefile
+#
+#   make sharedlibrary  : make shared library
 
 D_COMPILER=ldc2
-DFLAGS = -wi -g -relocation-model=pic -unittest -Icontrib/undead -L-lz
+DFLAGS = -wi -g -relocation-model=pic -Icontrib/undead -L-lz
 
 ifndef GUIX
   ifdef GUIX_ENVIRONMENT
@@ -15,19 +17,21 @@ endif
 DLIBS       = $(LIBRARY_PATH)/libphobos2-ldc.a $(LIBRARY_PATH)/libdruntime-ldc.a
 DLIBS_DEBUG = $(LIBRARY_PATH)/libphobos2-ldc-debug.a $(LIBRARY_PATH)/libdruntime-ldc-debug.a
 
-SRC         = $(wildcard contrib/undead/*.d) contrib/undead/*/*.d $(wildcard bio/*.d bio/*/*.d bio/*/*/*.d bio/*/*/*/*.d bio/*/*/*/*/*.d bio/*/*/*/*/*/*.d) test/*.d
+SRC         = $(wildcard contrib/undead/*.d) contrib/undead/*/*.d $(wildcard bio/*.d bio/*/*.d bio/*/*/*.d bio/*/*/*/*.d bio/*/*/*/*/*.d bio/*/*/*/*/*/*.d) test/unittests.d
 OBJ         = $(SRC:.d=.o)
 BIN         = bin/biod_tests
+sharedlibrary:  BIN = libbiod.so
 
-debug:          DFLAGS += -O0 -d-debug -link-debuglib
+debug check:    DFLAGS += -O0 -d-debug -unittest -link-debuglib
 release static: DFLAGS += -O3 -release -enable-inlining -boundscheck=off
 static:         DFLAGS += -static -L-Bstatic
+sharedlibrary:  DFLAGS += -shared
 
 all: debug
 
 default: all
 
-default debug release static: $(BIN)
+default debug release static sharedlibrary: $(BIN)
 
 %.o: %.d
 	$(D_COMPILER) $(DFLAGS) -c $< -od=$(dir $@)

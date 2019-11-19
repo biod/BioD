@@ -72,7 +72,7 @@ When using gdb, switch off these handlers
 
 It can be passed in from the command line
 
-`gdb -iex "handle SIGUSR1 SIGUSR2 no stop noprint" biod_test`
+    gdb -ex "handle SIGUSR1 SIGUSR2 nostop noprint" ./bin/biod_tests
 
 ## Usage
 

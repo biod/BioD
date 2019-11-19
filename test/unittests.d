@@ -64,9 +64,9 @@ CigarOperation[] cigarFromString(string cigar) {
 }
 
 unittest {
-
     stderr.writeln("Running unittests...");
     // stderr.writeln("Testing extracting SAM header...");
+
     auto fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
     auto bf = new BamReader(fn);
     assert(bf.header.format_version == "1.3");
@@ -482,4 +482,4 @@ unittest {
     }
 }
 
-// void main() {}
+void main() {}
