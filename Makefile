@@ -42,7 +42,7 @@ $(BIN): $(OBJ)
 
 check: $(BIN)
 	$(info running tests...)
-	$(BIN)
+	$(BIN) "--DRT-gcopt=gc:precise disable:1 cleanup:none"
 
 clean:
 	rm -vf $(OBJ)

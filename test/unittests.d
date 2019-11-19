@@ -140,8 +140,8 @@ unittest {
     fn = buildPath(dirName(__FILE__), "data", "corrupted_zlib_archive.bam");
     import bio.core.utils.zlib;
     assertThrown!ZlibException(walkLength((new BamReader(fn)).reads));
-
     // stderr.writeln("Testing random access...");
+
     fn = buildPath(dirName(__FILE__), "data", "bins.bam");
     bf = new BamReader(fn);
 
@@ -183,6 +183,12 @@ unittest {
     for (auto i = 50_000; i < 1_000_000; i += 50_000) {
         compareWithNaiveApproach(i, i + 100);
     }
+
+    // Time to kick in GC
+    import core.memory;
+    stderr.writeln("**** Calling GC");
+    GC.collect();
+    stderr.writeln("**** Past calling GC");
 
     {
         auto fst_offset_tiny = bf["tiny"].startVirtualOffset();

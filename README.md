@@ -30,6 +30,8 @@ throughput data formats by provifing fast and easy to use native BAM
 file reader and writer with ability to iterate a BAM file a read at a
 time,a nucleotide at a time (pileup) or via a sliding window.
 
+Note the current Bamreader bails out on recent versions of the LDC
+compiler. See also https://github.com/biod/BioD/issues/53
 
 ## Install
 
