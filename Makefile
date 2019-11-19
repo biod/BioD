@@ -38,7 +38,7 @@ default debug release static sharedlibrary: $(BIN)
 
 $(BIN): $(OBJ)
 	$(info linking...)
-	$(D_COMPILER) $(DFLAGS) $(OBJ) -of=$(BIN)
+	$(D_COMPILER) -main $(DFLAGS) $(OBJ) -of=$(BIN)
 
 check: $(BIN)
 	$(info running tests...)

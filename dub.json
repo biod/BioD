@@ -1,7 +1,7 @@
 {
   "name": "biod",
-    "description": "A D library for computational biology and bioinformatics",
-  "homepage": "https://github.com/biod/BioD",
+    "description": "D library for computational biology and bioinformatics",
+    "homepage": "https://github.com/biod/BioD",
     "authors": [
     "Artem Tarasov",
     "George Githinji",

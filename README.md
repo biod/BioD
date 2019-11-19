@@ -56,13 +56,13 @@ It is possible to create a recent build container with the
 [GNU guix](https://www.gnu.org/software/guix/) transactional package
 manager
 
-    guix environment -C guix --ad-hoc ldc dub zlib gdb binutils-gold --network
+    guix environment -C guix --ad-hoc ldc dub zlib gdb binutils-gold vim --network
 
 after getting dropped in the container simply run dub.
 
 If you want to use the make file instead (not requiring the network) use
 
-    guix environment -C guix --ad-hoc ldc zlib gdb make binutils-gold --no-grafts
+    guix environment -C guix --ad-hoc ldc zlib gdb make binutils-gold vim --no-grafts
     make -j 4
     make check
 
@@ -70,11 +70,11 @@ If you want to use the make file instead (not requiring the network) use
 
 When using gdb, switch off these handlers
 
-`handle SIGUSR1 SIGUSR2 nostop noprint`
+    handle SIGUSR1 SIGUSR2 nostop noprint
 
 It can be passed in from the command line
 
-    gdb -ex "handle SIGUSR1 SIGUSR2 nostop noprint" ./bin/biod_tests
+    gdb -ex 'handle SIGUSR1 SIGUSR2 nostop noprint' --args ./biod-test-library
 
 ## Usage
 
