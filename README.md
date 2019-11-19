@@ -45,6 +45,11 @@ After installing ldc and dub
     dub
     dub test
 
+On a recent Debian (>201911) you can install ldc and compile BioD with
+
+    make
+    make check
+
 It is possible to create a recent build container with the
 [GNU guix](https://www.gnu.org/software/guix/) transactional package
 manager

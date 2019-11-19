@@ -8,10 +8,10 @@
     the rights to use, copy, modify, merge, publish, distribute, sublicense,
     and/or sell copies of the Software, and to permit persons to whom the
     Software is furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -112,7 +112,7 @@ DecompressedBgzfBlock decompressBgzfBlock(BgzfBlock block,
                                           BgzfBlockCache cache=null)
 {
     if (block.input_size == 0) {
-        return DecompressedBgzfBlock(block.start_offset, 
+        return DecompressedBgzfBlock(block.start_offset,
                                      block.start_offset + block.bsize + 1,
                                      cast(ubyte[])[]); // EOF marker
         // TODO: add check for correctness of EOF marker
@@ -130,8 +130,8 @@ DecompressedBgzfBlock decompressBgzfBlock(BgzfBlock block,
     ubyte[BGZF_MAX_BLOCK_SIZE] uncompressed_buf = void;
 
     // check that block follows BAM specification
-    enforce(block.input_size <= BGZF_MAX_BLOCK_SIZE, 
-            "Uncompressed block size must be within " ~ 
+    enforce(block.input_size <= BGZF_MAX_BLOCK_SIZE,
+            "Uncompressed block size must be within " ~
             to!string(BGZF_MAX_BLOCK_SIZE) ~ " bytes");
 
     // for convenience, provide a slice

@@ -1,7 +1,7 @@
 # Simple Makefile
 
 D_COMPILER=ldc2
-DFLAGS = -wi -g -relocation-model=pic -unittest -main -Icontrib/undead
+DFLAGS = -wi -g -main -relocation-model=pic -unittest -Icontrib/undead -L-lz
 
 ifndef GUIX
   ifdef GUIX_ENVIRONMENT
