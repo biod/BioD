@@ -9,6 +9,7 @@
     "Prasun Anand",
     "Pjotr Prins"
   ],
+  "targetType": "dynamicLibrary",
   "copyright": "Copyright © 2016-2019, BioD developers",
   "license": "MIT",
   "sourcePaths": ["bio","contrib/undead"],
