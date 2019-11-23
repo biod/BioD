@@ -126,4 +126,9 @@ import std.regex;
    assert(bf.header.getSequenceIndex("large") == 2);
    assert(bf.header.sequences["small"].length == 65536);
  }
+   // Time to kick in GC
+   import core.memory;
+   stderr.writeln("**** Calling GC2");
+   GC.collect();
+   stderr.writeln("**** Past calling GC2");
 }
