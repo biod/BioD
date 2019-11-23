@@ -65,89 +65,75 @@ import std.math;
 import std.typetuple;
 import std.regex;
 
-    auto fn = buildPath(dirName(__FILE__), "data", "tags.bam");
-    auto bf = new BamReader(fn);
-    foreach (read; bf.reads) {
-        auto line = read.to!string();
-        auto read2 = parseAlignmentLine(line, bf.header);
-        if (read != read2 && isValid(read)) {
-            stderr.writeln(read.name);
-        }
-        assert(read == read2 || !isValid(read));
-    }
-
-    fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
-    bf = new BamReader(fn);
-    auto readx = bf.reads;
-    readx.front;
-    readx.popFront();
-    readx.popFront();
-
-        {
-      fn = buildPath(dirName(__FILE__), "data", "b.sam");
-      auto sam = new SamReader(fn);
-      auto writer = new BamWriter("/dev/null", 0);
-      writer.writeSamHeader(sam.header);
-      writer.writeReferenceSequenceInfo(sam.reference_sequences);
-      foreach (r; sam.reads)
-        writer.writeRecord(r);
-      writer.finish();
-    }
-    {
-      fn = buildPath(dirName(__FILE__), "data", "bins.bam");
-      bf = new BamReader(fn);
-
-      void compareWithNaiveApproach(int beg, int end) {
-
-        auto refseq = array(bf["large"][beg .. end]);
-
-        auto naive = array(filter!((BamRead a) {
-                         return a.ref_id != -1 &&
-                                bf.reference(a.ref_id).name == "large" &&
-                                a.position < end &&
-                                a.position + a.basesCovered() > beg; })
-                            (bf.reads!withoutOffsets));
-        if (!equal(naive, refseq)) {
-            stderr.writeln(beg);
-            stderr.writeln(end);
-            stderr.writeln(array(map!"a.name"(refseq)));
-            stderr.writeln(array(map!"a.name"(naive)));
-        }
-        assert(equal(refseq, naive));
-      }
+ auto fn = buildPath(dirName(__FILE__), "data", "tags.bam");
+ auto bf = new BamReader(fn);
+ foreach (read; bf.reads) {
+   auto line = read.to!string();
+   auto read2 = parseAlignmentLine(line, bf.header);
+   if (read != read2 && isValid(read)) {
+     stderr.writeln(read.name);
+   }
+   assert(read == read2 || !isValid(read));
+ }
 
 
-      // Time to kick in GC
-      import core.memory;
-      stderr.writeln("**** Calling GC");
-      GC.collect();
-      stderr.writeln("**** Past calling GC");
-    }
-CigarOperation[] cigarFromString(string cigar) {
-    return match(cigar, regex(`(\d+)([A-Z=])`, "g")).map!(m => CigarOperation(m[1].to!uint, m[2].to!char)).array;
-}
+ {
+   fn = buildPath(dirName(__FILE__), "data", "b.sam");
+   auto sam = new SamReader(fn);
+   auto writer = new BamWriter("/dev/null", 0);
+   writer.writeSamHeader(sam.header);
+   writer.writeReferenceSequenceInfo(sam.reference_sequences);
+   foreach (r; sam.reads)
+     writer.writeRecord(r);
+   writer.finish();
+ }
+ {
+   fn = buildPath(dirName(__FILE__), "data", "bins.bam");
+   bf = new BamReader(fn);
 
-{
-    stderr.writeln("Running unittests...");
-    // stderr.writeln("Testing extracting SAM header...");
+   void compareWithNaiveApproach(int beg, int end) {
 
-    fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
-    bf = new BamReader(fn);
-    assert(bf.header.format_version == "1.3");
-    assert(bf.header.sorting_order == SortingOrder.coordinate);
-    assert(bf.header.sequences.length == 2);
-    assert(bf.header.getSequenceIndex("chr1") == 0);
-    assert(bf.header.sequences["chr2"].length == 1584);
+     auto refseq = array(bf["large"][beg .. end]);
 
-    fn = buildPath(dirName(__FILE__), "data", "bins.bam");
-    bf = new BamReader(fn);
-    assert(bf.header.sorting_order == SortingOrder.unknown);
-    assert(bf.header.sequences.length == 3);
-    assert(bf.header.read_groups.length == 0);
-    assert(bf.header.getSequenceIndex("large") == 2);
-    assert(bf.header.sequences["small"].length == 65536);
-
+     auto naive = array(filter!((BamRead a) {
+           return a.ref_id != -1 &&
+             bf.reference(a.ref_id).name == "large" &&
+             a.position < end &&
+             a.position + a.basesCovered() > beg; })
+       (bf.reads!withoutOffsets));
+     if (!equal(naive, refseq)) {
+       stderr.writeln(beg);
+       stderr.writeln(end);
+       stderr.writeln(array(map!"a.name"(refseq)));
+       stderr.writeln(array(map!"a.name"(naive)));
+     }
+     assert(equal(refseq, naive));
+   }
 
 
-  }
+   // Time to kick in GC
+   import core.memory;
+   stderr.writeln("**** Calling GC");
+   GC.collect();
+   stderr.writeln("**** Past calling GC");
+ }
+
+ {
+
+   fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
+   bf = new BamReader(fn);
+   assert(bf.header.format_version == "1.3");
+   assert(bf.header.sorting_order == SortingOrder.coordinate);
+   assert(bf.header.sequences.length == 2);
+   assert(bf.header.getSequenceIndex("chr1") == 0);
+   assert(bf.header.sequences["chr2"].length == 1584);
+
+   fn = buildPath(dirName(__FILE__), "data", "bins.bam");
+   bf = new BamReader(fn);
+   assert(bf.header.sorting_order == SortingOrder.unknown);
+   assert(bf.header.sequences.length == 3);
+   assert(bf.header.read_groups.length == 0);
+   assert(bf.header.getSequenceIndex("large") == 2);
+   assert(bf.header.sequences["small"].length == 65536);
+ }
 }
