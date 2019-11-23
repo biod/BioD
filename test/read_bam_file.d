@@ -306,46 +306,6 @@ CigarOperation[] cigarFromString(string cigar) {
         assert(read == read2);
     }
 
-    fn = buildPath(dirName(__FILE__), "data", "tags.bam");
-    bf = new BamReader(fn);
-    foreach (read; bf.reads) {
-        auto line = read.to!string();
-        auto read2 = parseAlignmentLine(line, bf.header);
-        if (read != read2 && isValid(read)) {
-            stderr.writeln(read.name);
-        }
-        assert(read == read2 || !isValid(read));
-    }
-
-    // stderr.writeln("Testing BAM writing...");
-    fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
-    bf = new BamReader(fn);
-    {
-    string tmp = tmpFile("12035913820619231129310.bam");
-    auto stream = new bio.core.utils.stream.File(tmp, "wb+");
-
-    auto writer = new BamWriter(stream);
-
-    writer.writeSamHeader(bf.header);
-    writer.writeReferenceSequenceInfo(bf.reference_sequences);
-
-    foreach (read; bf.reads)
-        writer.writeRecord(read);
-
-    writer.flush();
-
-    stream.seekSet(0);
-    assert(walkLength((new BamReader(stream)).reads) == 3270);
-    stream.close();
-    }
-
-    // stderr.writeln("Testing SAM reading...");
-    {
-    auto sf = new SamReader(buildPath(dirName(__FILE__), "data", "ex1_header.sam"));
-    assert(sf.reads.front.ref_id == 0);
-    assert(equal(sf.reads, bf.reads!withoutOffsets));
-    }
-
 
 
   }
