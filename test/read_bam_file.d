@@ -402,23 +402,5 @@ CigarOperation[] cigarFromString(string cigar) {
         }
     }
 
-    // stderr.writeln("Testing basesWith functionality...");
-    {
-        fn = buildPath(dirName(__FILE__), "data", "mg1655_chunk.bam");
-        bf = new BamReader(fn);
-        auto rg = bf.header.read_groups.values.front;
-        auto flow_order = rg.flow_order;
-        auto key_sequence = rg.key_sequence;
-        auto reads3 = array(bf.reads);
-
-        auto read = reads3[1];
-        assert(!read.is_reverse_strand);
-
-        alias TypeTuple!("FZ", "MD",
-                         Option.cigarExtra,
-                         Option.mdCurrentOp,
-                         Option.mdPreviousOp,
-                         Option.mdNextOp) Options;
-
-    }}
+  }
 }
