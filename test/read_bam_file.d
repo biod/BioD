@@ -116,25 +116,6 @@ import std.regex;
         assert(equal(refseq, naive));
       }
 
-      compareWithNaiveApproach(1400, 1500);
-      compareWithNaiveApproach(  10,  123);
-      compareWithNaiveApproach( 135, 1236);
-      compareWithNaiveApproach(1350, 3612);
-      compareWithNaiveApproach( 643, 1732);
-      compareWithNaiveApproach( 267, 1463);
-      compareWithNaiveApproach(   0,   30);
-      compareWithNaiveApproach(1363, 1612);
-      compareWithNaiveApproach( 361, 1231);
-      compareWithNaiveApproach( 322,  612);
-      compareWithNaiveApproach( 912,  938);
-      compareWithNaiveApproach(   0, 3000);
-      compareWithNaiveApproach(   0,  100);
-      compareWithNaiveApproach(   0, 1000);
-      compareWithNaiveApproach(   0, 1900);
-      compareWithNaiveApproach(   1,  279);
-      for (auto i = 50_000; i < 1_000_000; i += 50_000) {
-        compareWithNaiveApproach(i, i + 100);
-      }
 
       // Time to kick in GC
       import core.memory;
@@ -166,6 +147,12 @@ CigarOperation[] cigarFromString(string cigar) {
     assert(bf.header.getSequenceIndex("large") == 2);
     assert(bf.header.sequences["small"].length == 65536);
 
+    // Time to kick in GC
+    import core.memory;
+    stderr.writeln("**** Calling GC");
+    GC.collect();
+    stderr.writeln("**** Past calling GC");
+
     {
     // stderr.writeln("Testing alignment parsing...");
     fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
@@ -188,6 +175,9 @@ CigarOperation[] cigarFromString(string cigar) {
     }
 
     assert(bf.reads.front.name == "EAS56_57:6:190:289:82");
+    stderr.writeln("**** Calling GCx");
+    GC.collect();
+    stderr.writeln("**** Past calling GCx");
 
     // stderr.writeln("Testing tag parsing...");
     fn = buildPath(dirName(__FILE__), "data", "tags.bam");
@@ -430,107 +420,5 @@ CigarOperation[] cigarFromString(string cigar) {
                          Option.mdPreviousOp,
                          Option.mdNextOp) Options;
 
-        /*
-        auto bases = basesWith!Options(read,
-                                       arg!"flowOrder"(flow_order),
-                                       arg!"keySequence"(key_sequence));
-
-        typeof(bases.front) bfront;
-        bases.constructFront(&bfront);
-
-        assert(bfront.md_operation.is_match);
-        assert(bfront.md_operation.match == 309);
-        assert(bfront.md_operation_offset == 0);
-        assert(bfront.previous_md_operation.isNull);
-        assert(bfront.next_md_operation.is_deletion);
-        assert(equal(bfront.next_md_operation.deletion, "G"));
-        assert(equal(bfront.cigar_after, read.cigar[1 .. $]));
-        assert(equal(drop(map!"a.reference_base"(bases), 191),
-                     "-CCCGATTGGTCGTTGCTTTACGCTGATTGGCGAGTCCGGGGAACGTACCTTTGCTATCAGTCCAGGCCACATGAACCAGCTGCGGGCTGAAAGCATTCCGGAAGATGTGATTGCCGGACCTCGGCACTGGTTCTCACCTCATATCTGGTGCGTTGCAAGCCGGGTGAACCCATGCCGGAAGCACCATGAAAGCCATTGAGTACGCGAAGAAATATA"));
-        assert(equal(bases, read.sequence));
-        assert(equal(take(map!"a.flow_call.intensity_value"(bases), 92),
-                     [219, 219, 194, 194, 92, 107, 83, 198, 198, 78,
-                     // A   A    C    C    T   G   A    T    T    A
-                      292, 292, 292,  81, 79,  78, 95, 99, 315, 315, 315,
-                     // C   C    C    A    T   C   A    G    T    T    T
-                       89,  79, 290, 290, 290, 100, 209, 209, 87, 80,
-                     // G   C    G    G    G   T    G    G    C   A
-                      191, 191, 101, 179, 179, 210, 210, 99, 184, 184,
-                     // C   C   A     T    T    G   G    T    A   A
-                       90, 91, 193, 193, 66, 100, 112, 79, 108, 106, 212, 212,
-                     // C   A   C    C    A   T    G    C   A    C    A    A
-                       90, 96, 111, 94, 64, 94, 187, 187, 84, 110, 98, 102, 100,
-                     // C   T   A    C   T   C   G    G    T   G    C   T    C
-                       93, 89, 205, 205, 107, 98, 96, 91, 203, 203, 68, 180, 180,
-                     // G   C   G    G    A    C   G   A   C    C    G   T    T
-                       118, 246, 246, 91, 102, 94, 116, 90, 99, 101, 298, 298, 298
-                     // C    G    G    T   G    C   T    G   C   T    G    G    G
-                     ]));
-
-        // bases must be the same
-        foreach (r; reads) {
-            if (r.is_unmapped) continue;
-            if (r.cigar.length == 0) continue;
-            if (r.is_reverse_strand) {
-                bases = basesWith!Options(r, arg!"flowOrder"(flow_order),
-                                             arg!"keySequence"(key_sequence));
-                // if reverse strand, bases are also reverse complemented
-                assert(equal(bases, map!"a.complement"(retro(r.sequence))));
-            } else {
-                bases = basesWith!Options(r, arg!"flowOrder"(flow_order),
-                                             arg!"keySequence"(key_sequence));
-                assert(equal(bases, r.sequence));
-            }
-        }
-        */
-    }
-
-    // stderr.writeln("Testing extended CIGAR conversion...");
-
-    auto cigars = ["2M1D7M1D6M1D13M1D5M1D12M2D7M1D10M1D17M1D12M3D23M",
-                   "12M2D9M1D14M1D16M2D7M1D4M1D12M1D9M1D15M1D6M1D14M1S",
-                   "8S13M2I20M2D6M1D11M1D16M2D10M2D4M1D15M1D4M1D4M",
-                   "5M1D3M1D14M1D9M2D15M1D18M1D10M2D22M1I6M1D11M4S",
-                   "1S24M1D8M1D11M2D7M2D8M2D14M1D6M1D28M",
-                   "1S20M1D7M2D8M1D9M1D11M2D12M1D10M1D10M1D5M1D6M1D3M",
-                   "19M1D12M1D8M1D6M1I3M1D28M1D11M1D4M1D9M2D9M1I2M",
-                   "11S9M2D23M1D10M1I4M1D17M2D11M2D11M1D3M1D10M",
-                   "76M8D14M"].map!cigarFromString.array;
-
-    auto md_ops = ["2^G7^G6^T13^C5^G12^AC1T5^G10^T17^A12^TAA0T22",
-                   "6T1A3^TA9^T14^G10A0G4^AT0A6^T4^A12^C9^T15^T6^C14",
-                   "19C1T11^TC1T4^C11^T16^TG0A0C8^CT4^G15^T4^T4",
-                   "5^T3^G8G0T4^T9^AT1A13^T18^A10^AT0G10T1A14^A11",
-                   "24^T8^A11^AT0A6^TA0T7^AG0C13^C6^T9G0C0A16",
-                   "20^G4G2^GC0T7^G9^T11^AT5A6^G10^T10^A5^A6^C3",
-                   "13C0A4^A9A2^T8^C9^C10A0T16^T11^C4^C9^CA0G10",
-                   "9^TT8C0T13^T5A8^C2T14^CA11^TA0T10^T3^A9T0",
-                   "60T14A0^TATGTGTG14"].map!mdOperations.array;
-
-    auto expected = ["2=1D7=1D6=1D13=1D5=1D12=2D1=1X5=1D10=1D17=1D12=3D1X22=",
-                     "6=1X1=1X3=2D9=1D14=1D10=2X4=2D1X6=1D4=1D12=1D9=1D15=1D6=1D14=1S",
-                     "8S13=2I6=1X1=1X11=2D1=1X4=1D11=1D16=2D2X8=2D4=1D15=1D4=1D4=",
-                     "5=1D3=1D8=2X4=1D9=2D1=1X13=1D18=1D10=2D1X10=1X1=1X8=1I6=1D11=4S",
-                     "1S24=1D8=1D11=2D1X6=2D1X7=2D1X13=1D6=1D9=3X16=",
-                     "1S20=1D4=1X2=2D1X7=1D9=1D11=2D5=1X6=1D10=1D10=1D5=1D6=1D3=",
-                     "13=2X4=1D9=1X2=1D8=1D6=1I3=1D10=2X16=1D11=1D4=1D9=2D1X8=1I2=",
-                     "11S9=2D8=2X13=1D5=1X4=1I4=1D2=1X14=2D11=2D1X10=1D3=1D9=1X",
-                     "60=1X14=1X8D14="].map!cigarFromString.array;
-
-    foreach (cigar, md, expected_cigar; zip(cigars, md_ops, expected))
-        assert(makeExtendedCigar(cigar, md).equal(expected_cigar));
-
-    /* https://github.com/lomereiter/sambamba/issues/137 */
-    {
-      fn = buildPath(dirName(__FILE__), "data", "b.sam");
-      auto sam = new SamReader(fn);
-      auto writer = new BamWriter("/dev/null", 0);
-      writer.writeSamHeader(sam.header);
-      writer.writeReferenceSequenceInfo(sam.reference_sequences);
-      foreach (r; sam.reads)
-        writer.writeRecord(r);
-      writer.finish();
-    }
-
- }
+    }}
 }

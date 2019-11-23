@@ -55,7 +55,9 @@ $(BIN): $(OBJ)
 
 check: $(BIN)
 	$(info running tests...)
-	$(BIN) "--DRT-gcopt=gc:precise disable:1 cleanup:none"
+	$(BIN)
+
+# $(BIN) "--DRT-gcopt=gc:precise disable:1 cleanup:none"
 
 clean:
 	rm -vf $(OBJ)
