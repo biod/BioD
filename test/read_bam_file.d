@@ -65,20 +65,10 @@ import std.math;
 import std.typetuple;
 import std.regex;
 
- auto fn = buildPath(dirName(__FILE__), "data", "tags.bam");
- auto bf = new BamReader(fn);
- foreach (read; bf.reads) {
-   auto line = read.to!string();
-   auto read2 = parseAlignmentLine(line, bf.header);
-   if (read != read2 && isValid(read)) {
-     stderr.writeln(read.name);
-   }
-   assert(read == read2 || !isValid(read));
- }
-
-
+// auto fn = buildPath(dirName(__FILE__), "data", "tags.bam");
+// auto bf = new BamReader(fn);
  {
-   fn = buildPath(dirName(__FILE__), "data", "b.sam");
+   auto fn = buildPath(dirName(__FILE__), "data", "b.sam");
    auto sam = new SamReader(fn);
    auto writer = new BamWriter("/dev/null", 0);
    writer.writeSamHeader(sam.header);
@@ -88,8 +78,8 @@ import std.regex;
    writer.finish();
  }
  {
-   fn = buildPath(dirName(__FILE__), "data", "bins.bam");
-   bf = new BamReader(fn);
+   auto fn = buildPath(dirName(__FILE__), "data", "bins.bam");
+   auto bf = new BamReader(fn);
 
    void compareWithNaiveApproach(int beg, int end) {
 
@@ -120,8 +110,8 @@ import std.regex;
 
  {
 
-   fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
-   bf = new BamReader(fn);
+   auto fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
+   auto bf = new BamReader(fn);
    assert(bf.header.format_version == "1.3");
    assert(bf.header.sorting_order == SortingOrder.coordinate);
    assert(bf.header.sequences.length == 2);
