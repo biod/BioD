@@ -28,7 +28,8 @@ BIN         = bin/biod_tests
 shared:     LIB = libbiod.so
 lib:        LIB = libbiod
 
-debug check:    DFLAGS += -O0 -d-debug -unittest -link-debuglib
+# debug check:    DFLAGS += -O0 -d-debug -unittest -link-debuglib
+check:          DFLAGS += -O0 -d-debug -link-debuglib
 release static: DFLAGS += -O3 -release -enable-inlining -boundscheck=off
 static:         DFLAGS += -static -L-Bstatic
 shared:         DFLAGS += -shared
