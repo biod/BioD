@@ -1,32 +1,3 @@
-import bio.std.hts.bam.reader;
-import bio.std.hts.bam.pileup;
-import std.stdio;
-
-void main() {
-
-    auto bam = new BamReader("test/data/ex1_header.bam");
-    auto reads = bam["chr2"][150 .. 160]; // region chr2:149-158
-    auto pileup = makePileup(reads,
-            false,     // reads don't contain MD tags
-            155, 158); // specify [start, end) interval
-
-    foreach (column; pileup) {
-        writeln("Reference position: ", column.position);
-        writeln("    Coverage: ", column.coverage);
-        writeln("    Reads:");
-
-        foreach (read; column.reads) {
-            writefln("%30s\t%s\t%.2d\t%s\t%2s/%2s\t%2s/%2s\t%10s\t%s %s",
-                    read.name,
-                    read.current_base,
-                    read.current_base_quality,
-                    read.cigar_operation,
-                    read.cigar_operation_offset + 1, read.cigar_operation.length,
-                    read.query_offset + 1, read.sequence.length,
-                    read.cigarString(),
-                    read.cigar_before, read.cigar_after);
-        }
-    }
 
 import bio.std.hts.bam.cigar;
 import bio.std.hts.bam.reader;
@@ -65,8 +36,32 @@ import std.math;
 import std.typetuple;
 import std.regex;
 
-// auto fn = buildPath(dirName(__FILE__), "data", "tags.bam");
-// auto bf = new BamReader(fn);
+void main() {
+
+    auto bam = new BamReader("test/data/ex1_header.bam");
+    auto reads = bam["chr2"][150 .. 160]; // region chr2:149-158
+    auto pileup = makePileup(reads,
+            false,     // reads don't contain MD tags
+            155, 158); // specify [start, end) interval
+
+    foreach (column; pileup) {
+        writeln("Reference position: ", column.position);
+        writeln("    Coverage: ", column.coverage);
+        writeln("    Reads:");
+
+        foreach (read; column.reads) {
+            writefln("%30s\t%s\t%.2d\t%s\t%2s/%2s\t%2s/%2s\t%10s\t%s %s",
+                    read.name,
+                    read.current_base,
+                    read.current_base_quality,
+                    read.cigar_operation,
+                    read.cigar_operation_offset + 1, read.cigar_operation.length,
+                    read.query_offset + 1, read.sequence.length,
+                    read.cigarString(),
+                    read.cigar_before, read.cigar_after);
+        }
+    }
+
  {
    auto fn = buildPath(dirName(__FILE__), "data", "b.sam");
    auto sam = new SamReader(fn);
@@ -80,34 +75,11 @@ import std.regex;
  {
    auto fn = buildPath(dirName(__FILE__), "data", "bins.bam");
    auto bf = new BamReader(fn);
-
-   void compareWithNaiveApproach(int beg, int end) {
-
-     auto refseq = array(bf["large"][beg .. end]);
-
-     auto naive = array(filter!((BamRead a) {
-           return a.ref_id != -1 &&
-             bf.reference(a.ref_id).name == "large" &&
-             a.position < end &&
-             a.position + a.basesCovered() > beg; })
-       (bf.reads!withoutOffsets));
-     if (!equal(naive, refseq)) {
-       stderr.writeln(beg);
-       stderr.writeln(end);
-       stderr.writeln(array(map!"a.name"(refseq)));
-       stderr.writeln(array(map!"a.name"(naive)));
-     }
-     assert(equal(refseq, naive));
-   }
-
-
-   // Time to kick in GC
+ }
    import core.memory;
    stderr.writeln("**** Calling GC");
    GC.collect();
    stderr.writeln("**** Past calling GC");
- }
-
  {
 
    auto fn = buildPath(dirName(__FILE__), "data", "ex1_header.bam");
@@ -118,17 +90,18 @@ import std.regex;
    assert(bf.header.getSequenceIndex("chr1") == 0);
    assert(bf.header.sequences["chr2"].length == 1584);
 
-   fn = buildPath(dirName(__FILE__), "data", "bins.bam");
-   bf = new BamReader(fn);
-   assert(bf.header.sorting_order == SortingOrder.unknown);
-   assert(bf.header.sequences.length == 3);
-   assert(bf.header.read_groups.length == 0);
-   assert(bf.header.getSequenceIndex("large") == 2);
-   assert(bf.header.sequences["small"].length == 65536);
+   auto fn2 = buildPath(dirName(__FILE__), "data", "bins.bam");
+   auto bf2 = new BamReader(fn2);
+   assert(bf2.header.sorting_order == SortingOrder.unknown);
+   assert(bf2.header.sequences.length == 3);
+   assert(bf2.header.read_groups.length == 0);
+   assert(bf2.header.getSequenceIndex("large") == 2);
+   assert(bf2.header.sequences["small"].length == 65536);
  }
-   // Time to kick in GC
-   import core.memory;
-   stderr.writeln("**** Calling GC2");
-   GC.collect();
-   stderr.writeln("**** Past calling GC2");
+
+ // Time to kick in GC
+ import core.memory;
+ stderr.writeln("**** Calling GC");
+ GC.collect();
+ stderr.writeln("**** Past calling GC");
 }
