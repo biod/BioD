@@ -346,61 +346,7 @@ CigarOperation[] cigarFromString(string cigar) {
     assert(equal(sf.reads, bf.reads!withoutOffsets));
     }
 
-    // stderr.writeln("Testing pileup (high-level aspects)...");
-    {
-        // All of pileup functions should automatically filter out unmapped reads.
 
-        // When reads in a range are aligned to different references,
-        // pileup objects should process only the first one.
-        bf = new BamReader(fn); // chr1, chr2
-        {
-            auto pileup2 = makePileup(bf.reads);
-            foreach (column; pileup2) {
-                foreach (read; column.reads) {
-                    assert(bf.reference_sequences[read.ref_id].name == "chr1");
-                    assert(read.ref_id == column.ref_id);
-                    assert(!read.is_unmapped);
-                }
-            }
-        }
-        // However, if pileupColumns is used, columns corresponding to chr1
-        // should come first, and after them -- those for chr2
-        {
-            auto columns = pileupColumns(bf.reads);
-            int current_ref_id = -1;
-
-                                      // [99 .. 1569]   [1 .. 1567]
-            int[2] expected_columns = [1470,            1567];
-            foreach (column; columns) {
-                int ref_id = column.ref_id;
-                --expected_columns[ref_id];
-                if (ref_id != current_ref_id) {
-                    assert(ref_id > current_ref_id);
-                    switch (ref_id) {
-                        case 0:
-                            assert(column.reads.front.name == "EAS56_57:6:190:289:82");
-                            assert(column.position == 99);
-                            break;
-                        case 1:
-                            assert(column.reads.front.name == "B7_591:8:4:841:340");
-                            assert(column.position == 0);
-                            break;
-                        default:
-                            break;
-                    }
-
-                    current_ref_id = ref_id;
-                }
-                if (!column.reads.empty) {
-                    foreach (read; column.reads) {
-                        assert(read.ref_id == ref_id);
-                        assert(!read.is_unmapped);
-                    }
-                }
-            }
-            assert(expected_columns == [0, 0]);
-        }
-    }
 
   }
 }
