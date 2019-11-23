@@ -215,31 +215,6 @@ CigarOperation[] cigarFromString(string cigar) {
     assertThrown!ZlibException(walkLength((new BamReader(fn)).reads));
     // stderr.writeln("Testing random access...");
 
-    fn = buildPath(dirName(__FILE__), "data", "bins.bam");
-    bf = new BamReader(fn);
-
-
-    // Time to kick in GC
-    import core.memory;
-    stderr.writeln("**** Calling GC");
-    GC.collect();
-    stderr.writeln("**** Past calling GC");
-
-    {
-        auto fst_offset_tiny = bf["tiny"].startVirtualOffset();
-        auto fst_offset_small = bf["small"].startVirtualOffset();
-        auto fst_offset_large = bf["large"].startVirtualOffset();
-
-        auto fst_read_tiny = bf.getReadAt(fst_offset_tiny);
-        auto fst_read_small = bf.getReadAt(fst_offset_small);
-        auto fst_read_large = bf.getReadAt(fst_offset_large);
-
-        assert(fst_read_tiny.name == "tiny:r1:0..1:len1:bin4681:hexbin0x1249");
-        assert(fst_read_small.name == "small:r1:0..1:len1:bin4681:hexbin0x1249");
-        assert(fst_read_large.name == "large:r1:0..1:len1:bin4681:hexbin0x1249");
-    }
-
-
 
   }
 }
