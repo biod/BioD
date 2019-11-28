@@ -8,10 +8,10 @@
     the rights to use, copy, modify, merge, publish, distribute, sublicense,
     and/or sell copies of the Software, and to permit persons to whom the
     Software is furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,7 +22,7 @@
 
 */
 /// Writing a script/tool for processing BAM data often starts this way:
-/// 
+///
 /// ------------------------
 /// import bio.std.hts.bam.reader;
 ///
@@ -35,7 +35,7 @@
 ///     }
 /// }
 /// ------------------------
-/// 
+///
 /// Or, if a specific interval on the reference sequence is to be explored:
 /// ------------------------
 /// import bio.std.hts.bam.pileup;
@@ -72,6 +72,7 @@ import std.parallelism;
 import std.array;
 import core.stdc.stdio;
 import std.string;
+import std.stdio;
 
 /**
   BAM file reader, featuring parallel decompression of BGZF blocks.
@@ -82,7 +83,7 @@ class BamReader : IBamSamReader {
       Creates reader associated with file or stream.
       (If stream constructor is used, no random access is possible.)
       $(BR)
-      Optionally, task pool can be specified. 
+      Optionally, task pool can be specified.
       It will be used to unpack BGZF blocks in parallel.
 
       Example:
@@ -108,7 +109,7 @@ class BamReader : IBamSamReader {
         initializeStreams();
 
         auto magic = _bam.readString(4);
-        
+
         enforce(magic == "BAM\1", "Invalid file format: expected BAM\\1");
 
         readSamHeader();
@@ -130,11 +131,12 @@ class BamReader : IBamSamReader {
         this(_source_stream, task_pool);
     }
 
+
     /// ditto
     this(string filename) {
-        this(filename, std.parallelism.taskPool);
+      this(filename, std.parallelism.taskPool);
     }
- 
+
     /**
       True if BAI file was found for this BAM file.
       This is necessary for any random-access operations.
@@ -142,7 +144,7 @@ class BamReader : IBamSamReader {
       Looks for files in the same directory which filename
       is either the file name of BAM file with '.bai' appended,
       or with the last extension replaced with '.bai'
-      (that is, for $(I file.bam) paths $(I file.bai) and 
+      (that is, for $(I file.bam) paths $(I file.bai) and
       $(I file.bam.bai) will be checked)
      */
     bool has_index() @property {
@@ -206,7 +208,7 @@ class BamReader : IBamSamReader {
     /**
         Range of all alignment records in the file.
         $(BR)
-        Element type of the returned range depends on the policy. 
+        Element type of the returned range depends on the policy.
         Default one is $(DPREF2 bam, readrange, withoutOffsets),
         in this case range element type is $(DPREF2 bam, read, BamRead).
         $(BR)
@@ -242,7 +244,7 @@ class BamReader : IBamSamReader {
         static if (__traits(identifier, IteratePolicy) == "withOffsets") {
             auto front() @property {
                 return _range.front;
-            } 
+            }
         } else static if (__traits(identifier, IteratePolicy) == "withoutOffsets") {
             auto front() @property {
                 return _range.front.read;
@@ -262,8 +264,8 @@ class BamReader : IBamSamReader {
             _bytes_read += _range.front.read.size_in_bytes;
             _range.popFront();
             if (_progress_bar_func !is null) {
-                _progress_bar_func(min(1.0, 
-                    cast(float)_bytes_read / (_stream.total_compressed_size * 
+                _progress_bar_func(min(1.0,
+                    cast(float)_bytes_read / (_stream.total_compressed_size *
                                               _stream.average_compression_ratio)));
             }
         }
@@ -278,13 +280,13 @@ class BamReader : IBamSamReader {
 
     /**
         Returns: range of all reads in the file, calling $(I progressBarFunc)
-                 for each read. 
+                 for each read.
         $(BR)
         $(I progressBarFunc) will be called
         each time next alignment is read, with the argument being a number from [0.0, 1.0],
         which is estimated progress percentage.
         $(BR)
-        Notice that $(I progressBarFunc) takes $(D lazy) argument, 
+        Notice that $(I progressBarFunc) takes $(D lazy) argument,
         so that the number of relatively expensive float division operations
         can be controlled by user.
 
@@ -306,14 +308,14 @@ class BamReader : IBamSamReader {
     */
     auto readsWithProgress(alias IteratePolicy=bio.std.hts.bam.readrange.withoutOffsets)
         (void delegate(lazy float p) progressBarFunc,
-         void delegate() finishFunc=null) 
+         void delegate() finishFunc=null)
     {
         auto _decompressed_stream = getDecompressedBamReadStream();
         auto reads_with_offsets = bamReadRange!withOffsets(_decompressed_stream, this);
-       
-        alias ReadsWithProgressResult!(IteratePolicy, 
+
+        alias ReadsWithProgressResult!(IteratePolicy,
                        typeof(reads_with_offsets), BgzfInputStream) Result;
-        
+
         return Result(reads_with_offsets, _decompressed_stream,
                       progressBarFunc, finishFunc);
     }
@@ -344,12 +346,12 @@ class BamReader : IBamSamReader {
       and be strictly less than the second one.
       $(BR)
       For decompression, the task pool specified at the construction is used.
-     */ 
-    auto getReadsBetween(bio.core.bgzf.virtualoffset.VirtualOffset from, 
+     */
+    auto getReadsBetween(bio.core.bgzf.virtualoffset.VirtualOffset from,
                          bio.core.bgzf.virtualoffset.VirtualOffset to) {
         enforce(from <= to, "First offset must be less than second");
         enforce(_stream_is_seekable, "Stream is not seekable");
-        
+
         return _random_access_manager.getReadsBetween(from, to);
     }
 
@@ -403,7 +405,7 @@ class BamReader : IBamSamReader {
      */
     bio.std.hts.bam.reference.ReferenceSequence reference(int ref_id) {
         enforce(ref_id < _reference_sequences.length, "Invalid reference index");
-        return ReferenceSequence(_random_access_manager, 
+        return ReferenceSequence(_random_access_manager,
                                  ref_id,
                                  _reference_sequences[ref_id]);
     }
@@ -435,7 +437,7 @@ class BamReader : IBamSamReader {
     /**
       Set buffer size for I/O operations. Values less than 4096 are disallowed.
       $(BR)
-      This can help in multithreaded applications when several files are read 
+      This can help in multithreaded applications when several files are read
       simultaneously (e.g. merging).
      */
     void setBufferSize(size_t buffer_size) {
@@ -447,7 +449,7 @@ class BamReader : IBamSamReader {
     package bool _seqprocmode; // available for bio.std.hts.bam.readrange;
 
 private:
-    
+
     string _filename;                       // filename (if available)
     Stream _source_stream;                  // compressed
     BgzfInputStream _decompressed_stream;   // decompressed
@@ -482,7 +484,7 @@ private:
     @property ref BaiFile _bai_file() { // initialized lazily
         initBai();
         return _dont_access_me_directly_use_bai_file_for_that;
-    }; 
+    };
 
     RandomAccessManager _rndaccssmgr; // unreadable for a purpose
     @property RandomAccessManager _random_access_manager() {
@@ -529,7 +531,7 @@ private:
             } else {
                 _source_stream.seekSet(0);
                 return _source_stream;
-            } 
+            }
         } else {
             return null;
         }
@@ -544,7 +546,7 @@ private:
                                                  compressed_stream);
 
         return new BgzfInputStream(block_supplier, _task_pool,
-                                   null, _buffer_size);
+                                   _buffer_size);
     }
 
     // get decompressed stream starting from the first alignment record
@@ -556,8 +558,8 @@ private:
 
             compressed_stream.seekCur(_reads_start_voffset.coffset);
             auto block_supplier = new StreamSupplier(compressed_stream);
-            auto stream = new BgzfInputStream(block_supplier, _task_pool, 
-                                              null, _buffer_size);
+            auto stream = new BgzfInputStream(block_supplier, _task_pool,
+                                              _buffer_size);
             stream.readString(_reads_start_voffset.uoffset);
             return stream;
         } else {
@@ -568,9 +570,9 @@ private:
 
     // sets up the streams and ranges
     void initializeStreams() {
-        
+
         _decompressed_stream = getDecompressedStream();
-        _bam = new EndianStream(_decompressed_stream, Endian.littleEndian); 
+        _bam = new EndianStream(_decompressed_stream, Endian.littleEndian);
     }
 
     // initializes _header

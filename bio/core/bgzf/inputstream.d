@@ -42,6 +42,15 @@ class BgzfException : Exception {
     this(string msg) { super(msg); }
 }
 
+/*
+
+Called by
+
+randomaccessmanager.d: fillBgzfBufferFromStream(stream, true, &block, buf.ptr);
+inputstream.d: auto result = fillBgzfBufferFromStream(_stream, _seekable, block, buffer,
+
+*/
+
 bool fillBgzfBufferFromStream(Stream stream, bool is_seekable,
                               BgzfBlock* block, ubyte* buffer,
                               size_t *number_of_bytes_read=null)
@@ -336,12 +345,13 @@ class StreamChunksSupplier : BgzfBlockSupplier {
 }
 
 ///
+// Provided an uncompressed stream block by class
 class BgzfInputStream : Stream {
     private {
         BgzfBlockSupplier _supplier;
         ubyte[] _data;
 
-        BgzfBlockCache _cache;
+        // BgzfBlockCache _cache;
 
         ubyte[] _read_buffer;
         VirtualOffset _current_vo;
@@ -355,17 +365,18 @@ class BgzfInputStream : Stream {
         TaskPool _pool;
         enum _max_block_size = BGZF_MAX_BLOCK_SIZE * 2;
 
-        alias Task!(decompressBgzfBlock, BgzfBlock, BgzfBlockCache)
-            DecompressionTask;
-        DecompressionTask[] _task_buf;
+        alias Task!(decompressBgzfBlock, BgzfBlock) DecompressionTask;
+        // DecompressionTask[] _task_buf;
 
+        // static here means that BlockAux has no access to
+        // its surrounding scope https://dlang.org/spec/struct.html
         static struct BlockAux {
-            BgzfBlock block;
-            ushort skip_start;
-            ushort skip_end;
+          BgzfBlock block;
+          ushort skip_start;
+          ushort skip_end;
 
-            DecompressionTask* task;
-            alias task this;
+          DecompressionTask* task;
+          // alias task this; // https://dlang.org/spec/class.html#AliasThis
         }
 
         RoundBuf!BlockAux _tasks = void;
@@ -373,6 +384,7 @@ class BgzfInputStream : Stream {
         size_t _offset;
 
         bool fillNextBlock() {
+          // Sets up a decompression task and pushes it on the roundbuf _tasks
             ubyte* p = _data.ptr + _offset;
             BlockAux b = void;
             if (_supplier.getNextBgzfBlock(&b.block, p,
@@ -388,15 +400,21 @@ class BgzfInputStream : Stream {
                     stderr.writeln("[creating task] ", b.block.start_offset, " / ", b.skip_start, " / ", b.skip_end);
                 }
 
+                /*
                 DecompressionTask tmp = void;
-                tmp = scopedTask!decompressBgzfBlock(b.block, _cache);
+                tmp = scopedTask!decompressBgzfBlock(b.block);
                 auto t = _task_buf.ptr + _offset / _max_block_size;
                 import core.stdc.string : memcpy;
                 memcpy(t, &tmp, DecompressionTask.sizeof);
                 b.task = t;
                 _tasks.put(b);
                 _pool.put(b.task);
-
+                */
+                // tmp = scopedTask!decompressBgzfBlock(b.block);
+                auto task = task!decompressBgzfBlock(b.block);
+                b.task = task;
+                _tasks.put(b); // _tasks is roundbuf
+                _pool.put(b.task); // _pool is thread pool
                 _offset += _max_block_size;
                 if (_offset == _data.length)
                     _offset = 0;
@@ -436,20 +454,22 @@ class BgzfInputStream : Stream {
 
     this(BgzfBlockSupplier supplier,
          TaskPool pool=taskPool,
-         BgzfBlockCache cache=null,
+         // BgzfBlockCache cache=null,
          size_t buffer_size=0)
     {
         _supplier = supplier;
         _compressed_size = _supplier.totalCompressedSize();
         _pool = pool;
-        _cache = cache;
+        // _cache = cache;
 
+        // The roundbuf size (n_tasks) should be at least
+        // the number of threads
         size_t n_tasks = max(pool.size, 1) * 2;
         if (buffer_size > 0)
             n_tasks = max(n_tasks, buffer_size / BGZF_MAX_BLOCK_SIZE);
-
+        // n_tasks is 13 on my machine
         _tasks = RoundBuf!BlockAux(n_tasks);
-        _task_buf = uninitializedArray!(DecompressionTask[])(n_tasks);
+        // _task_buf = uninitializedArray!(DecompressionTask[])(n_tasks);
 
         _data = uninitializedArray!(ubyte[])(n_tasks * _max_block_size);
 

@@ -24,7 +24,7 @@
 module bio.core.bgzf.block;
 
 import bio.std.hts.bam.constants;
-import bio.core.utils.memoize;
+// import bio.core.utils.memoize;
 import bio.core.utils.zlib;
 
 import std.array;
@@ -35,6 +35,9 @@ import std.exception;
 /**
   Structure representing BGZF block.
   In general, users shouldn't use it, as it is EXTREMELY low-level.
+
+  Note it is a struct that has support for comparison based
+  on its crc32 value.
  */
 struct BgzfBlock {
     // field types are as in the SAM/BAM specification
@@ -89,6 +92,8 @@ struct BgzfBlock {
     }
 }
 
+import std.stdio;
+
 /**
   Struct representing decompressed BgzfBlock
 
@@ -96,33 +101,45 @@ struct BgzfBlock {
   and yet be able to decompress blocks in parallel.
  */
 struct DecompressedBgzfBlock {
-    ulong start_offset;
-    ulong end_offset;
-    ubyte[] decompressed_data;
+  /* For the class version:
+  this(ulong start, ulong end, ubyte[] buf) {
+    start_offset = start;
+    end_offset = end;
+    decompressed_data = buf;
+  }
+  ~this() {
+    stderr.writeln("destroy DecompressedBgzfBlock ",start_offset,":",end_offset," ",decompressed_data.sizeof);
+  };
+  */
+
+  ulong start_offset;
+  ulong end_offset;
+  ubyte[] decompressed_data;
 }
 
 ///
-alias Cache!(BgzfBlock, DecompressedBgzfBlock) BgzfBlockCache;
+// alias Cache!(BgzfBlock, DecompressedBgzfBlock) BgzfBlockCache;
 
 /// Function for BGZF block decompression.
 /// Reuses buffer allocated for storing compressed data,
 /// i.e. after execution buffer of the passed $(D block)
 /// is overwritten with uncompressed data.
-DecompressedBgzfBlock decompressBgzfBlock(BgzfBlock block,
-                                          BgzfBlockCache cache=null)
+DecompressedBgzfBlock decompressBgzfBlock(BgzfBlock block)
 {
     if (block.input_size == 0) {
-        return DecompressedBgzfBlock(block.start_offset,
-                                     block.start_offset + block.bsize + 1,
-                                     cast(ubyte[])[]); // EOF marker
-        // TODO: add check for correctness of EOF marker
+      return DecompressedBgzfBlock(block.start_offset,
+                                   block.start_offset + block.bsize + 1,
+                                   cast(ubyte[])[]); // EOF marker
+      // TODO: add check for correctness of EOF marker
     }
 
+    /*
     if (cache !is null) {
         auto ptr = cache.lookup(block);
         if (ptr !is null)
             return *ptr;
     }
+    */
 
     int err = void;
 
@@ -169,6 +186,7 @@ DecompressedBgzfBlock decompressBgzfBlock(BgzfBlock block,
 
     assert(block.crc32 == crc32(0, uncompressed[]));
 
+    /*
     if (cache !is null) {
         BgzfBlock compressed_bgzf_block = block;
         compressed_bgzf_block._buffer = block._buffer.dup;
@@ -180,6 +198,7 @@ DecompressedBgzfBlock decompressBgzfBlock(BgzfBlock block,
         }
         cache.put(compressed_bgzf_block, decompressed_bgzf_block);
     }
+    */
 
     // Now copy back to block._buffer, overwriting existing data.
     // It should have enough bytes already allocated.
@@ -192,6 +211,6 @@ DecompressedBgzfBlock decompressBgzfBlock(BgzfBlock block,
     block._buffer[0 .. block.input_size] = uncompressed[];
     block.dirty = true;
 
-    return DecompressedBgzfBlock(block.start_offset, block.end_offset,
-                                 block._buffer[0 .. block.input_size]);
+    auto decompressed = DecompressedBgzfBlock(block.start_offset, block.end_offset, block._buffer[0 .. block.input_size]);
+    return decompressed;
 }

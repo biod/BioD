@@ -487,5 +487,3 @@ unittest {
       writer.finish();
     }
 }
-
-void main() {}
