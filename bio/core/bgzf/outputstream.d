@@ -8,10 +8,10 @@
     the rights to use, copy, modify, merge, publish, distribute, sublicense,
     and/or sell copies of the Software, and to permit persons to whom the
     Software is furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -67,9 +67,9 @@ class BgzfOutputStream : Stream {
 
     /// Create new BGZF output stream which will use
     /// provided $(D task_pool) to do multithreaded compression.
-    this(Stream output_stream, 
-         int compression_level=-1, 
-         TaskPool task_pool=taskPool, 
+    this(Stream output_stream,
+         int compression_level=-1,
+         TaskPool task_pool=taskPool,
          size_t buffer_size=0,
          size_t max_block_size=BGZF_MAX_BLOCK_SIZE,
          size_t block_size=BGZF_BLOCK_SIZE)
@@ -132,7 +132,7 @@ class BgzfOutputStream : Stream {
     }
 
     /// Force flushing current block, even if it is not yet filled.
-    /// Should be used when it's not desired to have records crossing block borders. 
+    /// Should be used when it's not desired to have records crossing block borders.
     void flushCurrentBlock() {
 
         if (_current_size == 0)
@@ -197,7 +197,7 @@ class BgzfOutputStream : Stream {
             writeResult(block);
             _compression_tasks.popFront();
         }
-	
+
         _stream.flush();
         _current_size = 0;
     }
@@ -218,7 +218,7 @@ class BgzfOutputStream : Stream {
 
     /// Adds EOF block. This function is called in close() method.
     void addEofBlock() {
-        _stream.writeExact(BGZF_EOF.ptr, BGZF_EOF.length);    
+        _stream.writeExact(BGZF_EOF.ptr, BGZF_EOF.length);
     }
 }
 

@@ -8,10 +8,10 @@
     the rights to use, copy, modify, merge, publish, distribute, sublicense,
     and/or sell copies of the Software, and to permit persons to whom the
     Software is furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -67,10 +67,10 @@ private {
 /// Class which random access tasks are delegated to.
 class RandomAccessManager {
 
-    void setCache(BgzfBlockCache cache) {
-        _cache = cache;
-    }
-    
+  // void setCache(BgzfBlockCache cache) {
+      // _cache = cache;
+  //}
+
     void setTaskPool(TaskPool task_pool) {
         _task_pool = task_pool;
     }
@@ -146,7 +146,8 @@ class RandomAccessManager {
         auto _compressed_stream = new EndianStream(_stream, Endian.littleEndian);
         _compressed_stream.seekSet(cast(size_t)(offset.coffset));
         auto supplier = new StreamSupplier(_compressed_stream, offset.uoffset);
-        auto bgzf_stream = new BgzfInputStream(supplier, _task_pool, _cache);
+        // auto bgzf_stream = new BgzfInputStream(supplier, _task_pool, _cache);
+        auto bgzf_stream = new BgzfInputStream(supplier, _task_pool);
         return bgzf_stream;
     }
 
@@ -154,7 +155,7 @@ class RandomAccessManager {
     /// Every time new stream is used.
     BamRead getReadAt(VirtualOffset offset) {
         auto stream = createStreamStartingFrom(offset);
-        
+
         bool old_mode = _reader._seqprocmode;
         _reader._seqprocmode = true;
         auto read = bamReadRange(stream, _reader).front.dup;
@@ -303,7 +304,7 @@ class RandomAccessManager {
         auto reads = readsFromChunks!IteratePolicy(chunks);
         return filterBamReads(reads, regions);
     }
-    
+
     /// Fetch alignments with given reference sequence id, overlapping [beg..end)
     auto getReads(alias IteratePolicy=withOffsets)(BamRegion region)
     {
@@ -325,7 +326,7 @@ class RandomAccessManager {
                 last_ref_id = region.ref_id;
             }
         }
-    
+
         static ref auto regB(ref BamRegion region) { return region.start; }
         static ref auto regE(ref BamRegion region) { return region.end; }
         foreach (ref group; regions_by_ref)
@@ -341,24 +342,25 @@ private:
         auto fstream = new bio.core.utils.stream.File(_filename);
         auto compressed_stream = new EndianStream(fstream, Endian.littleEndian);
         auto supplier = new StreamChunksSupplier(compressed_stream, chunks);
-        auto stream = new BgzfInputStream(supplier, _task_pool, _cache);
+        // auto stream = new BgzfInputStream(supplier, _task_pool, _cache);
+        auto stream = new BgzfInputStream(supplier, _task_pool);
         return bamReadRange!IteratePolicy(stream, _reader);
     }
-    
+
     string _filename;
     BaiFile _bai;
     BamReader _reader;
     TaskPool _task_pool;
     size_t _buffer_size;
 
-    BgzfBlockCache _cache;
+  // BgzfBlockCache _cache;
 
     TaskPool task_pool() @property {
         if (_task_pool is null)
             _task_pool = taskPool;
         return _task_pool;
     }
-        
+
 public:
 
     static struct BamReadFilter(R) {
@@ -378,13 +380,13 @@ public:
         ElementType!R front() @property {
             return _current_read;
         }
-        
+
         void popFront() {
             _range.popFront();
             findNext();
         }
 
-    private: 
+    private:
         R _range;
         uint _ref_id;
         BamRegion _region;
@@ -417,9 +419,9 @@ public:
 
                 if (_current_read.position >= _region.end) {
                     // As reads are sorted by leftmost coordinate,
-                    // all remaining alignments in _range 
+                    // all remaining alignments in _range
                     // will not overlap the current interval as well.
-                    // 
+                    //
                     //                  [-----)
                     //                  . [-----------)
                     //                  .  [---)
@@ -443,7 +445,7 @@ public:
                 }
 
                 if (_current_read.position +
-                    _current_read.basesCovered() <= _region.start) 
+                    _current_read.basesCovered() <= _region.start)
                     {
                         /// ends before beginning of the region
                         ///  [-----------)
@@ -455,7 +457,7 @@ public:
                     return; /// _current_read overlaps the region
                 }
             }
-            _empty = true; 
+            _empty = true;
         }
     }
 

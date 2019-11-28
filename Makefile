@@ -29,7 +29,7 @@ shared:     LIB = libbiod.so
 lib:        LIB = libbiod
 
 # debug check:    DFLAGS += -O0 -d-debug -unittest -link-debuglib
-check:          DFLAGS += -O0 -d-debug -link-debuglib
+check:          DFLAGS += -O0 -d-debug -link-debuglib -unittest
 release static: DFLAGS += -O3 -release -enable-inlining -boundscheck=off
 static:         DFLAGS += -static -L-Bstatic
 shared:         DFLAGS += -shared
@@ -54,7 +54,11 @@ $(BIN): $(OBJ)
 	$(D_COMPILER) $(DFLAGS) $(OBJ) -of=$(BIN)
 
 check: $(BIN)
+<<<<<<< HEAD
 	$(info running tests...)
+=======
+	$(info Make check running tests...)
+>>>>>>> segfaults
 	$(BIN)
 
 # $(BIN) "--DRT-gcopt=gc:precise disable:1 cleanup:none"
