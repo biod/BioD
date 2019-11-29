@@ -54,11 +54,7 @@ $(BIN): $(OBJ)
 	$(D_COMPILER) $(DFLAGS) $(OBJ) -of=$(BIN)
 
 check: $(BIN)
-<<<<<<< HEAD
-	$(info running tests...)
-=======
 	$(info Make check running tests...)
->>>>>>> segfaults
 	$(BIN)
 
 # $(BIN) "--DRT-gcopt=gc:precise disable:1 cleanup:none"
