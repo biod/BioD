@@ -1,0 +1,2 @@
+option('optimize_strong', type : 'boolean', value: false)
+option('tests', type : 'boolean', value: true)
